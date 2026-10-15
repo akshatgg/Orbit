@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { EventCard } from "@/components/events/EventCard";
@@ -13,6 +14,7 @@ import { getFollowerCount, getOrganiserBySlug, isFollowing, listPublicOrganiserE
 import { labelFor, ORGANISER_KINDS } from "@/lib/taxonomy";
 
 export async function generateMetadata({ params }: PageProps<"/o/[slug]">): Promise<Metadata> {
+  await connection(); // data reads below are per request
   const { slug } = await params;
   const org = await getOrganiserBySlug(slug);
   if (!org || org.status !== "approved") return { title: "Organiser not found" };
