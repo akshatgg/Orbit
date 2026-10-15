@@ -57,7 +57,7 @@ export const WEIGHTS = {
   preferredFormat: 5,
   featured: 5,
   startingSoon: 4,
-  fullWithWaitlist: -3,
+  fullWithWaitlist: -15,
   fullNoWaitlist: -20,
   registrationClosed: -25,
 } as const;
@@ -379,9 +379,12 @@ export function scoreSignals(event: RankableEvent, profile: RankProfile, ctx: Ra
 }
 
 /** "Recommended because A and B" from the two strongest positive reasons. */
+// Too generic to recommend something on their own ("it's in person").
+const WEAK_REASONS: ReadonlySet<SignalKey> = new Set<SignalKey>(["preferredFormat", "startingSoon"]);
+
 export function buildReason(signals: Signal[]): string | null {
   const reasons = signals
-    .filter((s) => s.weight > 0 && s.reason)
+    .filter((s) => s.weight > 0 && s.reason && !WEAK_REASONS.has(s.key))
     .sort((a, b) => b.weight - a.weight)
     .slice(0, 2)
     .map((s) => s.reason as string);

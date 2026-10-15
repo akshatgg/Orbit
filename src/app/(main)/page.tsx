@@ -9,6 +9,7 @@ import { DismissProvider, Dismissible } from "@/components/discovery/Dismiss";
 import { DiscoveryHeader, FeedSkeleton, ICONS, IconLink, SectionHeading } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
 import { getRankedFeed, getViewer } from "@/lib/discovery/queries";
+import { spotsLeft } from "@/lib/events/queries";
 
 export const metadata: Metadata = { title: "For You" };
 
@@ -57,7 +58,11 @@ async function Feed() {
     );
   }
 
-  const [top, ...rest] = ranked;
+  // The hero should be something you can still get into: skip full events when anything else is open.
+  const openIndex = ranked.findIndex((r) => spotsLeft(r.event, r.event.counts) !== 0);
+  const topIndex = openIndex === -1 ? 0 : openIndex;
+  const top = ranked[topIndex];
+  const rest = ranked.filter((_, i) => i !== topIndex);
   const state = viewer.state;
 
   return (

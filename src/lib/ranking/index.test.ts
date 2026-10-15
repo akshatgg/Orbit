@@ -210,6 +210,16 @@ describe("buildReason", () => {
     ])).toBe("Recommended because it's featured on ORBIT");
     expect(buildReason([])).toBeNull();
   });
+  it("never recommends on a generic reason alone", () => {
+    expect(buildReason([
+      { key: "preferredFormat", weight: 5, reason: "it's in person" },
+      { key: "startingSoon", weight: 4, reason: "it's happening very soon" },
+    ])).toBeNull();
+    expect(buildReason([
+      { key: "personalInterest", weight: 15, reason: "you enjoy fitness" },
+      { key: "preferredFormat", weight: 5, reason: "it's in person" },
+    ])).toBe("Recommended because you enjoy fitness");
+  });
 });
 
 describe("exclusions", () => {
