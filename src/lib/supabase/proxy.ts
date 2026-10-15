@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "./env";
 
-const PUBLIC_PATHS = ["/login", "/auth", "/offline"];
+// Reachable without signing in. Event and organiser pages are public so they can be shared.
+const PUBLIC_PATHS = ["/login", "/auth", "/offline", "/events/", "/o/", "/go/", "/api/cron/", "/api/stripe/webhook"];
 
 /** Refreshes the Supabase session cookie and sends signed-out users to /login. */
 export async function updateSession(request: NextRequest) {

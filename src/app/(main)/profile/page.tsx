@@ -1,14 +1,12 @@
-import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ui/ComingSoon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Placeholder } from "@/components/ui/Placeholder";
 
-export const metadata: Metadata = { title: "Profile" };
-
-export default function ProfilePage() {
+// Built by the "onboarding-profile" feature.
+export default function Page() {
   return (
     <>
       <PageHeader title="Profile" subtitle="Your interests, preferences and saved events" />
-      <ComingSoon>Edit preferences, see saved / attended / not-interested events.</ComingSoon>
+      <Placeholder>Profile, preferences, saved events, organiser &amp; admin links.</Placeholder>
     </>
   );
 }

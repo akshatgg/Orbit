@@ -1,69 +1,37 @@
-// Hand-written to match supabase/migrations. Once the Supabase project exists,
-// replace with generated types: npx supabase gen types typescript --project-id <ref>
+// Row types for the ORBIT database.
+// `supabase.ts` is generated from the schema — run `npm run db:types` after changing migrations.
+import type { Tables } from "./supabase";
 
+export type { Database, Tables, TablesInsert, TablesUpdate } from "./supabase";
+
+export type Profile = Tables<"profiles">;
+export type Organiser = Tables<"organisers">;
+export type OrganiserMember = Tables<"organiser_members">;
+export type Category = Tables<"categories">;
+export type OrbitEvent = Tables<"events">;
+export type EventPrivate = Tables<"event_private">;
+export type TicketType = Tables<"ticket_types">;
+export type EventQuestion = Tables<"event_questions">;
+export type Registration = Tables<"registrations">;
+export type UserEvent = Tables<"user_events">;
+export type Follow = Tables<"follows">;
+export type EventInteraction = Tables<"event_interactions">;
+
+export type UserRole = "user" | "admin" | "super_admin";
 export type EventFormat = "in_person" | "online" | "hybrid";
-export type EventStatus = "scheduled" | "cancelled" | "expired" | "unverified";
-export type EventAvailability = "available" | "limited" | "full" | "unknown";
-export type UserEventStatus = "saved" | "registered" | "attended" | "dismissed";
+export type EventStatus = "draft" | "published" | "cancelled" | "expired" | "removed";
+export type RegistrationMode = "tickets" | "external" | "none";
+export type RegistrationStatus =
+  | "going"
+  | "pending"
+  | "waitlisted"
+  | "awaiting_payment"
+  | "declined"
+  | "cancelled";
+export type PaymentStatus = "none" | "pending" | "paid" | "refunded" | "failed";
+export type OrganiserStatus = "pending" | "approved" | "rejected" | "suspended";
+export type OrganiserKind = "society" | "university" | "employer" | "community" | "other";
+export type UserEventKind = "saved" | "dismissed" | "external_registered" | "attended";
+export type QuestionKind = "short_text" | "long_text" | "single_select" | "multi_select" | "checkbox";
 export type CategoryGroup = "career" | "social" | "other";
-
-export interface Profile {
-  id: string;
-  full_name: string | null;
-  university: string | null;
-  department: string | null;
-  course: string | null;
-  year_of_study: string | null;
-  career_interests: string[];
-  personal_interests: string[];
-  preferred_event_types: string[];
-  preferred_formats: EventFormat[];
-  location_preference: string | null;
-  availability: Record<string, string[]> | null;
-  is_verified_student: boolean;
-  role: "student" | "admin";
-  onboarded_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Category {
-  id: string;
-  slug: string;
-  name: string;
-  group: CategoryGroup;
-}
-
-export interface OrbitEvent {
-  id: string;
-  title: string;
-  description: string | null;
-  starts_at: string;
-  ends_at: string | null;
-  format: EventFormat;
-  venue: string | null;
-  online_url: string | null;
-  organiser: string | null;
-  category_id: string | null;
-  tags: string[];
-  price_min: number | null;
-  price_max: number | null;
-  currency: string;
-  registration_deadline: string | null;
-  registration_url: string | null;
-  availability: EventAvailability;
-  status: EventStatus;
-  source: string;
-  source_url: string | null;
-  source_event_id: string | null;
-  last_verified_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface UserEvent {
-  user_id: string;
-  event_id: string;
-  status: UserEventStatus;
-  created_at: string;
-}
+export type InteractionKind = "view" | "apply_click" | "share" | "calendar_add";

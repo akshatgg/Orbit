@@ -1,0 +1,72 @@
+import Link from "next/link";
+import type { RegistrationStatus } from "@/types/database";
+import type { EventCardData, EventCounts } from "@/lib/events/queries";
+import { spotsLeft } from "@/lib/events/queries";
+import { FORMAT_LABELS, formatDeadline, formatEventDate, formatPrice } from "@/lib/format";
+import { Badge, VerifiedMark } from "@/components/ui/Badge";
+import { EventCover } from "./EventCover";
+import { RegistrationBadge } from "./RegistrationBadge";
+import { SaveButton } from "./SaveButton";
+
+/**
+ * The event card used in every list (feed, week, search, organiser pages, saved).
+ * `reason` is the "Recommended because…" line; `actions` renders extra controls in the footer.
+ */
+export function EventCard({ event, counts, saved, registration, reason, actions, href }: {
+  event: EventCardData;
+  counts?: EventCounts;
+  saved?: boolean;
+  registration?: RegistrationStatus;
+  reason?: string | null;
+  actions?: React.ReactNode;
+  href?: string;
+}) {
+  const price = formatPrice(event.price_min, event.price_max, event.currency);
+  const left = counts ? spotsLeft(event, counts) : null;
+  const deadline = formatDeadline(event.registration_deadline);
+  const cancelled = event.status === "cancelled";
+
+  return (
+    <article className="group relative overflow-hidden rounded-2xl border border-line bg-surface transition-colors hover:border-violet/50">
+      <Link href={href ?? `/events/${event.id}`} className="flex gap-3 p-3">
+        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+          <EventCover src={event.cover_url} title={event.title} />
+        </div>
+        <div className="min-w-0 flex-1 pr-8">
+          <p className="text-xs font-medium text-pink">{formatEventDate(event.starts_at)}</p>
+          <h3 className={`mt-0.5 line-clamp-2 font-semibold leading-snug ${cancelled ? "text-muted line-through" : ""}`}>
+            {event.title}
+          </h3>
+          {event.organiser && (
+            <p className="mt-1 flex items-center gap-1 truncate text-xs text-muted">
+              {event.organiser.name}
+              {event.organiser.is_verified && <VerifiedMark className="h-3.5 w-3.5 text-[8px]" />}
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {cancelled && <Badge tone="danger">Cancelled</Badge>}
+            {registration && <RegistrationBadge status={registration} />}
+            {price && <Badge tone={price === "Free" ? "success" : "neutral"}>{price}</Badge>}
+            <Badge>{event.format === "in_person" ? (event.venue_name ?? FORMAT_LABELS.in_person) : FORMAT_LABELS[event.format as keyof typeof FORMAT_LABELS]}</Badge>
+            {left !== null && left <= 10 && !cancelled && (
+              <Badge tone={left === 0 ? "danger" : "warning"}>{left === 0 ? "Full" : `${left} left`}</Badge>
+            )}
+          </div>
+        </div>
+      </Link>
+
+      <div className="absolute right-3 top-3">
+        {saved !== undefined && <SaveButton eventId={event.id} saved={saved} />}
+      </div>
+
+      {(reason || deadline || actions) && (
+        <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-xs">
+          <span className="min-w-0 truncate text-muted">
+            {reason ? <><span className="text-gradient font-semibold">✦</span> {reason}</> : deadline}
+          </span>
+          {actions}
+        </div>
+      )}
+    </article>
+  );
+}
