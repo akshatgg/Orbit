@@ -19,11 +19,6 @@ import { getMyTicket } from "@/lib/tickets/queries";
 
 export const metadata: Metadata = { title: "Ticket" };
 
-// One sample id lets the shared layout (tab bar reads the pathname) prerender; real ids render on demand.
-export function generateStaticParams() {
-  return [{ registrationId: "00000000-0000-4000-8000-000000000000" }];
-}
-
 export default function Page({ params }: PageProps<"/tickets/[registrationId]">) {
   return (
     <Suspense fallback={<PassSkeleton />}>
