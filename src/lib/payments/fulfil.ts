@@ -1,5 +1,6 @@
 import "server-only";
 import type Stripe from "stripe";
+import { notifyRegistrationChanged } from "@/lib/notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { shouldFulfil } from "./logic";
 
@@ -58,5 +59,7 @@ export async function fulfilCheckoutSession(session: Stripe.Checkout.Session): P
     console.warn("[payments] paid session didn't update registration", { registrationId, status: current.status });
     return "skipped";
   }
+  // "You're in" — never throws, so a notification problem can't undo the payment hand-off.
+  await notifyRegistrationChanged(registrationId);
   return "marked";
 }
