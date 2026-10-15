@@ -27,8 +27,8 @@ export function DevLogin() {
   }
 
   return (
-    <div className="mt-8 w-full rounded-2xl border border-dashed border-line p-4">
-      <p className="mb-3 text-center text-xs uppercase tracking-widest text-muted">Dev sign-in</p>
+    <div className="mt-6 w-full rounded-[22px] border border-dashed border-white/15 bg-white/[0.025] p-4 backdrop-blur-xl">
+      <p className="mb-3 text-center font-display text-[10px] uppercase tracking-[0.3em] text-subtle">Dev sign-in</p>
       <div className="grid grid-cols-2 gap-2">
         {ACCOUNTS.map((a) => (
           <button
@@ -36,7 +36,7 @@ export function DevLogin() {
             onClick={() => signIn(a.email)}
             disabled={busy !== null}
             data-testid={`dev-login-${a.label.toLowerCase().replace(/\s+/g, "-")}`}
-            className="rounded-lg border border-line bg-surface px-2 py-2 text-xs text-muted hover:text-fg disabled:opacity-50"
+            className="rounded-full border border-white/10 bg-white/[0.045] px-2 py-2 text-xs text-muted transition-colors hover:bg-white/[0.08] hover:text-fg disabled:opacity-50"
           >
             {busy === a.email ? "…" : a.label}
           </button>

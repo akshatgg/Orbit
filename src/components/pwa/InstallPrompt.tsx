@@ -17,7 +17,7 @@ export function InstallPrompt() {
   if (!show) return null;
 
   return (
-    <div className="mx-4 mt-4 rounded-2xl border border-line bg-surface p-4 text-sm text-muted">
+    <div className="mx-4 mt-4 glass rounded-[22px] p-4 text-sm text-muted">
       Install ORBIT: tap <span className="text-fg">Share</span> then{" "}
       <span className="text-fg">Add to Home Screen</span>.
     </div>

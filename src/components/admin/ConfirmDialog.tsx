@@ -53,7 +53,7 @@ export function ConfirmDialog({
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => { if (e.target === ref.current && !pending) onClose(); }}
-      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-2xl border border-line bg-surface p-0 text-fg shadow-2xl backdrop:bg-bg/70 backdrop:backdrop-blur-sm"
+      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-2xl border border-line bg-[#101018] p-0 text-fg shadow-2xl backdrop:bg-bg/70 backdrop:backdrop-blur-sm"
     >
       <form
         method="dialog"

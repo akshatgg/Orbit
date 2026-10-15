@@ -1,14 +1,18 @@
 @import "tailwindcss";
 
-/* ORBIT brand tokens — sampled from the logo */
+/* ORBIT design tokens: dark glass, calm, premium */
 :root {
-  --bg: #05040c;
-  --surface: #0e0d1a;
-  --surface-2: #161428;
-  --line: #24213b;
-  --fg: #ffffff;
-  --muted: #a9a3c4; /* tagline lavender-grey */
+  --bg: #06060a;
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-2: rgba(255, 255, 255, 0.075);
+  --line: rgba(255, 255, 255, 0.09);
+  --fg: #f4f4f6;
+  --muted: #9b9ba7;
+  --subtle: #6e6e7a;
 
+  --accent: #a99bff;
+
+  /* Brand colours sampled from the logo: use sparingly */
   --violet: #b57cf6;
   --pink: #de9ffb;
   --blue: #3f79fd;
@@ -22,6 +26,10 @@
     var(--cream) 70%,
     var(--orange) 100%
   );
+  --pearl: linear-gradient(180deg, #ffffff 0%, #f1efff 55%, #fdeee6 100%);
+
+  --glass-blur: blur(24px) saturate(140%);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
@@ -31,6 +39,8 @@
   --color-line: var(--line);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-accent: var(--accent);
   --color-violet: var(--violet);
   --color-pink: var(--pink);
   --color-blue: var(--blue);
@@ -43,47 +53,141 @@
 
 html {
   color-scheme: dark;
+  background: var(--bg);
 }
 
 body {
-  background:
-    radial-gradient(60rem 30rem at 15% -10%, rgb(181 124 246 / 0.12), transparent 60%),
-    radial-gradient(50rem 30rem at 100% 0%, rgb(63 121 253 / 0.10), transparent 60%),
-    var(--bg);
-  background-attachment: fixed;
+  background: transparent;
   color: var(--fg);
   font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
+@layer base {
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+  }
+}
+
+::selection {
+  background: rgb(169 155 255 / 0.35);
+}
+
+/* Pearl fill: primary buttons, selected chips, progress fills, active indicators. Pair with text-bg. */
+.bg-gradient {
+  background: var(--pearl);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 -1px 0 rgb(0 0 0 / 0.06),
+    0 6px 18px -8px rgb(0 0 0 / 0.6);
+}
+
+/* Subtle pearl-violet text gradient */
 .text-gradient {
-  background: var(--orbit-gradient);
+  background: linear-gradient(100deg, #ffffff 0%, #cfc6ff 55%, #ffd9c2 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.bg-gradient {
-  background: var(--orbit-gradient);
-}
-
-/* Room for the iPhone home indicator under the tab bar */
+/* Room for the iPhone home indicator */
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
 }
 
-/* Soft halo like the logo's glow */
+/* Soft neutral-violet halo */
 .glow {
-  box-shadow: 0 0 0 1px rgb(181 124 246 / 0.25), 0 10px 40px -10px rgb(63 121 253 / 0.45),
-    0 8px 30px -12px rgb(253 181 112 / 0.35);
+  box-shadow:
+    0 0 0 1px rgb(169 155 255 / 0.18),
+    0 10px 36px -12px rgb(124 108 240 / 0.45);
 }
 
-/* 1px iridescent border around an element */
+/* Glass surfaces */
+.glass {
+  background: rgb(255 255 255 / 0.05);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 12px 32px -16px rgb(0 0 0 / 0.7);
+}
+
+.glass-strong {
+  background: rgb(22 22 30 / 0.55);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    0 18px 40px -14px rgb(0 0 0 / 0.8);
+}
+
+/* Hairline iridescent border over a glass fill */
 .border-gradient {
   border: 1px solid transparent;
   background:
-    linear-gradient(var(--surface), var(--surface)) padding-box,
-    var(--orbit-gradient) border-box;
+    linear-gradient(rgb(18 18 26 / 0.92), rgb(18 18 26 / 0.92)) padding-box,
+    linear-gradient(135deg, rgb(222 159 251 / 0.5), rgb(63 121 253 / 0.35) 40%, rgb(244 228 212 / 0.4) 70%, rgb(253 181 112 / 0.45))
+      border-box;
+}
+
+/* Glass shimmer for skeletons */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.05);
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.07), transparent);
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* Ambient background */
+.ambient-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  will-change: transform;
+}
+.ambient-a { animation: drift-a 52s ease-in-out infinite alternate; }
+.ambient-b { animation: drift-b 44s ease-in-out infinite alternate; }
+.ambient-c { animation: drift-c 58s ease-in-out infinite alternate; }
+
+@keyframes drift-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(14vw, 10vh, 0) scale(1.15); } }
+@keyframes drift-b { from { transform: translate3d(0, 0, 0) scale(1.1); } to { transform: translate3d(-16vw, 14vh, 0) scale(0.95); } }
+@keyframes drift-c { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(10vw, -12vh, 0) scale(1.2); } }
+@keyframes shimmer { to { transform: translateX(100%); } }
+
+/* 3D emblem */
+.emblem-scene { perspective: 900px; }
+.emblem-bob { animation: emblem-bob 6s ease-in-out infinite; }
+.emblem-plane { transform-style: preserve-3d; transform: rotateX(68deg); }
+.emblem-spin-1 { animation: emblem-spin 26s linear infinite; }
+.emblem-spin-2 { animation: emblem-spin 38s linear infinite reverse; }
+.emblem-spin-3 { animation: emblem-spin 18s linear infinite; }
+@keyframes emblem-bob { 0%, 100% { transform: translateY(-5px); } 50% { transform: translateY(6px); } }
+@keyframes emblem-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-orb,
+  .shimmer::after,
+  .emblem-bob,
+  .emblem-spin-1,
+  .emblem-spin-2,
+  .emblem-spin-3 {
+    animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .scrollbar-none {

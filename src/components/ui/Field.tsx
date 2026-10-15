@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 export const inputClass =
-  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-fg placeholder:text-muted/60 outline-none transition-colors focus:border-violet disabled:opacity-60 aria-[invalid=true]:border-red-400";
+  "w-full rounded-[14px] border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-fg placeholder:text-subtle outline-none backdrop-blur-xl shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] transition duration-200 ease-out hover:border-white/15 focus:border-accent/60 focus:bg-white/[0.07] focus:ring-4 focus:ring-accent/15 disabled:opacity-60 aria-[invalid=true]:border-red-400/60 aria-[invalid=true]:ring-red-400/10";
 
 /** Label + control + hint/error, stacked. */
 export function Field({ label, hint, error, children, htmlFor, required }: {
@@ -9,9 +9,9 @@ export function Field({ label, hint, error, children, htmlFor, required }: {
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="block text-sm font-medium text-fg">
+      <label htmlFor={htmlFor} className="block text-sm font-medium text-fg/90">
         {label}
-        {required && <span className="ml-0.5 text-orange">*</span>}
+        {required && <span className="ml-0.5 text-accent">*</span>}
       </label>
       {children}
       {error ? <p className="text-xs text-red-300">{error}</p> : hint ? <p className="text-xs text-muted">{hint}</p> : null}

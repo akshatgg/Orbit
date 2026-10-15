@@ -24,7 +24,7 @@ export function ChoiceSection({ legend, hint, error, children, aside }: {
     <fieldset className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
         <legend className="text-sm font-medium text-fg">{legend}</legend>
-        {aside && <span className="shrink-0 text-xs text-muted">{aside}</span>}
+        {aside && <span className="shrink-0 text-xs text-subtle">{aside}</span>}
       </div>
       {hint && <p className="-mt-1.5 text-xs text-muted">{hint}</p>}
       {children}
@@ -55,7 +55,7 @@ export function BasicsStep({ draft, update, errors }: StepProps) {
         />
       </Field>
 
-      <ChoiceSection legend={<>University<span className="ml-0.5 text-orange">*</span></>} error={errors.university}>
+      <ChoiceSection legend={<>University<span className="ml-0.5 text-accent">*</span></>} error={errors.university}>
         <ChipGroup
           name="university_choice"
           multiple={false}
@@ -183,7 +183,7 @@ export function EventsStep({ draft, update, errors, categories }: StepProps & { 
             const slugs = new Set(options.map((o) => o.slug));
             return (
               <div key={g.value} className="space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">{g.label}</p>
+                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.26em] text-subtle">{g.label}</p>
                 <ChipGroup
                   name="preferred_categories"
                   options={options.map((o) => ({ value: o.slug, label: o.name }))}
@@ -243,7 +243,7 @@ export function AvailabilityStep({ draft, update }: StepProps) {
             key={p.label}
             type="button"
             onClick={() => update({ availability: withSlots(a, p.days, p.parts) })}
-            className="rounded-full border border-dashed border-line px-3 py-1 text-xs text-muted transition-colors hover:border-violet/60 hover:text-fg"
+            className="rounded-full border border-dashed border-white/15 px-3 py-1 text-xs text-muted transition-colors hover:border-accent/50 hover:text-fg"
           >
             + {p.label}
           </button>
@@ -281,7 +281,7 @@ export function AvailabilityStep({ draft, update }: StepProps) {
                   aria-label={`${d.label} ${part.label.toLowerCase()}`}
                   onClick={() => update({ availability: toggleSlot(a, d.value, part.value) })}
                   className={`aspect-square rounded-lg border transition-all active:scale-90 ${
-                    on ? "border-transparent bg-gradient shadow-[0_0_18px_-4px_rgb(181_124_246/0.7)]" : "border-line bg-surface hover:border-violet/50"
+                    on ? "bg-gradient border-transparent" : "border-white/10 bg-white/[0.045] hover:border-white/25"
                   }`}
                 />
               );

@@ -69,7 +69,7 @@ export function DismissProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto max-w-md px-4" role="status" aria-live="polite">
         {toast && (
-          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-line bg-surface-2/95 px-4 py-3 text-sm shadow-2xl shadow-black/60 backdrop-blur">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-line bg-[#16161f]/95 px-4 py-3 text-sm shadow-2xl shadow-black/60 backdrop-blur">
             <p className="min-w-0 flex-1 truncate text-muted">
               {toast.error ? (
                 <span className="text-red-300">Couldn’t hide that — {toast.error}</span>

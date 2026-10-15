@@ -32,9 +32,9 @@ export function Drawer({ trigger, title, subtitle, children, triggerClassName = 
         aria-labelledby={titleId}
         onClose={() => setOpen(false)}
         onClick={(e) => { if (e.target === ref.current) setOpen(false); }}
-        className="m-0 mt-auto max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-3xl border border-line bg-surface p-0 text-fg backdrop:bg-bg/70 backdrop:backdrop-blur-sm sm:ml-auto sm:mt-0 sm:h-dvh sm:max-h-none sm:w-[28rem] sm:rounded-none sm:rounded-l-3xl"
+        className="m-0 mt-auto max-h-[85dvh] w-full max-w-none overflow-y-auto rounded-t-3xl border border-line bg-[#101018] p-0 text-fg backdrop:bg-bg/70 backdrop:backdrop-blur-sm sm:ml-auto sm:mt-0 sm:h-dvh sm:max-h-none sm:w-[28rem] sm:rounded-none sm:rounded-l-3xl"
       >
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line bg-surface/95 px-5 py-4 backdrop-blur">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line bg-[#101018]/95 px-5 py-4 backdrop-blur">
           <div className="min-w-0">
             <h2 id={titleId} className="truncate font-display text-lg font-semibold">{title}</h2>
             {subtitle && <div className="mt-0.5 text-xs text-muted">{subtitle}</div>}

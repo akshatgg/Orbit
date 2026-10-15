@@ -3,17 +3,17 @@ import type { ReactNode } from "react";
 type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
 
 const tones: Record<Tone, string> = {
-  neutral: "border-line bg-surface-2 text-muted",
-  success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-  warning: "border-orange/30 bg-orange/10 text-orange",
-  danger: "border-red-500/30 bg-red-500/10 text-red-300",
-  info: "border-blue/30 bg-blue/10 text-blue",
-  brand: "border-violet/40 bg-violet/10 text-pink",
+  neutral: "border-white/10 bg-white/[0.06] text-muted",
+  success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
+  warning: "border-orange/20 bg-orange/10 text-orange",
+  danger: "border-red-400/20 bg-red-400/10 text-red-300",
+  info: "border-sky-400/20 bg-sky-400/10 text-sky-300",
+  brand: "border-accent/25 bg-accent/10 text-accent",
 };
 
 export function Badge({ tone = "neutral", children, className = "" }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${tones[tone]} ${className}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium backdrop-blur-md ${tones[tone]} ${className}`}>
       {children}
     </span>
   );
@@ -22,7 +22,7 @@ export function Badge({ tone = "neutral", children, className = "" }: { tone?: T
 /** ✓ mark for verified organisers. */
 export function VerifiedMark({ className = "" }: { className?: string }) {
   return (
-    <span title="Verified organiser" aria-label="Verified" className={`inline-flex h-4 w-4 items-center justify-center rounded-full bg-blue text-[10px] font-bold text-white ${className}`}>
+    <span title="Verified organiser" aria-label="Verified" className={`inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent/20 text-[10px] font-bold text-accent ring-1 ring-accent/40 ${className}`}>
       ✓
     </span>
   );

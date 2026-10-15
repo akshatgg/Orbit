@@ -6,7 +6,7 @@ import { draftFromProfile } from "@/lib/profile/schema";
 import { createClient } from "@/lib/supabase/server";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { OnboardingWizard } from "@/components/profile/OnboardingWizard";
-import { OrbitGlowMark } from "@/components/profile/OrbitGlowMark";
+import { OrbitEmblem } from "@/components/brand/OrbitEmblem";
 import type { CategoryOption } from "@/components/profile/ProfileSteps";
 
 export const metadata: Metadata = { title: "Welcome" };
@@ -38,7 +38,7 @@ function WelcomeSkeleton() {
   return (
     <div className="flex min-h-dvh flex-col items-center px-6 pb-6 pt-8" aria-busy="true" aria-label="Loading">
       <div className="flex flex-1 flex-col items-center justify-center">
-        <OrbitGlowMark />
+        <OrbitEmblem size={124} />
         <Skeleton className="mt-6 h-8 w-56" />
         <Skeleton className="mt-3 h-8 w-64" />
         <Skeleton className="mt-5 h-10 w-72" />
