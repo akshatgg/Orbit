@@ -24,7 +24,9 @@ export type EventCardData = Pick<
   category: Pick<Category, "id" | "slug" | "name" | "group"> | null;
 };
 
-export type EventCounts = { going: number; waitlisted: number; pending: number };
+import type { EventCounts } from "./spots";
+
+export { spotsLeft, type EventCounts } from "./spots";
 
 export type EventWithCounts = EventCardData & { counts: EventCounts };
 
@@ -41,12 +43,6 @@ export async function withCounts(events: EventCardData[]): Promise<EventWithCoun
     const c = byId.get(e.id);
     return { ...e, counts: c ? { going: c.going, waitlisted: c.waitlisted, pending: c.pending } : EMPTY_COUNTS };
   });
-}
-
-/** Spots left for capped events, or null when unlimited / not using ORBIT tickets. */
-export function spotsLeft(event: Pick<EventCardData, "capacity" | "registration_mode">, counts: EventCounts) {
-  if (event.registration_mode !== "tickets" || event.capacity === null) return null;
-  return Math.max(0, event.capacity - counts.going - counts.pending);
 }
 
 /** Published events that haven't ended yet, soonest first. */

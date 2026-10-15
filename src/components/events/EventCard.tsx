@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { RegistrationStatus } from "@/types/database";
-import type { EventCardData, EventCounts } from "@/lib/events/queries";
-import { spotsLeft } from "@/lib/events/queries";
+import type { EventCardData } from "@/lib/events/queries";
+import { spotsLeft, type EventCounts } from "@/lib/events/spots";
 import { FORMAT_LABELS, formatDeadline, formatEventDate, formatPrice } from "@/lib/format";
 import { Badge, VerifiedMark } from "@/components/ui/Badge";
 import { EventCover } from "./EventCover";
