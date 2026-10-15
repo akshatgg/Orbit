@@ -10,14 +10,18 @@ const TABS = [
   { href: "/profile", label: "Profile", match: (p: string) => p.startsWith("/profile"), icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0" },
 ] as const;
 
+/** Tab bar that highlights the current tab. Render inside <Suspense> (it reads the URL). */
 export function BottomNav() {
-  const pathname = usePathname();
+  return <BottomNavView pathname={usePathname()} />;
+}
 
+/** The same tab bar without reading the URL — the instant fallback while the URL streams in. */
+export function BottomNavView({ pathname }: { pathname: string | null }) {
   return (
     <nav className="pb-safe fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/85 backdrop-blur-xl">
       <ul className="mx-auto flex max-w-md justify-between px-2 pt-1.5">
         {TABS.map(({ href, label, match, icon }) => {
-          const active = match(pathname);
+          const active = pathname !== null && match(pathname);
           return (
             <li key={href} className="flex-1">
               <Link
