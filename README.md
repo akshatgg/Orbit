@@ -164,7 +164,8 @@ See [`.env.example`](.env.example) for the full list.
 | `SUPABASE_SECRET_KEY` | Server jobs: payments hand-off, reminders, event sources (server only) |
 | `NEXT_PUBLIC_APP_URL` | Links in emails, checkout and share previews |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Push notifications (`npx web-push generate-vapid-keys`) |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Email reminders |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Email reminders over SMTP (e.g. Gmail app password); used before Resend when set |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Email reminders via Resend (alternative to SMTP) |
 | `CRON_SECRET` | Protects `/api/cron/*` |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `PLATFORM_FEE_PERCENT` | Paid tickets |
 

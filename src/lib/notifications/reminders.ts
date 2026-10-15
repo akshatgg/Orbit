@@ -68,7 +68,7 @@ export async function runReminders(now = new Date()): Promise<ReminderSummary> {
   const recipients = await loadRecipients(admin, userIds);
 
   const available = channelsAvailable();
-  if (!available.email) console.info("[notifications] RESEND_API_KEY not set: reminders go by push only");
+  if (!available.email) console.info("[notifications] email not configured (SMTP_* or RESEND_API_KEY): reminders go by push only");
   if (!available.push) console.info("[notifications] VAPID keys not set: reminders go by email only");
 
   const plan = planReminders({
