@@ -22,6 +22,7 @@ import { RichText } from "@/components/tickets/RichText";
 import { Icon, type IconName } from "@/components/tickets/icons";
 
 export async function generateMetadata({ params }: PageProps<"/events/[id]">): Promise<Metadata> {
+  await connection(); // data reads below are per request
   const { id } = await params;
   const event = await getEvent(id);
   if (!event) return { title: "Event not found" };
