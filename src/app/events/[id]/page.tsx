@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { FORMAT_LABELS, formatDeadline, formatEventDate, formatLongDate, formatPrice, formatTimeRange, dayKey } from "@/lib/format";
@@ -59,6 +60,8 @@ export default function EventPage({ params }: PageProps<"/events/[id]">) {
 }
 
 async function EventContent({ params }: { params: PageProps<"/events/[id]">["params"] }) {
+  // Registration state depends on the current time, so always render per request.
+  await connection();
   const { id } = await params;
   const data = await getEventPageData(id);
   if (!data) notFound();
