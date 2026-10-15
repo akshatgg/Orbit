@@ -1,0 +1,198 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { requireAdmin } from "@/lib/auth";
+import { detectDuplicates, runSource } from "@/lib/sources/engine";
+import { sourceKey } from "@/lib/sources/types";
+import { checkFeedUrl } from "@/lib/sources/url-guard";
+import { createClient } from "@/lib/supabase/server";
+
+export type ActionState = { ok: boolean; error?: string; message?: string } | null;
+
+const PATH = "/admin/sources";
+
+const optionalId = z
+  .string()
+  .trim()
+  .transform((v) => (v === "" ? null : v))
+  .pipe(z.uuid({ message: "Pick an option from the list" }).nullable());
+
+const sourceSchema = z
+  .object({
+    id: optionalId,
+    name: z.string().trim().min(2, "Give the source a name").max(80, "Keep the name under 80 characters"),
+    url: z
+      .string()
+      .trim()
+      .min(1, "Add the feed URL")
+      .max(2000, "That URL is too long")
+      .transform((value, ctx) => {
+        const check = checkFeedUrl(value);
+        if (!check.ok) {
+          ctx.addIssue({ code: "custom", message: check.error });
+          return z.NEVER;
+        }
+        return check.url.toString();
+      }),
+    default_organiser_id: optionalId,
+    default_category_id: optionalId,
+    default_tags: z
+      .string()
+      .max(400)
+      .transform((v) =>
+        [...new Set(v.split(",").map((t) => t.trim().toLowerCase().replace(/\s+/g, " ")).filter(Boolean))].slice(0, 10),
+      )
+      .pipe(z.array(z.string().max(30, "Keep each tag under 30 characters"))),
+    attribution: z.string().trim().max(200, "Keep attribution under 200 characters").transform((v) => v || null),
+    permission_confirmed: z.boolean(),
+    permission_note: z.string().trim().max(1000, "Keep the note under 1000 characters").transform((v) => v || null),
+    enabled: z.boolean(),
+  })
+  .refine((s) => !s.enabled || (s.permission_confirmed && s.permission_note), {
+    message: "Confirm you have permission to use this feed, and note who granted it, before enabling it.",
+    path: ["enabled"],
+  });
+
+const firstError = (error: z.ZodError) => error.issues[0]?.message ?? "Check the form and try again.";
+
+function dbError(error: { code?: string; message: string }) {
+  if (error.code === "23505") return "That feed has already been added.";
+  if (error.code === "23514") return "A source can only be enabled once permission is confirmed and noted.";
+  return error.message;
+}
+
+export async function saveSource(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const parsed = sourceSchema.safeParse({
+    id: formData.get("id") ?? "",
+    name: formData.get("name") ?? "",
+    url: formData.get("url") ?? "",
+    default_organiser_id: formData.get("default_organiser_id") ?? "",
+    default_category_id: formData.get("default_category_id") ?? "",
+    default_tags: formData.get("default_tags") ?? "",
+    attribution: formData.get("attribution") ?? "",
+    permission_confirmed: formData.get("permission_confirmed") === "on",
+    permission_note: formData.get("permission_note") ?? "",
+    enabled: formData.get("enabled") === "on",
+  });
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+
+  const { id, ...values } = parsed.data;
+  const supabase = await createClient();
+  const { error } = id
+    ? await supabase.from("event_sources").update(values).eq("id", id)
+    : await supabase.from("event_sources").insert(values);
+  if (error) return { ok: false, error: dbError(error) };
+
+  revalidatePath(PATH);
+  redirect(PATH);
+}
+
+const idSchema = z.uuid();
+
+export async function setSourceEnabled(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Unknown source" };
+  const enable = formData.get("enabled") === "true";
+
+  const supabase = await createClient();
+  if (enable) {
+    const { data } = await supabase.from("event_sources").select("permission_confirmed, permission_note").eq("id", id.data).maybeSingle();
+    if (!data) return { ok: false, error: "Unknown source" };
+    if (!data.permission_confirmed || !data.permission_note?.trim()) {
+      return { ok: false, error: "Confirm permission (and who granted it) on the source before enabling it." };
+    }
+  }
+  const { error } = await supabase.from("event_sources").update({ enabled: enable }).eq("id", id.data);
+  if (error) return { ok: false, error: dbError(error) };
+  revalidatePath(PATH);
+  return { ok: true, message: enable ? "Enabled — it'll refresh nightly." : "Disabled." };
+}
+
+export async function deleteSource(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Unknown source" };
+  const removeEvents = formData.get("remove_events") === "on";
+
+  const supabase = await createClient();
+  if (removeEvents) {
+    const { error } = await supabase
+      .from("events")
+      .update({ status: "removed" })
+      .eq("source", sourceKey(id.data))
+      .gte("starts_at", new Date().toISOString())
+      .in("status", ["published", "draft"]);
+    if (error) return { ok: false, error: error.message };
+  }
+  const { error } = await supabase.from("event_sources").delete().eq("id", id.data);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(PATH);
+  redirect(PATH);
+}
+
+export async function runSourceNow(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Unknown source" };
+
+  // Re-read through the admin's own client (RLS) before handing over to the sync engine.
+  const supabase = await createClient();
+  const { data: source } = await supabase.from("event_sources").select("id, permission_confirmed").eq("id", id.data).maybeSingle();
+  if (!source) return { ok: false, error: "Unknown source" };
+  if (!source.permission_confirmed) return { ok: false, error: "Confirm permission to use this feed before running it." };
+
+  const result = await runSource(id.data, { trigger: "manual" });
+  const duplicates = result.status === "ok" ? await detectDuplicates() : 0;
+  revalidatePath(PATH, "layout");
+
+  if (result.status === "error") return { ok: false, error: result.errors[0]?.message ?? "The run failed." };
+  const parts = [
+    `${result.found} found`, `${result.inserted} new`, `${result.updated} updated`, `${result.unchanged} unchanged`,
+  ];
+  if (result.flaggedMissing) parts.push(`${result.flaggedMissing} flagged`);
+  if (duplicates) parts.push(`${duplicates} possible duplicate${duplicates === 1 ? "" : "s"}`);
+  if (result.errors.length) parts.push(`${result.errors.length} skipped`);
+  return { ok: true, message: parts.join(" · ") };
+}
+
+const reviewSchema = z.object({
+  id: z.uuid(),
+  decision: z.enum(["not_duplicate", "keep_hidden", "reviewed"]),
+});
+
+export async function resolveReview(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const parsed = reviewSchema.safeParse({ id: formData.get("id"), decision: formData.get("decision") });
+  if (!parsed.success) return { ok: false, error: "Unknown event" };
+  const { id, decision } = parsed.data;
+
+  const supabase = await createClient();
+  const { data: event } = await supabase.from("events").select("id, duplicate_of").eq("id", id).maybeSingle();
+  if (!event) return { ok: false, error: "That event no longer exists." };
+
+  if (decision === "not_duplicate") {
+    if (event.duplicate_of) {
+      const [a, b] = [event.id, event.duplicate_of as string].sort();
+      const { error } = await supabase
+        .from("event_duplicate_dismissals")
+        .upsert({ event_id: a, other_event_id: b }, { onConflict: "event_id,other_event_id", ignoreDuplicates: true });
+      if (error) return { ok: false, error: error.message };
+    }
+    const { error } = await supabase.from("events").update({ duplicate_of: null, needs_review: false }).eq("id", id);
+    if (error) return { ok: false, error: error.message };
+  } else {
+    if (decision === "keep_hidden" && !event.duplicate_of) return { ok: false, error: "This event isn't marked as a duplicate." };
+    const { error } = await supabase.from("events").update({ needs_review: false }).eq("id", id);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidatePath(PATH, "layout");
+  return {
+    ok: true,
+    message: { not_duplicate: "Marked as not a duplicate — it's visible again.", keep_hidden: "Kept hidden as a duplicate.", reviewed: "Marked reviewed." }[decision],
+  };
+}

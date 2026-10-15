@@ -1,0 +1,103 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { adminEventSchema, fieldErrors, type FieldErrors } from "@/lib/admin/event-form";
+import { adminContext, friendlyDbError, logAdminAction, revalidateEverywhere, type ActionResult } from "@/lib/admin/server";
+import { notifyEventChanged } from "@/lib/notifications";
+
+const id = z.uuid();
+const reasonSchema = z.string().trim().max(500, "Keep it under 500 characters");
+
+type Patch = Record<string, unknown>;
+
+async function updateEvent(eventId: string, patch: Patch, action: string, details: Patch = {}) {
+  const { supabase } = await adminContext();
+  const parsed = id.safeParse(eventId);
+  if (!parsed.success) return { ok: false as const, error: "Invalid event" };
+  const { data, error } = await supabase
+    .from("events")
+    .update(patch)
+    .eq("id", parsed.data)
+    .select("id, title")
+    .maybeSingle();
+  if (error) return { ok: false as const, error: friendlyDbError(error) };
+  if (!data) return { ok: false as const, error: "Event not found" };
+  await logAdminAction(supabase, action, "event", data.id, { title: data.title, ...details });
+  revalidateEverywhere();
+  return { ok: true as const, title: data.title as string };
+}
+
+export async function setFeatured(eventId: string, featured: boolean): Promise<ActionResult> {
+  const r = await updateEvent(eventId, { is_featured: featured === true }, featured ? "event.feature" : "event.unfeature");
+  return r.ok ? { ok: true, message: featured ? `Featured “${r.title}”` : `Unfeatured “${r.title}”` } : r;
+}
+
+export async function cancelEvent(eventId: string, reason?: string): Promise<ActionResult> {
+  const parsedReason = reasonSchema.safeParse(reason ?? "");
+  if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
+  if (!parsedReason.data) return { ok: false, error: "Add a reason — guests will see it" };
+  const r = await updateEvent(eventId, { status: "cancelled", cancel_reason: parsedReason.data }, "event.cancel", { reason: parsedReason.data });
+  if (!r.ok) return r;
+  try {
+    await notifyEventChanged(eventId, "cancelled");
+  } catch (e) {
+    console.error("[admin] notifyEventChanged failed", e);
+  }
+  return { ok: true, message: `Cancelled “${r.title}” — guests will be notified` };
+}
+
+export async function removeEvent(eventId: string, reason?: string): Promise<ActionResult> {
+  const parsedReason = reasonSchema.safeParse(reason ?? "");
+  if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
+  const r = await updateEvent(eventId, { status: "removed", is_featured: false }, "event.remove",
+    parsedReason.data ? { reason: parsedReason.data } : {});
+  return r.ok ? { ok: true, message: `Removed “${r.title}” from ORBIT` } : r;
+}
+
+export async function restoreEvent(eventId: string): Promise<ActionResult> {
+  const r = await updateEvent(eventId, { status: "published", cancel_reason: null }, "event.restore");
+  return r.ok ? { ok: true, message: `“${r.title}” is published again` } : r;
+}
+
+export async function markReviewed(eventId: string): Promise<ActionResult> {
+  const r = await updateEvent(eventId, { needs_review: false, last_verified_at: new Date().toISOString() }, "event.reviewed");
+  return r.ok ? { ok: true, message: `Marked “${r.title}” as reviewed` } : r;
+}
+
+export type EventFormState = { error?: string; fieldErrors?: FieldErrors } | null;
+
+/** Create (eventId null) or edit an admin-managed event. Bound with the id, used with useActionState. */
+export async function saveEvent(eventId: string | null, _prev: EventFormState, formData: FormData): Promise<EventFormState> {
+  const { supabase } = await adminContext();
+  const parsed = adminEventSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Check the highlighted fields", fieldErrors: fieldErrors(parsed.error) };
+  const values = parsed.data;
+
+  if (eventId) {
+    if (!id.safeParse(eventId).success) return { error: "Invalid event" };
+    const { data: existing } = await supabase.from("events").select("registration_mode").eq("id", eventId).maybeSingle();
+    if (!existing) return { error: "Event not found" };
+    if (existing.registration_mode === "tickets") {
+      return { error: "This event sells ORBIT tickets — edit it from the organiser's event page" };
+    }
+    const { error } = await supabase
+      .from("events")
+      .update({ ...values, last_verified_at: new Date().toISOString() })
+      .eq("id", eventId);
+    if (error) return { error: friendlyDbError(error) };
+    await logAdminAction(supabase, "event.update", "event", eventId, { title: values.title });
+  } else {
+    const { data, error } = await supabase
+      .from("events")
+      .insert({ ...values, status: "published", source: "manual", currency: "GBP" })
+      .select("id")
+      .single();
+    if (error) return { error: friendlyDbError(error) };
+    eventId = data.id as string;
+    await logAdminAction(supabase, "event.create", "event", eventId, { title: values.title });
+  }
+
+  revalidateEverywhere();
+  redirect(`/admin/events?when=all&q=${encodeURIComponent(values.title.slice(0, 60))}&saved=1`);
+}
