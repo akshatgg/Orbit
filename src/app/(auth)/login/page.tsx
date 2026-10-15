@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { DevLogin } from "./DevLogin";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -11,6 +12,7 @@ export default function LoginPage() {
       <h1 className="mt-6 font-display text-3xl font-semibold tracking-[0.4em]">ORBIT</h1>
       <p className="mt-2 text-xs tracking-[0.3em] text-muted">EXPLORE OPPORTUNITIES</p>
       <LoginForm />
+      {process.env.NEXT_PUBLIC_DEV_LOGIN === "1" && <DevLogin />}
     </main>
   );
 }

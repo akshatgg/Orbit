@@ -1,23 +1,12 @@
-import { Suspense } from "react";
-import { ComingSoon } from "@/components/ui/ComingSoon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Placeholder } from "@/components/ui/Placeholder";
 
-async function EventDetails({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  return (
-    <ComingSoon>
-      Event {id}: details, “Register” (opens the original page), save and add-to-calendar.
-    </ComingSoon>
-  );
-}
-
-export default function EventPage({ params }: PageProps<"/events/[id]">) {
+// Built by the "event-tickets" feature.
+export default function EventPage() {
   return (
     <main className="mx-auto max-w-md">
       <PageHeader title="Event" />
-      <Suspense fallback={<ComingSoon>Loading…</ComingSoon>}>
-        <EventDetails params={params} />
-      </Suspense>
+      <Placeholder>Event details and registration.</Placeholder>
     </main>
   );
 }

@@ -1,5 +1,12 @@
-import { ComingSoon } from "@/components/ui/ComingSoon";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Placeholder } from "@/components/ui/Placeholder";
 
-export default function AdminCategoriesPage() {
-  return <ComingSoon>Manage event categories and tags.</ComingSoon>;
+// Built by the "admin" feature.
+export default function Page() {
+  return (
+    <>
+      <PageHeader title="Categories" subtitle="Event categories" />
+      <Placeholder>Manage categories.</Placeholder>
+    </>
+  );
 }

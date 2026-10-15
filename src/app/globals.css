@@ -46,7 +46,11 @@ html {
 }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(60rem 30rem at 15% -10%, rgb(181 124 246 / 0.12), transparent 60%),
+    radial-gradient(50rem 30rem at 100% 0%, rgb(63 121 253 / 0.10), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--fg);
   font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -66,4 +70,25 @@ body {
 /* Room for the iPhone home indicator under the tab bar */
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+/* Soft halo like the logo's glow */
+.glow {
+  box-shadow: 0 0 0 1px rgb(181 124 246 / 0.25), 0 10px 40px -10px rgb(63 121 253 / 0.45),
+    0 8px 30px -12px rgb(253 181 112 / 0.35);
+}
+
+/* 1px iridescent border around an element */
+.border-gradient {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    var(--orbit-gradient) border-box;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

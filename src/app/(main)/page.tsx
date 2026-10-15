@@ -1,11 +1,12 @@
-import { ComingSoon } from "@/components/ui/ComingSoon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Placeholder } from "@/components/ui/Placeholder";
 
-export default function ForYouPage() {
+// Built by the "discovery" feature.
+export default function Page() {
   return (
     <>
       <PageHeader title="For You" subtitle="Events ranked for your goals and interests" />
-      <ComingSoon>Your ranked feed will appear here, each with a “Recommended because…” reason.</ComingSoon>
+      <Placeholder>Ranked feed with “Recommended because…” reasons.</Placeholder>
     </>
   );
 }

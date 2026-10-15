@@ -1,17 +1,12 @@
-import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ui/ComingSoon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Placeholder } from "@/components/ui/Placeholder";
 
-export const metadata: Metadata = { title: "Welcome" };
-
+// Built by the "onboarding-profile" feature.
 export default function OnboardingPage() {
   return (
     <main className="mx-auto min-h-dvh max-w-md">
       <PageHeader title="Welcome to ORBIT" subtitle="Tell us what you're looking for" />
-      <ComingSoon>
-        5 steps: university &amp; course → career interests → personal interests → event types &amp;
-        format → availability (optional).
-      </ComingSoon>
+      <Placeholder>Onboarding steps.</Placeholder>
     </main>
   );
 }
