@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Montserrat } from "next/font/google";
 import Script from "next/script";
+import { InstallProvider } from "@/components/pwa/InstallProvider";
+import { INSTALL_CAPTURE_SCRIPT } from "@/components/pwa/install-store";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import "./globals.css";
 
@@ -36,7 +38,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${inter.variable} ${montserrat.variable} h-full antialiased`}>
       <body className="min-h-full">
         <AmbientBackground />
-        {children}
+        <InstallProvider>{children}</InstallProvider>
+        {/* Captures beforeinstallprompt before React hydrates; separate from the service worker script. */}
+        <Script id="install-capture" strategy="beforeInteractive">
+          {INSTALL_CAPTURE_SCRIPT}
+        </Script>
         {process.env.NODE_ENV === "production" && (
           <Script id="sw-register" strategy="beforeInteractive">
             {SW_REGISTER}
