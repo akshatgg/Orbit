@@ -16,13 +16,13 @@ export function SignupsChart({ series }: { series: DailyPoint[] }) {
         <span className="tabular-nums">peak {max}/day</span>
       </figcaption>
       <div className="relative h-36" aria-hidden>
-        <div className="absolute inset-x-0 top-0 border-t border-dashed border-white/10" />
-        <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-white/[0.06]" />
+        <div className="absolute inset-x-0 top-0 border-t border-dashed border-ink/10" />
+        <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-ink/[0.06]" />
         <div className="absolute inset-0 flex items-end gap-[3px]">
           {series.map((p, i) => (
             <div key={p.day} className="group relative flex h-full flex-1 items-end">
               <div
-                className={`w-full rounded-t-[3px] transition-all ${p.count > 0 ? "bg-gradient opacity-70 group-hover:opacity-100" : "bg-white/10"}`}
+                className={`w-full rounded-t-[3px] transition-all ${p.count > 0 ? "bg-gradient opacity-70 group-hover:opacity-100" : "bg-ink/10"}`}
                 style={{ height: p.count > 0 ? `${heights[i]}%` : "2px" }}
               />
               <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap glass-strong rounded-lg px-2 py-1 text-[11px] text-fg group-hover:block">

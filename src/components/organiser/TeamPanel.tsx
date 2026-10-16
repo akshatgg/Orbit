@@ -35,7 +35,7 @@ export function TeamPanel({ organiserId, members, isOwner, currentUserId, approv
 
   return (
     <div className="space-y-5">
-      <ul className="glass divide-y divide-white/[0.07] rounded-[22px]" aria-label="Team members">
+      <ul className="glass divide-y divide-ink/[0.07] rounded-[22px]" aria-label="Team members">
         {members.map((m) => (
           <li key={m.user_id} className="flex items-center gap-3 px-4 py-3">
             <Avatar name={m.full_name ?? m.email ?? "?"} src={m.avatar_url} size={36} />
@@ -130,7 +130,7 @@ function InviteLinks({ organiserId, approved, invites }: { organiserId: string; 
       </div>
 
       {approved && active.length > 0 && (
-        <ul className="divide-y divide-white/[0.07] rounded-2xl border border-white/10 bg-white/[0.03]" aria-label="Active invite links">
+        <ul className="divide-y divide-ink/[0.07] rounded-2xl border border-ink/10 bg-ink/[0.03]" aria-label="Active invite links">
           {active.map((i) => (
             <li key={i.id} className="flex items-center gap-2 px-3 py-2.5">
               <div className="min-w-0 flex-1">

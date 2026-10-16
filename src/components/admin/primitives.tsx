@@ -37,23 +37,20 @@ export function Panel({ title, action, children, className = "", id }: {
   );
 }
 
-/** KPI tile. `accent` adds a soft iridescent glow for the numbers that matter most. */
+/** KPI tile. `accent` marks the numbers that matter most. */
 export function KpiTile({ label, value, hint, href, accent = false, alert = false }: {
   label: string; value: ReactNode; hint?: ReactNode; href?: string; accent?: boolean; alert?: boolean;
 }) {
   const body = (
     <>
-      {accent && (
-        <span aria-hidden className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-accent/20 blur-3xl" />
-      )}
       <p className="relative text-xs font-medium text-muted">{label}</p>
-      <p className={`relative mt-2.5 text-[2rem] font-semibold leading-none tracking-tight tabular-nums ${accent ? "text-gradient" : ""}`}>{value}</p>
+      <p className={`relative mt-2.5 text-[2rem] font-semibold leading-none tracking-tight tabular-nums ${accent ? "text-fg" : ""}`}>{value}</p>
       {hint && <p className="relative mt-2.5 text-xs text-subtle">{hint}</p>}
       {alert && <span className="absolute right-4 top-4 h-2 w-2 animate-pulse rounded-full bg-orange shadow-[0_0_12px_var(--orange)] motion-reduce:animate-none" aria-hidden />}
     </>
   );
   const cls = `glass relative block overflow-hidden rounded-[18px] p-5 transition duration-200 ${
-    href ? "hover:border-white/15 hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" : ""
+    href ? "hover:border-ink/15 hover:bg-ink/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent" : ""
   }`;
   return href ? <Link href={href} className={cls}>{body}</Link> : <div className={cls}>{body}</div>;
 }
@@ -70,12 +67,12 @@ export function CountTabs({ items, label }: { items: TabItem[]; label: string })
           href={t.href}
           aria-current={t.active ? "page" : undefined}
           className={`flex items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-            t.active ? "bg-gradient text-bg" : "text-muted hover:bg-white/[0.06] hover:text-fg"
+            t.active ? "bg-gradient text-bg" : "text-muted hover:bg-ink/[0.06] hover:text-fg"
           }`}
         >
           {t.label}
           {t.count !== undefined && (
-            <span className={`rounded-full px-1.5 py-px text-[11px] tabular-nums ${t.active ? "bg-black/10 text-bg" : "bg-white/[0.08] text-muted"}`}>
+            <span className={`rounded-full px-1.5 py-px text-[11px] tabular-nums ${t.active ? "bg-ink/10 text-bg" : "bg-ink/[0.08] text-muted"}`}>
               {t.count}
             </span>
           )}
@@ -89,8 +86,8 @@ export function CountTabs({ items, label }: { items: TabItem[]; label: string })
 export const table = {
   wrap: "glass max-h-[calc(100dvh-13rem)] overflow-auto rounded-[20px]",
   table: "w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm",
-  th: "sticky top-0 z-[1] border-b border-line bg-[#14141c]/80 px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-subtle backdrop-blur-xl first:rounded-tl-[20px] last:rounded-tr-[20px]",
-  tr: "group/row transition-colors hover:bg-white/[0.035] [&>td]:border-b [&>td]:border-line/60 last:[&>td]:border-0",
+  th: "sticky top-0 z-[1] border-b border-line bg-bg/90 px-4 py-3 text-xs font-medium text-muted first:rounded-tl-[20px] last:rounded-tr-[20px]",
+  tr: "group/row transition-colors hover:bg-ink/[0.035] [&>td]:border-b [&>td]:border-line/60 last:[&>td]:border-0",
   td: "px-4 py-3 align-middle tabular-nums",
 };
 
@@ -136,7 +133,7 @@ export function TableSkeleton({ rows = 8 }: { rows?: number }) {
 
 export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-[20px] border border-dashed border-white/12 bg-white/[0.025] px-6 py-12 text-center backdrop-blur-xl">
+    <div className="flex flex-col items-center rounded-[20px] border border-dashed border-ink/12 bg-ink/[0.025] px-6 py-12 text-center">
       <div className="bg-gradient mb-4 h-1 w-8 rounded-full opacity-70" aria-hidden />
       <p className="text-base font-semibold tracking-tight">{title}</p>
       {children && <div className="mt-1.5 max-w-sm text-sm text-muted">{children}</div>}
@@ -145,10 +142,10 @@ export function Empty({ title, children, action }: { title: string; children?: R
   );
 }
 
-/** Small uppercase section label inside panels. */
+/** Small section label inside panels. */
 export function SectionLabel({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <h3 className="mb-3 flex items-center justify-between text-[11px] font-medium uppercase tracking-[0.08em] text-subtle">
+    <h3 className="mb-3 flex items-center justify-between text-xs font-medium text-muted">
       {children}
       {action && <span className="normal-case tracking-normal">{action}</span>}
     </h3>
@@ -165,7 +162,7 @@ export function SegmentedLinks({ label, items }: { label: string; items: { key: 
           href={t.href}
           aria-current={t.active ? "page" : undefined}
           className={`whitespace-nowrap rounded-full px-3 py-1 font-medium transition-colors ${
-            t.active ? "bg-gradient text-bg" : "text-muted hover:bg-white/[0.06] hover:text-fg"
+            t.active ? "bg-gradient text-bg" : "text-muted hover:bg-ink/[0.06] hover:text-fg"
           }`}
         >
           {t.label}

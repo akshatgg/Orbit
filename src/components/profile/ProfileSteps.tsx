@@ -47,13 +47,13 @@ function ChoiceCard({ selected, onClick, emoji, title, hint, check = "circle", c
       aria-pressed={selected}
       onClick={onClick}
       className={`group relative flex w-full items-center gap-3.5 rounded-[20px] p-3.5 text-left transition duration-200 ease-out active:scale-[0.985] motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-        selected ? "border-gradient glow" : "glass hover:bg-white/[0.08]"
+        selected ? "is-selected" : "glass hover:bg-ink/[0.08]"
       } ${className}`}
     >
       <span
         aria-hidden
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl transition-colors ${
-          selected ? "bg-white/[0.14]" : "bg-white/[0.07]"
+          selected ? "bg-ink/[0.14]" : "bg-ink/[0.07]"
         }`}
       >
         {emoji}
@@ -66,7 +66,7 @@ function ChoiceCard({ selected, onClick, emoji, title, hint, check = "circle", c
         <span
           aria-hidden
           className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition ${
-            selected ? "bg-gradient border-transparent text-bg" : "border-white/15 text-transparent"
+            selected ? "bg-gradient border-transparent text-bg" : "border-ink/15 text-transparent"
           }`}
         >
           <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
@@ -169,7 +169,7 @@ export function UserTypeFields({ draft, update, errors }: StepProps) {
               aria-pressed={type === t.value}
               onClick={() => update({ user_type: t.value })}
               className={`flex min-h-[5.25rem] flex-col items-start justify-between rounded-[20px] p-3.5 text-left transition duration-200 ease-out active:scale-[0.985] motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                type === t.value ? "border-gradient glow" : "glass hover:bg-white/[0.08]"
+                type === t.value ? "is-selected" : "glass hover:bg-ink/[0.08]"
               }`}
             >
               <span aria-hidden className="text-xl">{t.emoji}</span>
@@ -302,7 +302,7 @@ export function HostRoleField({ draft, update, errors }: StepProps) {
               aria-pressed={on}
               onClick={() => update({ host_role: r })}
               className={`rounded-full border px-3 py-1 text-xs transition duration-200 active:scale-[0.97] motion-reduce:transition-none ${
-                on ? "bg-gradient border-transparent font-medium text-bg" : "border-white/10 bg-white/[0.045] text-muted hover:border-white/20 hover:text-fg"
+                on ? "bg-gradient border-transparent font-medium text-bg" : "border-ink/10 bg-ink/[0.045] text-muted hover:border-ink/20 hover:text-fg"
               }`}
             >
               {r}
@@ -383,7 +383,7 @@ export function EventsStep({ draft, update, errors, categories }: StepProps & { 
             const slugs = new Set(options.map((o) => o.slug));
             return (
               <div key={g.value} className="space-y-2">
-                <p className="font-display text-[10px] font-semibold uppercase tracking-[0.26em] text-subtle">{g.label}</p>
+                <p className="font-display text-xs font-medium text-muted">{g.label}</p>
                 <ChipGroup
                   name="preferred_categories"
                   options={options.map((o) => ({ value: o.slug, label: o.name }))}
@@ -443,7 +443,7 @@ export function AvailabilityStep({ draft, update }: StepProps) {
             key={p.label}
             type="button"
             onClick={() => update({ availability: withSlots(a, p.days, p.parts) })}
-            className="rounded-full border border-dashed border-white/15 px-3 py-1 text-xs text-muted transition-colors hover:border-accent/50 hover:text-fg"
+            className="rounded-full border border-dashed border-ink/15 px-3 py-1 text-xs text-muted transition-colors hover:border-accent/50 hover:text-fg"
           >
             + {p.label}
           </button>
@@ -481,7 +481,7 @@ export function AvailabilityStep({ draft, update }: StepProps) {
                   aria-label={`${d.label} ${part.label.toLowerCase()}`}
                   onClick={() => update({ availability: toggleSlot(a, d.value, part.value) })}
                   className={`aspect-square rounded-lg border transition-all active:scale-90 ${
-                    on ? "bg-gradient border-transparent" : "border-white/10 bg-white/[0.045] hover:border-white/25"
+                    on ? "bg-gradient border-transparent" : "border-ink/10 bg-ink/[0.045] hover:border-ink/25"
                   }`}
                 />
               );

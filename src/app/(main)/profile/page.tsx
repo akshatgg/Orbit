@@ -1,3 +1,4 @@
+import { AppearanceControl } from "@/components/theme/AppearanceControl";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -31,7 +32,7 @@ export default function ProfilePage() {
           <Link
             href="/profile/preferences"
             aria-label="Edit preferences"
-            className="glass flex h-10 w-10 items-center justify-center rounded-full text-muted transition duration-200 hover:bg-white/[0.09] hover:text-fg active:scale-95 motion-reduce:transition-none"
+            className="glass flex h-10 w-10 items-center justify-center rounded-full text-muted transition duration-200 hover:bg-ink/[0.09] hover:text-fg active:scale-95 motion-reduce:transition-none"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
@@ -71,6 +72,13 @@ export default function ProfilePage() {
           <Suspense fallback={<><SectionHeading title="Past events" /><SectionSkeleton rows={1} /></>}>
             <PastSection />
           </Suspense>
+        </section>
+
+        <section>
+          <SectionHeading title="Appearance" />
+          <div className="px-4">
+            <AppearanceControl />
+          </div>
         </section>
 
         <section>
@@ -154,9 +162,9 @@ async function OrganiserAndAdmin() {
       {isAdmin(profile) && (
         <Link
           href="/admin"
-          className="group glass mx-4 flex items-center gap-4 rounded-[22px] p-4 transition duration-200 hover:bg-white/[0.08] motion-reduce:transition-none"
+          className="group glass mx-4 flex items-center gap-4 rounded-[22px] p-4 transition duration-200 hover:bg-ink/[0.08] motion-reduce:transition-none"
         >
-          <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.06] text-lg">⌘</span>
+          <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-ink/10 bg-ink/[0.06] text-lg">⌘</span>
           <span className="min-w-0 flex-1">
             <span className="block font-semibold tracking-tight">Admin dashboard</span>
             <span className="block text-sm text-muted">

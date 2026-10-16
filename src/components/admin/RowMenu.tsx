@@ -38,7 +38,7 @@ export function RowMenu({ children, label = "Actions" }: { children: ReactNode; 
         aria-label={label}
         title={label}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/[0.08] hover:text-fg aria-expanded:bg-white/[0.08] aria-expanded:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/[0.08] hover:text-fg aria-expanded:bg-ink/[0.08] aria-expanded:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
         <IconDots size={18} />
       </button>
@@ -61,7 +61,7 @@ export function MenuLink({ href, children, external }: { href: string; children:
       href={href}
       role="menuitem"
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
-      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-fg transition-colors hover:bg-white/[0.08]"
+      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-fg transition-colors hover:bg-ink/[0.08]"
     >
       {children}
     </a>

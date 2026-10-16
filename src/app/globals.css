@@ -1,65 +1,137 @@
 @import "tailwindcss";
 
-/* ORBIT design tokens: dark glass, calm, premium */
-:root {
-  --bg: #06060a;
-  --surface: rgba(255, 255, 255, 0.045);
-  --surface-2: rgba(255, 255, 255, 0.075);
-  --line: rgba(255, 255, 255, 0.09);
-  --fg: #f4f4f6;
-  --muted: #9b9ba7;
-  --subtle: #6e6e7a;
+/* Theme variants: html[data-theme="dark"|"light"] is set before paint by the inline script in layout.tsx. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+@custom-variant light (&:where([data-theme=light], [data-theme=light] *));
 
-  --accent: #a99bff;
+/* ORBIT design tokens. Dark = "Clear glass", light = "Daylight". */
+:root,
+[data-theme="dark"] {
+  --bg: #0c0d10;
+  --raised: #1d1f25;
+  --surface: rgb(255 255 255 / 0.05);
+  --surface-2: rgb(255 255 255 / 0.08);
+  --line: rgb(255 255 255 / 0.08);
+  --fg: #f2f3f5;
+  --muted: #8e929b;
+  --subtle: #7b7f89;
+  --ink: #ffffff;
 
-  /* Brand colours sampled from the logo: use sparingly */
-  --violet: #b57cf6;
-  --pink: #de9ffb;
-  --blue: #3f79fd;
-  --cream: #f4e4d4;
-  --orange: #fdb570;
+  --accent: #6d95ff;
+  --blue: #6d95ff;
+  --violet: #6d95ff;
+  --pink: #6d95ff;
+  --cream: #f2f3f5;
+  --orange: #ffa45c;
 
-  --orbit-gradient: linear-gradient(
-    135deg,
-    var(--pink) 0%,
-    var(--blue) 35%,
-    var(--cream) 70%,
-    var(--orange) 100%
-  );
-  --pearl: linear-gradient(180deg, #ffffff 0%, #f1efff 55%, #fdeee6 100%);
+  --primary: #ffffff;
+  --on-primary: #0c0d10;
+  --primary-shadow: none;
 
-  --glass-blur: blur(24px) saturate(140%);
+  --card-shadow: none;
+  --seg-on: rgb(255 255 255 / 0.12);
+  --seg-shadow: none;
+  --float-bg: rgb(20 22 28 / 0.42);
+  --float-line: rgb(255 255 255 / 0.16);
+  --sheet-bg: rgb(24 26 32 / 0.82);
+  --bar-bg: rgb(28 30 36 / 0.6);
+  --bar-line: rgb(255 255 255 / 0.12);
+  --bar-shadow: 0 18px 40px -14px rgb(0 0 0 / 0.7);
+
+  --glass-blur: blur(24px) saturate(160%);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+
+  /* Tailwind's own pale status shades (restated so a nested dark surface resets the light-theme overrides). */
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+}
+
+[data-theme="light"] {
+  --bg: #f3f4f7;
+  --raised: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #eceef2;
+  --line: #e4e6eb;
+  --fg: #14161b;
+  --muted: #6b7080;
+  --subtle: #868b98;
+  --ink: #14161b;
+
+  --accent: #3d5afe;
+  --blue: #3d5afe;
+  --violet: #3d5afe;
+  --pink: #3d5afe;
+  --cream: #14161b;
+  --orange: #e8832a;
+
+  --primary: #3d5afe;
+  --on-primary: #ffffff;
+  --primary-shadow: 0 6px 16px -8px rgb(61 90 254 / 0.55);
+
+  --card-shadow: 0 1px 2px rgb(20 22 27 / 0.04), 0 8px 24px -12px rgb(20 22 27 / 0.12);
+  --seg-on: #ffffff;
+  --seg-shadow: 0 1px 2px rgb(20 22 27 / 0.08), 0 2px 8px -2px rgb(20 22 27 / 0.1);
+  --float-bg: rgb(20 22 28 / 0.42);
+  --float-line: rgb(255 255 255 / 0.2);
+  --sheet-bg: rgb(255 255 255 / 0.92);
+  --bar-bg: rgb(255 255 255 / 0.78);
+  --bar-line: rgb(20 22 27 / 0.06);
+  --bar-shadow: 0 -8px 30px -18px rgb(20 22 27 / 0.25);
+
+  --glass-blur: blur(20px) saturate(180%);
+  color-scheme: light;
+
+  /* Status colours are tuned for dark surfaces; darken the pale shades so they read on white. */
+  --color-red-100: #8f1d12;
+  --color-red-200: #a82616;
+  --color-red-300: #c0301f;
+  --color-red-400: #dc3a2b;
+  --color-emerald-200: #046c4e;
+  --color-emerald-300: #047857;
+  --color-emerald-400: #10a070;
+  --color-sky-300: #0369a1;
+  --color-sky-400: #0284c7;
 }
 
 @theme inline {
   --color-bg: var(--bg);
+  --color-raised: var(--raised);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-line: var(--line);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-subtle: var(--subtle);
+  --color-ink: var(--ink);
   --color-accent: var(--accent);
   --color-violet: var(--violet);
   --color-pink: var(--pink);
   --color-blue: var(--blue);
   --color-cream: var(--cream);
   --color-orange: var(--orange);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
 
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-montserrat);
+  --font-sans: var(--font-instrument), system-ui, sans-serif;
+  --font-display: var(--font-instrument), system-ui, sans-serif;
 }
 
 html {
-  color-scheme: dark;
   background: var(--bg);
 }
 
 body {
-  background: transparent;
+  background: var(--bg);
   color: var(--fg);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-instrument), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -72,97 +144,109 @@ body {
 }
 
 ::selection {
-  background: rgb(169 155 255 / 0.35);
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-/* Pearl fill: primary buttons, selected chips, progress fills, active indicators. Pair with text-bg. */
+@layer components {
+/* Primary fill: solid white in dark, solid blue in light. Pair with text-bg. */
 .bg-gradient {
-  background: var(--pearl);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.9),
-    inset 0 -1px 0 rgb(0 0 0 / 0.06),
-    0 6px 18px -8px rgb(0 0 0 / 0.6);
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--primary-shadow);
 }
-
-/* Subtle pearl-violet text gradient */
-.text-gradient {
-  background: linear-gradient(100deg, #ffffff 0%, #cfc6ff 55%, #ffd9c2 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 /* Room for the iPhone home indicator */
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
 }
 
-/* Soft neutral-violet halo */
-.glow {
-  box-shadow:
-    0 0 0 1px rgb(169 155 255 / 0.18),
-    0 10px 36px -12px rgb(124 108 240 / 0.45);
+/* Cards: a quiet tinted fill in dark, solid white with a soft shadow in light. No blur. */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--card-shadow);
+}
+[data-theme="light"] .glass {
+  border-color: transparent;
 }
 
-/* Glass surfaces */
-.glass {
-  background: rgb(255 255 255 / 0.05);
+/* Selected option / highlighted card: accent hairline over a faint tint. */
+.is-selected {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* Real glass: floats over photos and content (tab bar, sticky CTA, sheets, toasts). */
+.glass-strong {
+  background: var(--bar-bg);
   -webkit-backdrop-filter: var(--glass-blur);
   backdrop-filter: var(--glass-blur);
-  border: 1px solid rgb(255 255 255 / 0.08);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.08),
-    0 12px 32px -16px rgb(0 0 0 / 0.7);
+  border: 1px solid var(--bar-line);
+  box-shadow: var(--bar-shadow);
 }
 
-.glass-strong {
-  background: rgb(22 22 30 / 0.55);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid rgb(255 255 255 / 0.1);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.1),
-    0 18px 40px -14px rgb(0 0 0 / 0.8);
+/* Round buttons that sit on cover photos: dark glass with white icons in both themes. */
+.glass-float {
+  background: var(--float-bg);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--float-line);
+  color: #fff;
 }
 
-/* Hairline iridescent border over a glass fill */
-.border-gradient {
-  border: 1px solid transparent;
-  background:
-    linear-gradient(rgb(18 18 26 / 0.92), rgb(18 18 26 / 0.92)) padding-box,
-    linear-gradient(135deg, rgb(222 159 251 / 0.5), rgb(63 121 253 / 0.35) 40%, rgb(244 228 212 / 0.4) 70%, rgb(253 181 112 / 0.45))
-      border-box;
+/* Round back / share / save buttons on the event page: glass over the cover, plain white circles in the light top bar. */
+.round-btn {
+  background: var(--float-bg);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid var(--float-line);
+  color: #fff;
+}
+@media (max-width: 1023.98px) {
+  [data-theme="light"] .round-btn {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-color: var(--line);
+    color: var(--fg);
+    box-shadow: var(--card-shadow);
+  }
+  [data-theme="light"] .round-btn[aria-pressed="true"] {
+    color: var(--accent);
+  }
 }
 
-/* Glass shimmer for skeletons */
+/* Frosted info pane on a photo card */
+.glass-pane {
+  background: rgb(20 22 28 / 0.42);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  color: #fff;
+}
+}
+
+[data-theme="light"] .glass-pane {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-color: transparent;
+  color: var(--fg);
+}
+
+/* Loading shimmer */
 .shimmer {
   position: relative;
   overflow: hidden;
-  background: rgb(255 255 255 / 0.05);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
 }
 .shimmer::after {
   content: "";
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.07), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ink) 8%, transparent), transparent);
   animation: shimmer 1.8s ease-in-out infinite;
 }
-
-/* Ambient background */
-.ambient-orb {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(90px);
-  will-change: transform;
-}
-.ambient-a { animation: drift-a 52s ease-in-out infinite alternate; }
-.ambient-b { animation: drift-b 44s ease-in-out infinite alternate; }
-.ambient-c { animation: drift-c 58s ease-in-out infinite alternate; }
-
-@keyframes drift-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(14vw, 10vh, 0) scale(1.15); } }
-@keyframes drift-b { from { transform: translate3d(0, 0, 0) scale(1.1); } to { transform: translate3d(-16vw, 14vh, 0) scale(0.95); } }
-@keyframes drift-c { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(10vw, -12vh, 0) scale(1.2); } }
 @keyframes shimmer { to { transform: translateX(100%); } }
 
 /* 3D emblem */
@@ -185,7 +269,7 @@ body {
 .loader-breathe { animation: loader-breathe 2.4s ease-in-out infinite; }
 .loader-glow { animation: loader-glow 2.4s ease-in-out infinite; }
 .loader-word {
-  background: linear-gradient(100deg, rgb(244 244 246 / 0.55) 35%, #fff 50%, rgb(244 244 246 / 0.55) 65%) 100% 0 / 250% 100% no-repeat;
+  background: linear-gradient(100deg, color-mix(in srgb, var(--fg) 55%, transparent) 35%, var(--fg) 50%, color-mix(in srgb, var(--fg) 55%, transparent) 65%) 100% 0 / 250% 100% no-repeat;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -196,7 +280,6 @@ body {
 @keyframes loader-sheen { to { background-position: 0% 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .ambient-orb,
   .shimmer::after,
   .emblem-bob,
   .emblem-spin-1,

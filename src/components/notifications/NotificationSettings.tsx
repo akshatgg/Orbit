@@ -122,7 +122,7 @@ export function NotificationSettings() {
       aria-busy={!loaded}
     >
       <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-white/10 bg-white/[0.07] text-accent">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-ink/10 bg-ink/[0.07] text-accent">
           <BellIcon />
         </span>
         <div className="min-w-0">
@@ -133,7 +133,7 @@ export function NotificationSettings() {
 
       <DevicePush device={device} busy={busy} onOn={turnOn} onOff={turnOff} onTest={test} />
 
-      <div className="mt-4 divide-y divide-white/[0.07] border-t border-white/[0.07]">
+      <div className="mt-4 divide-y divide-ink/[0.07] border-t border-ink/[0.07]">
         <Toggle
           label="Push reminders"
           hint="On every device where push is turned on"
@@ -157,9 +157,9 @@ export function NotificationSettings() {
         />
       </div>
 
-      <div className="border-t border-white/[0.07] pt-3">
+      <div className="border-t border-ink/[0.07] pt-3">
         <p id="notif-timing" className="text-sm font-medium text-fg">Remind me before events</p>
-        <div role="radiogroup" aria-labelledby="notif-timing" className="mt-2 flex gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">
+        <div role="radiogroup" aria-labelledby="notif-timing" className="mt-2 flex gap-1 rounded-full border border-ink/10 bg-ink/[0.04] p-1">
           {([
             [24, "Day before"],
             [2, "On the day"],
@@ -247,7 +247,7 @@ function DevicePush({ device, busy, onOn, onOff, onTest }: {
         status = "Push is on for this device";
         action = (
           <div className="flex shrink-0 gap-1.5">
-            <button type="button" onClick={onTest} disabled={busy !== null} className={`${btn} border border-white/10 bg-white/[0.07] text-fg hover:bg-white/[0.12]`}>
+            <button type="button" onClick={onTest} disabled={busy !== null} className={`${btn} border border-ink/10 bg-ink/[0.07] text-fg hover:bg-ink/[0.12]`}>
               {busy === "test" ? "Sending…" : "Send test"}
             </button>
             <button type="button" onClick={onOff} disabled={busy !== null} className={`${btn} text-muted hover:text-fg`}>
@@ -267,7 +267,7 @@ function DevicePush({ device, busy, onOn, onOff, onTest }: {
 
   const on = device.support === "supported" && device.subscribed && device.permission !== "denied";
   return (
-    <div className="mt-4 rounded-[16px] border border-white/10 bg-white/[0.04] p-3">
+    <div className="mt-4 rounded-[16px] border border-ink/10 bg-ink/[0.04] p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${on ? "bg-emerald-400" : "bg-muted/50"}`} />
@@ -303,7 +303,7 @@ function Toggle({ label, hint, checked, disabled, onChange }: {
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-          checked ? "border-transparent bg-gradient" : "border-white/10 bg-white/[0.08]"
+          checked ? "border-transparent bg-gradient" : "border-ink/10 bg-ink/[0.08]"
         }`}
       >
         <span

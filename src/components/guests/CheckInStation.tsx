@@ -156,20 +156,20 @@ export function CheckInStation({ eventId, counts: serverCounts, guests }: { even
       <section aria-label="Check-in progress" className="px-4">
         <div className="flex items-end justify-between gap-3">
           <p aria-live="polite" className="tabular-nums">
-            <span className="text-gradient text-4xl font-semibold tracking-tight">{counts.checkedIn}</span>
+            <span className="text-fg text-4xl font-semibold tracking-tight">{counts.checkedIn}</span>
             <span className="text-xl font-medium text-subtle"> / {counts.going}</span>
             <span className="ml-2 text-sm font-medium text-muted">checked in</span>
           </p>
           <span className="pb-1 text-sm tabular-nums text-muted">{pct}%</span>
         </div>
-        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]" aria-hidden>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink/[0.08]" aria-hidden>
           <div className="bg-gradient h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%` }} />
         </div>
       </section>
 
       {/* Scanner */}
       <section aria-label="Ticket scanner" className="px-4">
-        <div className="relative mx-auto aspect-[3/4] max-h-[62dvh] w-full overflow-hidden rounded-[28px] bg-black shadow-[0_0_0_1px_rgb(255_255_255/0.12),0_0_0_6px_rgb(255_255_255/0.04),0_24px_60px_-20px_rgb(0_0_0/0.9)]">
+        <div data-theme="dark" className="relative mx-auto aspect-[3/4] max-h-[62dvh] w-full overflow-hidden rounded-[28px] bg-black text-fg shadow-[0_0_0_1px_rgb(255_255_255/0.12),0_0_0_6px_rgb(255_255_255/0.04),0_24px_60px_-20px_rgb(0_0_0/0.9)]">
           <video
             ref={videoRef}
             playsInline
@@ -261,7 +261,7 @@ function ResultCard({ view, eventId, onCounts, onDismiss }: {
   return (
     <div
       role="alert"
-      className={`absolute inset-x-3 bottom-3 rounded-[22px] border p-4 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] ${t.card} ${t.ring}`}
+      className={`absolute inset-x-3 bottom-3 rounded-[22px] border p-4 backdrop-blur-2xl backdrop-saturate-150 ${t.card} ${t.ring}`}
     >
       <div className="flex items-start gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl font-semibold ${t.icon}`} aria-hidden>
@@ -368,7 +368,7 @@ function GuestFinder({ eventId, guests, onOutcome, onCounts }: {
       {visible.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted">{guests.length ? "No one matches that search." : "No guests yet."}</p>
       ) : (
-        <ul className="mt-2 divide-y divide-white/[0.07]">
+        <ul className="mt-2 divide-y divide-ink/[0.07]">
           {visible.map((g) => (
             <FinderRow key={g.id} eventId={eventId} guest={g} onOutcome={onOutcome} onCounts={onCounts} />
           ))}

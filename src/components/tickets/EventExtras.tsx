@@ -20,7 +20,7 @@ export function ViewLogger({ eventId }: { eventId: string }) {
 }
 
 const roundBtn =
-  "glass flex h-10 w-10 items-center justify-center rounded-full text-fg transition duration-200 hover:bg-white/[0.12] active:scale-95 motion-reduce:transition-none";
+  "round-btn flex h-10 w-10 items-center justify-center rounded-full transition duration-200 hover:brightness-125 active:scale-95 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 /** Native share sheet on phones (WhatsApp etc.), copy-link fallback elsewhere. */
 export function ShareButton({ eventId, title, text, className = roundBtn }: {
@@ -92,7 +92,7 @@ export function CalendarButton({ eventId, googleUrl, className, children }: {
 }) {
   const [open, setOpen] = useState(false);
   const item =
-    "flex w-full items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.05] px-4 py-3.5 text-left text-sm font-medium transition-colors hover:bg-white/[0.1]";
+    "flex w-full items-center gap-3 rounded-[18px] border border-ink/10 bg-ink/[0.05] px-4 py-3.5 text-left text-sm font-medium transition-colors hover:bg-ink/[0.1]";
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={className}>
@@ -158,7 +158,7 @@ export function ExternalRegisteredToggle({ eventId, registered, signedIn }: { ev
             if (!res.ok) setError(res.error);
           })
         }
-        className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors ${optimistic ? "border-transparent bg-gradient" : "border-white/10 bg-white/[0.08]"}`}
+        className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors ${optimistic ? "border-transparent bg-gradient" : "border-ink/10 bg-ink/[0.08]"}`}
       >
         <span className={`absolute top-0.5 h-5.5 w-5.5 rounded-full shadow transition-[left] motion-reduce:transition-none ${optimistic ? "left-[1.4rem] bg-bg" : "left-0.5 bg-fg/80"}`} />
       </button>

@@ -32,7 +32,7 @@ export function EventCover({ src, title, className = "", width = 800 }: { src?: 
         <ellipse cx="12" cy="12" rx="9.5" ry="4" transform="rotate(-25 12 12)" />
         <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
       </svg>
-      <div className="absolute inset-0 rounded-[inherit] shadow-[inset_0_1px_0_rgb(255_255_255/0.12)]" />
+      <div className="absolute inset-0 rounded-[inherit]" />
     </div>
   );
 }

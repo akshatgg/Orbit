@@ -127,7 +127,7 @@ export function FilterBar({ filters, categories }: { filters: SearchFilters; cat
                 className={`${pill} ${
                   active
                     ? "bg-gradient border-transparent font-medium text-bg"
-                    : "border-white/10 bg-white/[0.045] text-muted backdrop-blur-xl hover:border-white/20 hover:bg-white/[0.08] hover:text-fg"
+                    : "border-ink/10 bg-ink/[0.045] text-muted hover:border-ink/20 hover:bg-ink/[0.08] hover:text-fg"
                 } ${active ? "rounded-r-none pr-2.5" : ""}`}
               >
                 <span className="max-w-[10rem] truncate">{pillLabel(filters, key, categories)}</span>
@@ -170,7 +170,7 @@ export function FilterBar({ filters, categories }: { filters: SearchFilters; cat
             className="glass-strong fixed inset-x-0 bottom-0 z-50 flex max-h-[75dvh] flex-col rounded-t-[28px] pb-[env(safe-area-inset-bottom)] sm:inset-x-auto sm:bottom-auto sm:left-[var(--fx)] sm:top-[var(--fy)] sm:max-h-[min(24rem,70dvh)] sm:w-[264px] sm:rounded-[20px] sm:pb-0"
           >
             <div className="sm:hidden">
-              <div aria-hidden className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-white/20" />
+              <div aria-hidden className="mx-auto mt-2.5 h-1 w-10 rounded-full bg-ink/20" />
               <div className="flex items-center justify-between px-5 pb-1 pt-3">
                 <h2 className="font-display text-base font-semibold">{FILTER_TITLES[openKey]}</h2>
                 <button type="button" onClick={() => close()} className="rounded-full px-2 py-1 text-sm text-muted hover:text-fg">Done</button>
@@ -216,7 +216,7 @@ function OptionList({ kind, options, selected, onPick }: {
             aria-checked={on}
             tabIndex={-1}
             onClick={() => onPick(o.value)}
-            className={`flex w-full items-center justify-between gap-3 rounded-[14px] px-3.5 py-2.5 text-left text-sm transition-colors focus-visible:bg-white/[0.1] focus-visible:outline-none hover:bg-white/[0.07] ${on ? "font-medium text-fg" : "text-muted"}`}
+            className={`flex w-full items-center justify-between gap-3 rounded-[14px] px-3.5 py-2.5 text-left text-sm transition-colors focus-visible:bg-ink/[0.1] focus-visible:outline-none hover:bg-ink/[0.07] ${on ? "font-medium text-fg" : "text-muted"}`}
           >
             <span className="truncate">{o.label}</span>
             {on && <span className="text-accent"><Check /></span>}

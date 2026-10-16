@@ -31,7 +31,7 @@ export function TagPicker({ value, onChange, error }: { value: string[]; onChang
 
   const chip = (on: boolean) =>
     `rounded-full border px-3 py-1.5 text-xs transition duration-200 active:scale-[0.97] motion-reduce:transition-none ${
-      on ? "border-transparent bg-gradient font-semibold text-bg" : "border-white/10 bg-white/[0.045] text-muted hover:border-white/20 hover:bg-white/[0.08] hover:text-fg disabled:opacity-40"
+      on ? "border-transparent bg-gradient font-semibold text-bg" : "border-ink/10 bg-ink/[0.045] text-muted hover:border-ink/20 hover:bg-ink/[0.08] hover:text-fg disabled:opacity-40"
     }`;
 
   return (

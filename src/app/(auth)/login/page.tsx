@@ -26,11 +26,11 @@ export default function LoginPage() {
           <OrbitEmblem size={220} />
         </div>
         <h1 className="font-display text-5xl font-semibold tracking-[0.42em] indent-[0.42em]">ORBIT</h1>
-        <p className="mt-3 font-display text-xs font-medium uppercase tracking-[0.34em] text-subtle">Explore opportunities</p>
+        <p className="mt-3 font-display text-xs font-medium text-muted">Explore opportunities</p>
         <ul className="mt-12 w-full max-w-sm space-y-5">
           {VALUES.map((v) => (
             <li key={v.title} className="flex items-start gap-4">
-              <span aria-hidden className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] text-accent">✦</span>
+              <span aria-hidden className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] text-accent">✓</span>
               <span>
                 <span className="block font-semibold tracking-tight">{v.title}</span>
                 <span className="block text-sm text-muted">{v.body}</span>
@@ -44,7 +44,7 @@ export default function LoginPage() {
         <OrbitEmblem size={118} />
       </div>
       <h1 className="font-display text-3xl font-semibold tracking-[0.42em] indent-[0.42em] lg:hidden">ORBIT</h1>
-      <p className="mt-2.5 font-display text-[11px] font-medium uppercase tracking-[0.34em] text-subtle lg:hidden">Explore opportunities</p>
+      <p className="mt-2.5 font-display text-xs font-medium text-muted lg:hidden">Explore opportunities</p>
       <LoginForm />
       <Suspense fallback={<p className="mt-5 h-5" />}>
         <HostDoor />

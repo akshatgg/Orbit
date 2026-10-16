@@ -67,7 +67,7 @@ async function Content({ params }: { params: PageProps<"/o/[slug]">["params"] })
     <>
       <JsonLd data={buildOrganisationJsonLd(org)} />
       <header className="px-4 pb-6 pt-[max(env(safe-area-inset-top),1.5rem)]">
-       <div className="border-gradient rounded-[26px] p-5">
+       <div className="glass rounded-[26px] p-5">
         <div className="flex items-start gap-4">
           <OrganiserLogo src={org.logo_url} name={org.name} size={80} />
           <div className="min-w-0 flex-1">
@@ -103,9 +103,9 @@ function EventList({ title, events, empty, state }: {
 }) {
   return (
     <section aria-label={title}>
-      <h2 className="mb-3 font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">{title}</h2>
+      <h2 className="mb-3 font-display text-xs font-medium text-muted">{title}</h2>
       {events.length === 0 ? (
-        <p className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-4 py-8 text-center text-sm text-muted">{empty}</p>
+        <p className="rounded-[22px] border border-dashed border-ink/12 bg-ink/[0.025] px-4 py-8 text-center text-sm text-muted">{empty}</p>
       ) : (
         <div className="space-y-3">
           {events.map((e) => (

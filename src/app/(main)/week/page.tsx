@@ -24,7 +24,7 @@ const SECTIONS = [
 export default function WeekPage() {
   return (
     <>
-      <DiscoveryHeader title="This Week" subtitle="Your shortlist for the next 7 days" />
+      <DiscoveryHeader brand title="This Week" subtitle="Your shortlist for the next 7 days" />
       <FeedTabs />
       <Suspense fallback={<WeekSkeleton />}>
         <Week />
@@ -59,7 +59,7 @@ async function Week() {
 
   return (
     <DismissProvider>
-      <p className="-mt-1 mb-5 px-4 font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-subtle">
+      <p className="-mt-1 mb-5 px-4 font-display text-xs font-medium text-muted">
         {formatDayRange(today, addDays(today, 7))} · {ranked.length} event{ranked.length === 1 ? "" : "s"}
       </p>
 

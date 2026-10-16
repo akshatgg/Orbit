@@ -42,7 +42,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/organiser/s
         <nav aria-label="Switch organiser" className="scrollbar-none -mx-4 flex gap-2 overflow-x-auto px-4">
           {orgs.map((o) => (
             <Link key={o.id} href={`/organiser/settings?org=${o.id}`} aria-current={o.id === org.id ? "page" : undefined}
-              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-colors duration-200 ${o.id === org.id ? "border-gradient text-fg" : "glass text-muted hover:text-fg"}`}>
+              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-colors duration-200 ${o.id === org.id ? "is-selected text-fg" : "glass text-muted hover:text-fg"}`}>
               {o.name}
             </Link>
           ))}

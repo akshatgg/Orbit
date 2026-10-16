@@ -19,7 +19,7 @@ export function AdminNav({ links }: { links: AdminLink[] }) {
             href={l.href}
             aria-current={active ? "page" : undefined}
             className={`whitespace-nowrap rounded-full px-3.5 py-1.5 font-medium transition-colors duration-200 ${
-              active ? "bg-gradient text-bg" : "text-muted hover:bg-white/[0.06] hover:text-fg"
+              active ? "bg-gradient text-bg" : "text-muted hover:bg-ink/[0.06] hover:text-fg"
             }`}
           >
             {l.label}

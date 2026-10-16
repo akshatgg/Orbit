@@ -1,7 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 export const inputClass =
-  "w-full rounded-[14px] border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-fg placeholder:text-subtle outline-none backdrop-blur-xl shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] transition duration-200 ease-out hover:border-white/15 focus:border-accent/60 focus:bg-white/[0.07] focus:ring-4 focus:ring-accent/15 disabled:opacity-60 aria-[invalid=true]:border-red-400/60 aria-[invalid=true]:ring-red-400/10";
+  "w-full rounded-[14px] border border-ink/10 bg-ink/[0.045] light:bg-surface light:border-line px-4 py-3 text-sm text-fg placeholder:text-subtle outline-none transition duration-200 ease-out hover:border-ink/15 focus:border-accent/60 focus:bg-ink/[0.07] focus:ring-4 focus:ring-accent/15 disabled:opacity-60 aria-[invalid=true]:border-red-400/60 aria-[invalid=true]:ring-red-400/10";
 
 /** Label + control + hint/error, stacked. */
 export function Field({ label, hint, error, children, htmlFor, required }: {

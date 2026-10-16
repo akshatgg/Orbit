@@ -18,7 +18,7 @@ export function InstallRow() {
         type="button"
         onClick={() => (isTip ? setTip((v) => !v) : action.run())}
         aria-expanded={isTip ? tip : undefined}
-        className="group glass flex w-full items-center gap-4 rounded-[22px] p-4 text-left transition duration-200 hover:bg-white/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
+        className="group glass flex w-full items-center gap-4 rounded-[22px] p-4 text-left transition duration-200 hover:bg-ink/[0.08] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
       >
         <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-bg">
           <DownloadIcon className="h-5 w-5" />

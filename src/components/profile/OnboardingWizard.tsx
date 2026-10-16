@@ -133,7 +133,7 @@ export function OnboardingWizard({ initial, categories, next, email, university 
               onClick={() => go(index - 1)}
               disabled={pending || index === 0}
               aria-label="Back"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/[0.08] hover:text-fg disabled:opacity-30"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/[0.08] hover:text-fg disabled:opacity-30"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M15 5l-7 7 7 7" />
@@ -146,7 +146,7 @@ export function OnboardingWizard({ initial, categories, next, email, university 
               aria-valuemax={total}
               aria-valuenow={index + 1}
               aria-valuetext={`Step ${index + 1} of ${total}`}
-              className="h-1 flex-1 overflow-hidden rounded-full bg-white/10"
+              className="h-1 flex-1 overflow-hidden rounded-full bg-ink/10"
             >
               <div
                 className="bg-gradient h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
@@ -165,13 +165,13 @@ export function OnboardingWizard({ initial, categories, next, email, university 
             <p className="font-display text-xs font-semibold tracking-[0.4em] text-muted">ORBIT</p>
           </div>
         )}
-        <p className="font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">{copy.eyebrow}</p>
+        <p className="font-display text-xs font-medium text-muted">{copy.eyebrow}</p>
         <h1 ref={headingRef} tabIndex={-1} className="mt-2.5 text-[1.7rem] font-semibold leading-tight tracking-tight outline-none">
           {key === "goals" && initial.full_name ? (
             <>
               Hi {initial.full_name.split(/\s+/)[0]}.
               <br />
-              <span className="text-gradient">{copy.title}</span>
+              <span className="text-fg">{copy.title}</span>
             </>
           ) : (
             copy.title
@@ -251,7 +251,7 @@ export function OnboardingWizard({ initial, categories, next, email, university 
 
 /** A form (so Enter continues) for question steps; a plain div for the organisation step, which has its own form. */
 function Shell({ asForm, onSubmit, children }: { asForm: boolean; onSubmit: () => void; children: React.ReactNode }) {
-  const className = "flex min-h-dvh flex-col md:min-h-0 md:w-full md:rounded-[32px] md:border md:border-white/10 md:bg-[rgb(22_22_30/0.55)] md:shadow-[inset_0_1px_0_rgb(255_255_255/0.1),0_24px_60px_-20px_rgb(0_0_0/0.8)] md:backdrop-blur-[28px] md:backdrop-saturate-150";
+  const className = "flex min-h-dvh flex-col md:min-h-0 md:w-full md:rounded-[32px] md:border md:border-ink/10 md:bg-surface md:shadow-[var(--card-shadow)]";
   if (!asForm) return <div className={className}>{children}</div>;
   return (
     <form

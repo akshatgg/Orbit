@@ -18,7 +18,7 @@ export const metadata: Metadata = { title: "Calendar" };
 export default function CalendarPage({ searchParams }: PageProps<"/calendar">) {
   return (
     <>
-      <DiscoveryHeader
+      <DiscoveryHeader brand
         title="Calendar"
         subtitle="Your saved and registered events by day"
         action={
@@ -110,7 +110,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
               ))}
             </ul>
           ) : (
-            <div className="mx-4 rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-5 py-6 text-center text-sm text-muted">
+            <div className="mx-4 rounded-[22px] border border-dashed border-ink/12 bg-ink/[0.025] px-5 py-6 text-center text-sm text-muted">
               Nothing saved for this day.{" "}
               <Link href="/search" className="font-semibold text-accent">Find something</Link>
             </div>
@@ -121,13 +121,13 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
       {later.length > 0 && (
         <section aria-labelledby="later-heading" className="lg:col-start-2 lg:row-start-2">
           <SectionHeading id="later-heading" eyebrow={formatMonth(month)} title="Later this month" count={later.length} />
-          <ul className="glass mx-4 divide-y divide-white/[0.07] overflow-hidden rounded-[22px]">
+          <ul className="glass mx-4 divide-y divide-ink/[0.07] overflow-hidden rounded-[22px]">
             {later.map((e) => (
               <li key={e.event.id}>
                 <Link
                   href={`/calendar?month=${month}&day=${dayKey(e.event.starts_at)}`}
                   scroll={false}
-                  className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/[0.05]"
+                  className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-ink/[0.05]"
                 >
                   <DateChip iso={e.event.starts_at} />
                   <div className="min-w-0 flex-1">
@@ -162,8 +162,8 @@ const chipWeekday = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZon
 function DateChip({ iso }: { iso: string }) {
   const d = new Date(iso);
   return (
-    <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.06] leading-none">
-      <span className="text-[9px] font-medium uppercase tracking-widest text-subtle">{chipWeekday.format(d)}</span>
+    <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-[14px] border border-ink/10 bg-ink/[0.06] leading-none">
+      <span className="text-[9px] font-medium text-muted">{chipWeekday.format(d)}</span>
       <span className="mt-0.5 text-base font-semibold tabular-nums">{chipDay.format(d)}</span>
     </span>
   );

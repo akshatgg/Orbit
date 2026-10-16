@@ -48,7 +48,7 @@ const FAQ = [
   { q: "How are events picked for me?", a: "Your goals, interests, saved events and schedule feed a simple ranking, so what you see first is what's most relevant this week." },
 ];
 
-const eyebrow = "font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle";
+const eyebrow = "font-display text-xs font-medium text-muted";
 
 export default function Welcome() {
   return (
@@ -71,7 +71,7 @@ export default function Welcome() {
           <div className="order-2 text-center md:order-1 md:text-left">
             <p className={eyebrow}>Explore opportunities</p>
             <h1 className="mt-3 text-balance text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-              Career events, networking &amp; socials <span className="text-gradient">— all in one place</span>
+              Career events, networking &amp; socials <span className="text-fg">— all in one place</span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted md:mx-0 md:text-lg">
               ORBIT finds the careers fairs, employer talks, society nights and meet-ups worth your time, ranks them for your goals,
@@ -94,7 +94,7 @@ export default function Welcome() {
           <h2 id="how-h" className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">How it works</h2>
           <ol className="mt-6 grid gap-4 md:grid-cols-3">
             {STEPS.map((s, i) => (
-              <li key={s.title} className="border-gradient rounded-[22px] p-5">
+              <li key={s.title} className="glass rounded-[22px] p-5">
                 <span aria-hidden className="bg-gradient flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-bg">{i + 1}</span>
                 <h3 className="mt-4 text-lg font-semibold tracking-tight">{s.title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted">{s.body}</p>
@@ -160,7 +160,7 @@ export default function Welcome() {
         </section>
       </main>
 
-      <footer className="border-t border-white/[0.07]">
+      <footer className="border-t border-ink/[0.07]">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 pb-[max(env(safe-area-inset-bottom),2rem)] text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
           <p className="font-display text-xs font-semibold tracking-[0.3em] text-fg/80">ORBIT <span className="font-sans tracking-normal text-muted">· Explore opportunities</span></p>
           <nav aria-label="Footer" className="flex flex-wrap gap-x-5 gap-y-2">
@@ -187,7 +187,7 @@ function Point({ children }: { children: React.ReactNode }) {
 async function UpcomingEvents() {
   const events = await listLandingEvents(6);
   if (events.length === 0) {
-    return <p className="mt-6 rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-4 py-10 text-center text-sm text-muted">No events are listed right now. Check back soon, or sign in to be first to hear.</p>;
+    return <p className="mt-6 rounded-[22px] border border-dashed border-ink/12 bg-ink/[0.025] px-4 py-10 text-center text-sm text-muted">No events are listed right now. Check back soon, or sign in to be first to hear.</p>;
   }
   return (
     <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -195,8 +195,8 @@ async function UpcomingEvents() {
         const price = formatPrice(e.price_min, e.price_min, e.currency ?? "GBP");
         const where = e.format === "online" ? "Online" : (e.venue_name ?? e.city ?? FORMAT_LABELS[e.format]);
         return (
-          <li key={e.id}>
-            <Link href={`/events/${e.id}`} className="glass group block overflow-hidden rounded-[22px] transition duration-200 hover:border-white/15 hover:bg-white/[0.07] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none">
+          <li key={e.id} className="min-w-0">
+            <Link href={`/events/${e.id}`} className="glass group block overflow-hidden rounded-[22px] transition duration-200 hover:border-ink/15 hover:bg-ink/[0.07] focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none">
               <div className="aspect-[16/9] w-full overflow-hidden"><EventCover src={e.cover_url} title={e.title} width={600} /></div>
               <div className="p-4">
                 <p className="text-xs font-medium text-accent">{formatEventDate(e.starts_at)}</p>
@@ -215,7 +215,7 @@ async function UpcomingEvents() {
 function EventsSkeleton() {
   return (
     <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
-      {[0, 1, 2].map((i) => <div key={i} className="h-60 animate-pulse rounded-[22px] bg-white/[0.04]" />)}
+      {[0, 1, 2].map((i) => <div key={i} className="h-60 animate-pulse rounded-[22px] bg-ink/[0.04]" />)}
     </div>
   );
 }

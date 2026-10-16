@@ -1,18 +1,48 @@
+import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-/** Brand header for the discovery screens: small ORBIT wordmark, big display title. */
-export function DiscoveryHeader({ title, subtitle, action }: { title: string; subtitle?: ReactNode; action?: ReactNode }) {
+/**
+ * Header for the discovery screens. `brand` (For You, This Week, Calendar): on phones and tablets the
+ * ORBIT mark + wordmark sit top-left with the theme toggle and the page action on the right; from lg up
+ * the sidebar carries the logo so a normal page heading shows instead. Other screens keep a plain title.
+ */
+export function DiscoveryHeader({ title, subtitle, action, brand = false }: { title: string; subtitle?: ReactNode; action?: ReactNode; brand?: boolean }) {
+  if (brand) {
+    return (
+      <header className="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.25rem)] lg:pt-8">
+        <div className="flex items-center justify-between gap-3 lg:hidden">
+          <Link href="/" aria-label="ORBIT home" className="flex items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+            <Image src="/brand/orbit-mark.png" alt="" width={32} height={32} priority className="h-8 w-8" />
+            <span className="text-[15px] font-semibold tracking-[0.2em]">ORBIT</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle className="glass" />
+            {action}
+          </div>
+        </div>
+        <div className="hidden items-start justify-between gap-3 lg:flex">
+          <div className="min-w-0">
+            <h1 className="text-4xl font-semibold leading-tight tracking-tight">{title}</h1>
+            {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+          </div>
+          {action}
+        </div>
+        <h1 className="sr-only lg:hidden">{title}</h1>
+      </header>
+    );
+  }
   return (
     <header className="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.25rem)] lg:pt-8">
-      <div className="flex items-center justify-between gap-3">
-        <p className="font-display text-[11px] font-semibold tracking-[0.4em] text-subtle">
-          <span className="text-gradient">ORBIT</span>
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight lg:text-4xl">{title}</h1>
+          {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
+        </div>
         {action}
       </div>
-      <h1 className="mt-3 text-[1.75rem] font-semibold leading-tight tracking-tight lg:text-4xl">{title}</h1>
-      {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
     </header>
   );
 }
@@ -25,7 +55,7 @@ export function SectionHeading({ id, eyebrow, title, count, action }: {
     <div className="mb-3 flex items-end justify-between gap-3 px-4">
       <div className="min-w-0">
         {eyebrow && (
-          <p className="font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-subtle">{eyebrow}</p>
+          <p className="font-display text-xs font-medium text-muted">{eyebrow}</p>
         )}
         <h2 id={id} className="text-lg font-semibold tracking-tight">
           {title}
@@ -45,7 +75,7 @@ export function IconLink({ href, label, path, download }: { href: string; label:
       aria-label={label}
       title={label}
       download={download}
-      className="glass flex h-10 w-10 items-center justify-center rounded-full text-muted transition duration-200 ease-out hover:bg-white/[0.09] hover:text-fg active:scale-95 motion-reduce:transition-none"
+      className="glass flex h-10 w-10 items-center justify-center rounded-full text-muted transition duration-200 ease-out hover:bg-ink/[0.09] hover:text-fg active:scale-95 motion-reduce:transition-none"
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d={path} />

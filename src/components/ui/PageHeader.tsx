@@ -17,9 +17,9 @@ export function PageHeader({ title, subtitle, action, back }: {
   );
 }
 
-/** Small uppercase label above headings. */
+/** Small label above headings. */
 export function Eyebrow({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <p className={`font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle ${className}`}>{children}</p>
+    <p className={`font-display text-xs font-medium text-muted ${className}`}>{children}</p>
   );
 }

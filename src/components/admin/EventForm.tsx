@@ -101,7 +101,7 @@ export function EventForm({ action, values = {}, organisers, categories, submitL
             ] as const).map(([v, label, hint]) => (
               <label
                 key={v}
-                className={`cursor-pointer rounded-2xl border p-3.5 text-sm transition-colors ${mode === v ? "border-accent/50 bg-accent/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}
+                className={`cursor-pointer rounded-2xl border p-3.5 text-sm transition-colors ${mode === v ? "border-accent/50 bg-accent/10" : "border-ink/10 bg-ink/[0.03] hover:bg-ink/[0.06]"}`}
               >
                 <input type="radio" name="registration_mode" value={v} checked={mode === v} onChange={() => setMode(v)} className="sr-only" />
                 <span className="block font-medium">{label}</span>

@@ -2,7 +2,7 @@ import Image from "next/image";
 
 const RINGS = [
   { inset: "2%", cls: "emblem-spin-1", color: "rgb(169 155 255 / 0.6)", width: 1.25, dot: true },
-  { inset: "-10%", cls: "emblem-spin-2", color: "rgb(255 255 255 / 0.28)", width: 1, dot: false },
+  { inset: "-10%", cls: "emblem-spin-2", color: "color-mix(in srgb, var(--ink) 28%, transparent)", width: 1, dot: false },
   { inset: "-22%", cls: "emblem-spin-3", color: "rgb(242 164 119 / 0.4)", width: 1, dot: false },
 ];
 

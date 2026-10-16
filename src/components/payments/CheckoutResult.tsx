@@ -24,20 +24,19 @@ export function CheckoutSuccess({
   return (
     <section className="relative mt-4 text-center" data-testid="checkout-success">
       {/* soft iridescent halo */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-10 mx-auto h-64 w-64 rounded-full bg-accent opacity-20 blur-3xl" />
 
-      <div className="border-gradient glow relative mx-auto flex h-24 w-24 items-center justify-center rounded-full">
+      <div className="glass relative mx-auto flex h-24 w-24 items-center justify-center rounded-full">
         <svg viewBox="0 0 24 24" className="h-10 w-10 text-fg" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <path d="M5 12.5l4.5 4.5L19 7.5" />
         </svg>
       </div>
 
-      <p className="relative mt-6 font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-subtle">Payment confirmed</p>
+      <p className="relative mt-6 font-display text-xs font-medium text-muted">Payment confirmed</p>
       <h1 className="relative mt-2 text-3xl font-semibold tracking-tight">
-        <span className="text-gradient">You&apos;re in!</span>
+        <span className="text-fg">You&apos;re in!</span>
       </h1>
 
-      <div className="border-gradient relative mt-6 space-y-3 rounded-[24px] p-5 text-left">
+      <div className="glass relative mt-6 space-y-3 rounded-[24px] p-5 text-left">
         <p className="text-lg font-semibold leading-snug tracking-tight">{eventTitle}</p>
         <dl className="space-y-1.5 text-sm">
           {when && <Row label="When">{when}</Row>}
@@ -70,7 +69,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 const tones = {
-  neutral: "border-white/12 text-muted",
+  neutral: "border-ink/12 text-muted",
   info: "border-blue/30 text-blue",
   warning: "border-orange/30 text-orange",
   danger: "border-red-400/30 text-red-300",
@@ -94,7 +93,7 @@ export function CheckoutMessage({
     <section className="glass mt-6 rounded-[24px] p-6 text-center" data-testid="checkout-message">
       <span
         aria-hidden
-        className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full border bg-white/[0.05] text-xl font-semibold ${tones[tone]}`}
+        className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full border bg-ink/[0.05] text-xl font-semibold ${tones[tone]}`}
       >
         {icons[tone]}
       </span>

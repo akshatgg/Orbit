@@ -87,7 +87,7 @@ function Org({ invite }: { invite: Peek }) {
   return (
     <div className="mt-3 flex flex-col items-center">
       <OrganiserLogo src={invite.logo_url} name={invite.organiser_name} size={64} />
-      <p className="mt-4 font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">Team invite</p>
+      <p className="mt-4 font-display text-xs font-medium text-muted">Team invite</p>
       <h1 className="mt-1.5 text-2xl font-semibold leading-tight">{invite.organiser_name}</h1>
     </div>
   );

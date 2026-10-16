@@ -46,7 +46,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/tickets">["
             href={t.href}
             replace
             aria-current={t.active ? "page" : undefined}
-            className={`flex-1 rounded-full px-3 py-1.5 text-center text-sm font-medium transition duration-200 motion-reduce:transition-none ${t.active ? "bg-white/[0.12] text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]" : "text-muted hover:text-fg"}`}
+            className={`flex-1 rounded-full px-3 py-1.5 text-center text-sm font-medium transition duration-200 motion-reduce:transition-none ${t.active ? "bg-ink/[0.12] text-fg" : "text-muted hover:text-fg"}`}
           >
             {t.label}
           </Link>
@@ -75,9 +75,9 @@ function TicketCard({ row, past }: { row: TicketRow; past: boolean }) {
   return (
     <Link
       href={`/tickets/${row.id}`}
-      className={`group flex gap-3 rounded-[22px] p-3 transition duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${row.status === "going" && !past ? "border-gradient" : "glass hover:bg-white/[0.07]"} ${past ? "opacity-75" : ""}`}
+      className={`group flex gap-3 rounded-[22px] p-3 transition duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${row.status === "going" && !past ? "is-selected" : "glass hover:bg-ink/[0.07]"} ${past ? "opacity-75" : ""}`}
     >
-      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10">
+      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-1 ring-ink/10">
         <EventCover src={event.cover_url} title={event.title} />
       </div>
       <div className="min-w-0 flex-1">

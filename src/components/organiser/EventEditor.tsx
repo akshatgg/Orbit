@@ -145,10 +145,10 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
     <div ref={top} className="scroll-mt-16">
       <div className="mx-4 mb-5" role="presentation">
         <div className="mb-3 flex items-center justify-between text-xs text-muted">
-          <span className="font-display font-semibold uppercase tracking-[0.24em] text-subtle">Step {stepIndex + 1} of {EDITOR_STEPS.length}</span>
+          <span className="font-display font-medium text-muted">Step {stepIndex + 1} of {EDITOR_STEPS.length}</span>
           <span className="font-medium text-fg/80">{EDITOR_STEPS[stepIndex].label}</span>
         </div>
-        <div className="h-1 overflow-hidden rounded-full bg-white/[0.08]" aria-hidden>
+        <div className="h-1 overflow-hidden rounded-full bg-ink/[0.08]" aria-hidden>
           <div className="bg-gradient h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${((stepIndex + 1) / EDITOR_STEPS.length) * 100}%` }} />
         </div>
       </div>
@@ -163,10 +163,10 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
               onClick={() => goTo(s.id)}
               aria-current={active ? "step" : undefined}
               className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition duration-200 ${
-                active ? "border-gradient text-fg" : hasIssue ? "border-red-400/50 bg-red-400/10 text-red-300" : "glass text-muted hover:text-fg"
+                active ? "is-selected text-fg" : hasIssue ? "border-red-400/50 bg-red-400/10 text-red-300" : "glass text-muted hover:text-fg"
               }`}
             >
-              <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${active ? "bg-gradient text-bg" : "bg-white/[0.08]"}`}>{i + 1}</span>
+              <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${active ? "bg-gradient text-bg" : "bg-ink/[0.08]"}`}>{i + 1}</span>
               {s.label}
             </button>
           );
@@ -209,7 +209,7 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
         )}
         </div>
         <aside aria-label="Live preview" className="sticky top-20 hidden lg:block">
-          <p className="mb-3 font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">Live preview</p>
+          <p className="mb-3 font-display text-xs font-medium text-muted">Live preview</p>
           <PreviewCard form={form} organiser={organiser} stacked />
           <p className="mt-3 text-xs text-muted">This is how your event appears in the feed. It updates as you type.</p>
         </aside>
@@ -226,7 +226,7 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
             {stepIndex > 0 ? (
               <Button type="button" variant="ghost" onClick={() => goTo(EDITOR_STEPS[stepIndex - 1].id)}>Back</Button>
             ) : (
-              <Link href={`/organiser?org=${organiser.id}`} className="rounded-full px-4 py-2 text-sm text-muted transition-colors hover:bg-white/[0.06] hover:text-fg">Close</Link>
+              <Link href={`/organiser?org=${organiser.id}`} className="rounded-full px-4 py-2 text-sm text-muted transition-colors hover:bg-ink/[0.06] hover:text-fg">Close</Link>
             )}
             <div className="ml-auto flex gap-2">
               {!live && (

@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
 import { getProfile } from "@/lib/auth";
+import { isFollowing } from "@/lib/organiser/queries";
+import { FollowText } from "@/components/organiser/FollowText";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { FORMAT_LABELS, formatDeadline, formatEventDate, formatLongDate, formatPrice, formatTimeRange, dayKey } from "@/lib/format";
 import { absoluteUrl } from "@/lib/seo/site";
@@ -71,6 +73,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
   const { id } = await params;
   const [data, viewer] = await Promise.all([getEventPageData(id), getProfile()]);
   if (!data) notFound();
+  const following = data.event.organiser ? await isFollowing(data.userId, data.event.organiser.id) : false;
 
   const { event, counts, spotsLeft, tickets, questions, registration, userId, canManage, privateInfo } = data;
   const signedIn = !!userId;
@@ -112,17 +115,17 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
       <JsonLd data={jsonLd} />
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10 lg:pt-6">
       {/* Cover */}
-      <div className="relative lg:col-start-1 lg:row-start-1">
-        <div className="aspect-[4/3] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,#000_50%,transparent_100%)] md:aspect-[16/9] lg:aspect-[16/9] lg:rounded-[28px] lg:[mask-image:none]">
+      <div className="relative lg:col-start-1 lg:row-start-1 light:max-lg:flex light:max-lg:flex-col light:max-lg:px-4">
+        <div className="h-[340px] w-full overflow-hidden md:h-auto md:aspect-[16/9] lg:aspect-[16/9] lg:rounded-[28px] light:max-lg:order-last light:max-lg:h-[220px] light:max-lg:rounded-[24px] md:light:max-lg:h-72 md:light:max-lg:aspect-auto">
           <EventCover src={event.cover_url} title={event.title} className={cancelled ? "grayscale" : ""} />
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent lg:rounded-[28px]" aria-hidden />
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),1rem)] lg:pt-4">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent lg:rounded-[28px] light:max-lg:hidden" aria-hidden />
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),1rem)] lg:pt-4 light:max-lg:static light:max-lg:px-0 light:max-lg:pb-3">
           <BackButton />
           <div className="flex items-center gap-2">
             <ShareButton eventId={event.id} title={event.title} text={event.summary} />
             {signedIn ? (
-              <SaveButton eventId={event.id} saved={data.saved} className="h-10 w-10" />
+              <SaveButton eventId={event.id} saved={data.saved} className="round-btn h-10 w-10" />
             ) : (
               <SignInToSave next={`/events/${event.id}`} />
             )}
@@ -130,7 +133,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         </div>
       </div>
 
-      <div className="relative -mt-16 space-y-5 px-4 lg:contents">
+      <div className="relative -mt-7 space-y-5 rounded-t-[28px] bg-bg px-5 pt-6 md:px-6 lg:contents light:max-lg:mt-0 light:max-lg:px-4 light:max-lg:pt-5">
         <div className="space-y-5 lg:col-start-1 lg:row-start-2 lg:mb-5 lg:mt-5">
         {/* Status banners */}
         {cancelled && (
@@ -160,20 +163,23 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
 
         {/* Organiser */}
         {event.organiser && (
-          <Link
-            href={`/o/${event.organiser.slug}`}
-            className="glass flex items-center gap-3 rounded-[22px] p-3 transition duration-200 hover:bg-white/[0.08] motion-reduce:transition-none"
-          >
-            <Avatar src={event.organiser.logo_url} name={event.organiser.name} size={40} />
-            <span className="min-w-0 flex-1">
-              <span className="block text-xs text-subtle">Hosted by</span>
-              <span className="flex items-center gap-1.5 truncate font-medium">
-                {event.organiser.name}
-                {event.organiser.is_verified && <VerifiedMark />}
+          <div className="flex items-center gap-3 light:border-b light:border-line light:pb-4">
+            <Link
+              href={`/o/${event.organiser.slug}`}
+              className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl transition-opacity duration-200 hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent motion-reduce:transition-none"
+            >
+              <Avatar src={event.organiser.logo_url} name={event.organiser.name} size={36} />
+              <span className="min-w-0 flex-1 text-sm">
+                <span className="hidden text-xs text-muted light:block">Hosted by</span>
+                <span className="flex items-center gap-1.5 truncate font-medium">
+                  <span className="font-normal text-muted light:hidden">Hosted by</span>
+                  <span className="truncate">{event.organiser.name}</span>
+                  {event.organiser.is_verified && <VerifiedMark />}
+                </span>
               </span>
-            </span>
-            <Icon name="chevron" className="h-4 w-4 text-muted" />
-          </Link>
+            </Link>
+            <FollowText organiserId={event.organiser.id} slug={event.organiser.slug} signedIn={signedIn} following={following} className="hidden light:block" />
+          </div>
         )}
 
         </div>
@@ -198,15 +204,16 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
           />
         </div>
         {/* Key facts */}
-        <section aria-label="Event details" className="glass divide-y divide-white/[0.07] overflow-hidden rounded-[22px]">
+        <section aria-label="Event details" className="glass divide-y divide-line overflow-hidden rounded-[20px] light:rounded-none light:bg-transparent light:shadow-none">
           <InfoRow
             icon="calendar"
+            dateBox={{ month: dateBoxMonth.format(new Date(event.starts_at)).toUpperCase(), day: dateBoxDay.format(new Date(event.starts_at)) }}
             title={formatLongDate(event.starts_at)}
             sub={sameDay
               ? `${formatTimeRange(event.starts_at, event.ends_at)} · UK time`
               : `${formatTimeRange(event.starts_at)} until ${formatEventDate(event.ends_at!)} · UK time`}
             action={!ended && !cancelled ? (
-              <CalendarButton eventId={event.id} googleUrl={googleUrl} className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-fg transition-colors hover:bg-white/[0.12]">
+              <CalendarButton eventId={event.id} googleUrl={googleUrl} className="shrink-0 rounded-full border border-line bg-ink/[0.06] px-3 py-1.5 text-xs font-medium text-fg transition-colors hover:bg-ink/[0.12] light:text-accent">
                 Add to calendar
               </CalendarButton>
             ) : null}
@@ -217,7 +224,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
               title={event.venue_name ?? event.address!}
               sub={[event.venue_name ? event.address : null, event.city].filter(Boolean).join(" · ") || null}
               action={maps ? (
-                <a href={maps} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.12]">
+                <a href={maps} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-full border border-ink/10 bg-ink/[0.06] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-ink/[0.12]">
                   Open in Maps
                 </a>
               ) : null}
@@ -245,7 +252,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
 
         {/* Your registration */}
         {usesTickets && registration && isActiveStatus(registration.status) && !cancelled && (
-          <section className="border-gradient glow rounded-[22px] p-4" aria-labelledby="your-reg">
+          <section className="glass rounded-[22px] p-4" aria-labelledby="your-reg">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h2 id="your-reg" className="text-base font-semibold tracking-tight">{STATUS_COPY[registration.status].title}</h2>
@@ -280,7 +287,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
 
         {/* Guest-only details */}
         {privateInfo && !cancelled && (
-          <section className="rounded-[22px] border border-emerald-400/20 bg-emerald-400/[0.06] p-4 backdrop-blur-xl" aria-labelledby="guest-info">
+          <section className="rounded-[22px] border border-emerald-400/20 bg-emerald-400/[0.06] p-4" aria-labelledby="guest-info">
             <h2 id="guest-info" className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
               <Icon name="check" /> For guests
             </h2>
@@ -305,7 +312,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         {/* About */}
         {event.description && (
           <section aria-labelledby="about">
-            <h2 id="about" className="mb-3 font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">About</h2>
+            <h2 id="about" className="mb-3 font-display text-xs font-medium text-muted">About</h2>
             <RichText text={event.description} />
           </section>
         )}
@@ -321,7 +328,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         {source && (
           <p className="text-xs text-muted">
             Listed from{" "}
-            <a href={source} target="_blank" rel="noopener noreferrer nofollow" className="text-fg/90 underline decoration-white/30 underline-offset-2">
+            <a href={source} target="_blank" rel="noopener noreferrer nofollow" className="text-fg/90 underline decoration-ink/30 underline-offset-2">
               {new URL(source).hostname}
             </a>
           </p>
@@ -342,17 +349,27 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
   );
 }
 
-function InfoRow({ icon, title, sub, action, tone }: {
-  icon: IconName; title: string; sub?: string | null; action?: ReactNode; tone?: "danger";
+const dateBoxMonth = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "Europe/London" });
+const dateBoxDay = new Intl.DateTimeFormat("en-GB", { day: "numeric", timeZone: "Europe/London" });
+
+function InfoRow({ icon, title, sub, action, tone, dateBox }: {
+  icon: IconName; title: string; sub?: string | null; action?: ReactNode; tone?: "danger"; dateBox?: { month: string; day: string };
 }) {
+  const iconBox = tone === "danger" ? "border-red-400/20 bg-red-500/10 text-red-300" : "border-transparent bg-ink/[0.07] text-fg light:border-line light:bg-surface light:text-accent";
   return (
-    <div className="flex items-center gap-3 p-3.5">
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border ${tone === "danger" ? "border-red-400/20 bg-red-500/10 text-red-300" : "border-white/10 bg-white/[0.06] text-accent"}`}>
+    <div className="flex items-center gap-3 p-3.5 light:px-0 light:py-3.5">
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border light:h-11 light:w-11 ${iconBox} ${dateBox ? "light:hidden" : ""}`}>
         <Icon name={icon} className="h-[18px] w-[18px]" />
       </span>
+      {dateBox && (
+        <span aria-hidden className="hidden h-[46px] w-11 shrink-0 overflow-hidden rounded-xl border border-line bg-surface text-center light:block">
+          <span className="block bg-accent text-[10px] font-semibold leading-4 text-white">{dateBox.month}</span>
+          <span className="block text-[17px] font-semibold leading-7">{dateBox.day}</span>
+        </span>
+      )}
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium leading-snug">{title}</p>
-        {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
+        <p className="text-sm font-medium leading-snug light:font-semibold">{title}</p>
+        {sub && <p className="mt-0.5 text-xs text-muted light:text-[12.5px]">{sub}</p>}
       </div>
       {action}
     </div>
@@ -363,10 +380,10 @@ function Banner({ tone, icon, title, children }: { tone: "danger" | "warning" | 
   const tones = {
     danger: "border-red-400/25 bg-red-500/10 text-red-200",
     warning: "border-orange/25 bg-orange/10 text-orange",
-    neutral: "border-white/10 bg-white/[0.06] text-fg",
+    neutral: "border-ink/10 bg-ink/[0.06] text-fg",
   } as const;
   return (
-    <div role="status" className={`flex gap-3 rounded-[22px] border p-4 backdrop-blur-xl ${tones[tone]}`}>
+    <div role="status" className={`flex gap-3 rounded-[22px] border p-4 ${tones[tone]}`}>
       <Icon name={icon} className="mt-0.5 h-5 w-5 shrink-0" />
       <div>
         <p className="font-semibold">{title}</p>

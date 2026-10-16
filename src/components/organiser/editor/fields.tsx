@@ -45,7 +45,7 @@ export function Toggle({ id, checked, onChange, label, description }: {
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${checked ? "bg-gradient" : "bg-white/[0.1] ring-1 ring-inset ring-white/10"}`}
+        className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${checked ? "bg-gradient" : "bg-ink/[0.1] ring-1 ring-inset ring-ink/10"}`}
       >
         <span className={`absolute top-0.5 h-5 w-5 rounded-full shadow-md transition-transform duration-200 ease-out motion-reduce:transition-none ${checked ? "translate-x-[1.375rem] bg-bg" : "translate-x-0.5 bg-fg"}`} />
       </button>
@@ -83,7 +83,7 @@ export function MoneyInput({ id, value, onChange, invalid, label }: {
   id: string; value: string; onChange: (v: string) => void; invalid?: boolean; label?: string;
 }) {
   return (
-    <div className={`flex items-center overflow-hidden rounded-[14px] border bg-white/[0.045] shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] backdrop-blur-xl transition duration-200 focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/15 ${invalid ? "border-red-400/60" : "border-white/10"}`}>
+    <div className={`flex items-center overflow-hidden rounded-[14px] border bg-ink/[0.045] light:bg-surface light:border-line transition duration-200 focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/15 ${invalid ? "border-red-400/60" : "border-ink/10"}`}>
       <span className="select-none pl-3.5 text-sm text-muted" aria-hidden>£</span>
       <input
         id={id}

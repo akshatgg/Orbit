@@ -62,8 +62,8 @@ export function ApplyForm({ defaultEmail, defaultUniversity, defaultName = "", s
       </Field>
 
       <Field label="Page link" htmlFor="slug" required error={err("slug")}>
-        <div className={`flex items-center overflow-hidden rounded-[14px] border bg-white/[0.045] shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] backdrop-blur-xl transition duration-200 focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/15 ${err("slug") || check === "taken" ? "border-red-400/60" : "border-white/10"}`}>
-          <span className="select-none border-r border-white/10 px-3.5 py-3 text-sm text-subtle">/o/</span>
+        <div className={`flex items-center overflow-hidden rounded-[14px] border bg-ink/[0.045] light:bg-surface light:border-line transition duration-200 focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/15 ${err("slug") || check === "taken" ? "border-red-400/60" : "border-ink/10"}`}>
+          <span className="select-none border-r border-ink/10 px-3.5 py-3 text-sm text-subtle">/o/</span>
           <input
             id="slug" name="slug" required maxLength={60} value={v.slug} aria-describedby="slug-status"
             aria-invalid={check === "taken" || check === "invalid" || !!err("slug")}
@@ -87,7 +87,7 @@ export function ApplyForm({ defaultEmail, defaultUniversity, defaultName = "", s
             <label
               key={k.value}
               className={`flex cursor-pointer items-center gap-3 rounded-[14px] border px-3.5 py-3 text-sm transition duration-200 ${
-                v.kind === k.value ? "border-gradient text-fg" : "border-white/10 bg-white/[0.045] text-muted hover:border-white/20 hover:text-fg"
+                v.kind === k.value ? "is-selected text-fg" : "border-ink/10 bg-ink/[0.045] text-muted hover:border-ink/20 hover:text-fg"
               }`}
             >
               <input type="radio" name="kind" value={k.value} checked={v.kind === k.value} onChange={() => set("kind")(k.value)} className="accent-accent" />
