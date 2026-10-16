@@ -1,12 +1,14 @@
 import "server-only";
 import webpush, { type WebPushError } from "web-push";
 import { Resend } from "resend";
+import nodemailer, { type Transporter } from "nodemailer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Message } from "./messages";
 import type { RenderedEmail } from "./templates";
+import { resolveEmailChannel, type SmtpConfig } from "./email-config";
 
-// Channel senders: web push (VAPID) and email (Resend). Server only — VAPID_PRIVATE_KEY and
-// RESEND_API_KEY never leave this file.
+// Channel senders: web push (VAPID) and email (SMTP or Resend). Server only — VAPID_PRIVATE_KEY,
+// SMTP_PASS and RESEND_API_KEY never leave this file.
 
 export type StoredSubscription = { endpoint: string; p256dh: string; auth: string };
 
@@ -26,7 +28,7 @@ export function isPushConfigured() {
 }
 
 export function isEmailConfigured() {
-  return Boolean(process.env.RESEND_API_KEY);
+  return resolveEmailChannel(process.env).kind !== "none";
 }
 
 export function channelsAvailable() {
@@ -88,25 +90,72 @@ export async function sendPush(
 }
 
 export function emailFrom() {
-  return process.env.EMAIL_FROM || "ORBIT <onboarding@resend.dev>";
+  const channel = resolveEmailChannel(process.env);
+  return channel.kind === "none" ? process.env.EMAIL_FROM || "ORBIT <onboarding@resend.dev>" : channel.from;
 }
 
 export type EmailJob = { to: string; email: RenderedEmail };
 
+let smtpTransport: { key: string; transporter: Transporter } | null = null;
+
+function smtpTransporter(cfg: SmtpConfig) {
+  const key = JSON.stringify(cfg);
+  if (smtpTransport?.key !== key) {
+    smtpTransport = {
+      key,
+      transporter: nodemailer.createTransport({
+        host: cfg.host,
+        port: cfg.port,
+        secure: cfg.secure,
+        auth: { user: cfg.user, pass: cfg.pass },
+        connectionTimeout: 10_000,
+        socketTimeout: 20_000,
+      }),
+    };
+  }
+  return smtpTransport.transporter;
+}
+
+async function sendViaSmtp(cfg: SmtpConfig, from: string, jobs: EmailJob[]): Promise<boolean[]> {
+  const ok = jobs.map(() => false);
+  try {
+    const transporter = smtpTransporter(cfg);
+    for (let i = 0; i < jobs.length; i++) {
+      try {
+        await transporter.sendMail({
+          from,
+          to: jobs[i].to,
+          subject: jobs[i].email.subject,
+          html: jobs[i].email.html,
+          text: jobs[i].email.text,
+        });
+        ok[i] = true;
+      } catch (err) {
+        console.error("[notifications] email failed", (err as Error).message);
+      }
+    }
+  } catch (err) {
+    console.error("[notifications] email failed", (err as Error).message);
+  }
+  return ok;
+}
+
 /**
- * Sends emails through Resend's batch API (100 per request, which also stays inside the
- * free plan's rate limit). Returns, per job, whether it was accepted. Never throws.
+ * Sends emails over SMTP when configured, otherwise through Resend's batch API (100 per
+ * request, which also stays inside the free plan's rate limit). Returns, per job, whether it
+ * was accepted. Never throws.
  */
 export async function sendEmails(jobs: EmailJob[]): Promise<boolean[]> {
   const ok = jobs.map(() => false);
   if (jobs.length === 0) return ok;
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    console.info(`[notifications] email skipped (RESEND_API_KEY not set): ${jobs.length} message(s)`);
+  const channel = resolveEmailChannel(process.env);
+  if (channel.kind === "none") {
+    console.info(`[notifications] email skipped (no SMTP or RESEND_API_KEY set): ${jobs.length} message(s)`);
     return ok;
   }
-  const resend = new Resend(key);
-  const from = emailFrom();
+  if (channel.kind === "smtp") return sendViaSmtp(channel.smtp, channel.from, jobs);
+  const resend = new Resend(channel.apiKey);
+  const from = channel.from;
   for (let i = 0; i < jobs.length; i += 100) {
     const chunk = jobs.slice(i, i + 100);
     try {
