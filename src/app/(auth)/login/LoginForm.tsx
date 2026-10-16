@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
@@ -12,6 +12,12 @@ function callbackUrl() {
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [linkExpired, setLinkExpired] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- window.location is only readable on the client
+    setLinkExpired(new URLSearchParams(window.location.search).get("error") === "link");
+  }, []);
 
   if (!isSupabaseConfigured) {
     return (
@@ -40,6 +46,11 @@ export function LoginForm() {
 
   return (
     <div className="mt-10 w-full space-y-4">
+      {linkExpired && (
+        <p className="text-center text-sm text-orange">
+          That login link has expired or was already used. Request a new one.
+        </p>
+      )}
       <button
         onClick={signInWithGoogle}
         className="w-full rounded-xl bg-fg py-3 text-sm font-semibold text-bg"
