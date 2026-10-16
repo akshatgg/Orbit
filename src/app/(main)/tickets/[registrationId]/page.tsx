@@ -52,19 +52,19 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
   const canCancel = !ended && !cancelledEvent && ["going", "pending", "waitlisted", "awaiting_payment"].includes(t.status);
 
   return (
-    <div className="space-y-5 px-4 pb-28 pt-[max(env(safe-area-inset-top),1.25rem)]">
-      <Link href="/tickets" className="glass inline-flex items-center gap-1.5 rounded-full py-1.5 pl-2.5 pr-3.5 text-sm text-muted transition-colors duration-200 hover:text-fg">
+    <div className="space-y-5 px-4 pb-28 pt-[max(env(safe-area-inset-top),1.25rem)] md:mx-auto md:max-w-xl lg:grid lg:max-w-none lg:grid-cols-[28rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10 lg:pb-8 lg:pt-8">
+      <Link href="/tickets" className="glass inline-flex items-center gap-1.5 rounded-full py-1.5 pl-2.5 pr-3.5 text-sm text-muted transition-colors duration-200 hover:text-fg lg:col-span-2 lg:justify-self-start">
         <Icon name="back" /> My Tickets
       </Link>
 
       {cancelledEvent && (
-        <div role="status" className="rounded-[22px] border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-200 backdrop-blur-xl">
+        <div role="status" className="rounded-[22px] border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-200 backdrop-blur-xl lg:col-start-1 lg:row-start-2">
           <p className="font-semibold">This event has been cancelled</p>
           {event.cancel_reason && <p className="mt-0.5 opacity-80">{event.cancel_reason}</p>}
         </div>
       )}
 
-      <article className={`border-gradient ${live && !ended ? "glow" : ""} overflow-hidden rounded-[28px]`} aria-label="Ticket">
+      <article className={`border-gradient ${live && !ended ? "glow" : ""} overflow-hidden rounded-[28px] lg:col-start-1 lg:row-start-3 lg:self-start`} aria-label="Ticket">
         <div className="relative p-5">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(70%_100%_at_50%_0%,rgb(169_155_255/0.16),transparent)]" aria-hidden />
           <div className="relative flex items-start justify-between gap-3">
@@ -117,6 +117,7 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
         </dl>
       </article>
 
+      <div className="space-y-5 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:max-w-md lg:self-start">
       {privateInfo && t.status === "going" && !cancelledEvent && (
         <section className="rounded-[22px] border border-emerald-400/20 bg-emerald-400/[0.06] p-4 backdrop-blur-xl" aria-labelledby="guest-info">
           <h2 id="guest-info" className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Icon name="check" /> For guests</h2>
@@ -145,6 +146,7 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
             <CancelRegistrationButton eventId={event.id} eventTitle={event.title} status={t.status} />
           </div>
         )}
+      </div>
       </div>
     </div>
   );

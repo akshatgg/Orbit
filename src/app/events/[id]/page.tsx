@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: PageProps<"/events/[id]">): P
 
 export default function EventPage({ params }: PageProps<"/events/[id]">) {
   return (
-    <main className="mx-auto min-h-dvh max-w-md pb-40">
+    <main className="mx-auto min-h-dvh max-w-md pb-40 md:max-w-3xl lg:max-w-6xl lg:px-6 lg:pb-16">
       <Suspense fallback={<EventPageSkeleton />}>
         <EventContent params={params} />
       </Suspense>
@@ -85,6 +85,8 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
   const maps = event.format !== "online" ? mapsUrl([event.venue_name, event.address, event.city]) : null;
   const source = event.source !== "orbit" ? safeHttpUrl(event.source_url) : null;
 
+  const hasTail = !!event.description || event.tags.length > 0 || !!source || canManage;
+
   const goingLine = usesTickets
     ? [
         counts.going > 0 ? `${counts.going} going` : null,
@@ -101,13 +103,14 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
 
   return (
     <>
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10 lg:pt-6">
       {/* Cover */}
-      <div className="relative">
-        <div className="aspect-[4/3] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,#000_50%,transparent_100%)]">
+      <div className="relative lg:col-start-1 lg:row-start-1">
+        <div className="aspect-[4/3] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,#000_50%,transparent_100%)] md:aspect-[16/9] lg:aspect-[16/9] lg:rounded-[28px] lg:[mask-image:none]">
           <EventCover src={event.cover_url} title={event.title} className={cancelled ? "grayscale" : ""} />
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent" aria-hidden />
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),1rem)]">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent lg:rounded-[28px]" aria-hidden />
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),1rem)] lg:pt-4">
           <BackButton />
           <div className="flex items-center gap-2">
             <ShareButton eventId={event.id} title={event.title} text={event.summary} />
@@ -120,7 +123,8 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         </div>
       </div>
 
-      <div className="relative -mt-16 space-y-5 px-4">
+      <div className="relative -mt-16 space-y-5 px-4 lg:contents">
+        <div className="space-y-5 lg:col-start-1 lg:row-start-2 lg:mb-5 lg:mt-5">
         {/* Status banners */}
         {cancelled && (
           <Banner tone="danger" icon="x" title="This event has been cancelled">
@@ -165,6 +169,27 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
           </Link>
         )}
 
+        </div>
+
+        <div className="space-y-5 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:flex lg:flex-col lg:space-y-0 lg:gap-5 lg:self-start lg:sticky lg:top-6">
+        <div className="contents lg:block">
+          <EventActions
+            eventId={event.id}
+            eventTitle={event.title}
+            dateLabel={formatEventDate(event.starts_at)}
+            cta={cta}
+            signedIn={signedIn}
+            onboarded={!!viewer?.onboarded_at}
+            tickets={tickets}
+            questions={questions}
+            requiresApproval={event.requires_approval}
+            waitlistEnabled={event.waitlist_enabled}
+            priceLabel={price}
+            availabilityLine={availabilityLine}
+            registrationId={registration && registration.status !== "cancelled" ? registration.id : null}
+            googleCalendarUrl={googleUrl}
+          />
+        </div>
         {/* Key facts */}
         <section aria-label="Event details" className="glass divide-y divide-white/[0.07] overflow-hidden rounded-[22px]">
           <InfoRow
@@ -266,6 +291,10 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
           </section>
         )}
 
+        </div>
+
+        {hasTail && (
+        <div className="space-y-5 lg:col-start-1 lg:row-start-3">
         {/* About */}
         {event.description && (
           <section aria-labelledby="about">
@@ -296,24 +325,11 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
             Manage event
           </ButtonLink>
         )}
+        </div>
+        )}
+      </div>
       </div>
 
-      <EventActions
-        eventId={event.id}
-        eventTitle={event.title}
-        dateLabel={formatEventDate(event.starts_at)}
-        cta={cta}
-        signedIn={signedIn}
-        onboarded={!!viewer?.onboarded_at}
-        tickets={tickets}
-        questions={questions}
-        requiresApproval={event.requires_approval}
-        waitlistEnabled={event.waitlist_enabled}
-        priceLabel={price}
-        availabilityLine={availabilityLine}
-        registrationId={registration && registration.status !== "cancelled" ? registration.id : null}
-        googleCalendarUrl={googleUrl}
-      />
       <ViewLogger eventId={event.id} />
     </>
   );

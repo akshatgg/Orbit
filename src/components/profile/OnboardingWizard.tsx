@@ -125,7 +125,7 @@ export function OnboardingWizard({ initial, categories, next, email, university 
       asForm={key !== "organisation"}
       onSubmit={onContinue}
     >
-      <header className="sticky top-0 z-10 px-4 pt-[max(env(safe-area-inset-top),0.75rem)]">
+      <header className="sticky top-0 z-10 px-4 pt-[max(env(safe-area-inset-top),0.75rem)] md:static md:px-6 md:pt-6">
         <div className="glass-strong rounded-full py-2 pl-2 pr-4">
           <div className="flex items-center gap-3">
             <button
@@ -158,7 +158,7 @@ export function OnboardingWizard({ initial, categories, next, email, university 
         </div>
       </header>
 
-      <main key={key} className="flex-1 px-5 pb-8 pt-5 transition duration-300 ease-out starting:translate-y-3 starting:opacity-0">
+      <main key={key} className="flex-1 px-5 pb-8 pt-5 md:px-10 md:pt-8 transition duration-300 ease-out starting:translate-y-3 starting:opacity-0">
         {key === "goals" && (
           <div className="-mb-1 flex items-center gap-3">
             <OrbitEmblem size={64} />
@@ -215,7 +215,7 @@ export function OnboardingWizard({ initial, categories, next, email, university 
       </main>
 
       {key !== "organisation" && (
-        <footer className="sticky bottom-0 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-6">
+        <footer className="sticky bottom-0 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-6 md:static md:px-6 md:pb-6">
           {formError && <p role="alert" className="mb-3 text-center text-sm text-red-300">{formError}</p>}
           <div className="glass-strong flex gap-2 rounded-full p-1.5">
             {key === "availability" && (
@@ -251,7 +251,7 @@ export function OnboardingWizard({ initial, categories, next, email, university 
 
 /** A form (so Enter continues) for question steps; a plain div for the organisation step, which has its own form. */
 function Shell({ asForm, onSubmit, children }: { asForm: boolean; onSubmit: () => void; children: React.ReactNode }) {
-  const className = "flex min-h-dvh flex-col";
+  const className = "flex min-h-dvh flex-col md:min-h-0 md:w-full md:rounded-[32px] md:border md:border-white/10 md:bg-[rgb(22_22_30/0.55)] md:shadow-[inset_0_1px_0_rgb(255_255_255/0.1),0_24px_60px_-20px_rgb(0_0_0/0.8)] md:backdrop-blur-[28px] md:backdrop-saturate-150";
   if (!asForm) return <div className={className}>{children}</div>;
   return (
     <form

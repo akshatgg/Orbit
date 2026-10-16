@@ -4,14 +4,14 @@ import { Skeleton } from "@/components/ui/Skeleton";
 /** Brand header for the discovery screens: small ORBIT wordmark, big display title. */
 export function DiscoveryHeader({ title, subtitle, action }: { title: string; subtitle?: ReactNode; action?: ReactNode }) {
   return (
-    <header className="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.25rem)]">
+    <header className="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.25rem)] lg:pt-8">
       <div className="flex items-center justify-between gap-3">
         <p className="font-display text-[11px] font-semibold tracking-[0.4em] text-subtle">
           <span className="text-gradient">ORBIT</span>
         </p>
         {action}
       </div>
-      <h1 className="mt-3 text-[1.75rem] font-semibold leading-tight tracking-tight">{title}</h1>
+      <h1 className="mt-3 text-[1.75rem] font-semibold leading-tight tracking-tight lg:text-4xl">{title}</h1>
       {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
     </header>
   );

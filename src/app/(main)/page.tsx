@@ -92,7 +92,7 @@ async function Feed() {
             title="More for you"
             count={rest.length}
           />
-          <ul className="space-y-3 px-4">
+          <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
             {rest.map((r) => (
               <Dismissible key={r.event.id} id={r.event.id}>
                 <li>
@@ -102,6 +102,7 @@ async function Feed() {
                     saved={state.saved.has(r.event.id)}
                     reason={r.reason}
                     dismissible
+                    tile
                   />
                 </li>
               </Dismissible>

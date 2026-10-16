@@ -65,9 +65,9 @@ async function Week() {
 
       <section aria-labelledby="top-picks" className="mb-8">
         <SectionHeading id="top-picks" eyebrow="Best for you" title="Top picks" />
-        <ul className="scrollbar-none flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1">
+        <ul className="scrollbar-none flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible">
           {picks.map((r, i) => (
-            <li key={r.event.id} className="flex">
+            <li key={r.event.id} className="flex md:[&>article]:w-full">
               <PickCard
                 event={r.event}
                 counts={r.event.counts}
@@ -87,7 +87,7 @@ async function Week() {
         return (
           <section key={group} aria-labelledby={id} className="mb-8">
             <SectionHeading id={id} eyebrow={eyebrow} title={title} count={items.length} />
-            <ul className="space-y-3 px-4">
+            <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
               {items.map((r) => (
                 <Dismissible key={r.event.id} id={r.event.id}>
                   <li>
@@ -97,6 +97,7 @@ async function Week() {
                       saved={saved.has(r.event.id)}
                       reason={r.reason}
                       dismissible
+                      tile
                     />
                   </li>
                 </Dismissible>

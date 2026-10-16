@@ -36,7 +36,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/tickets">["
 
   return (
     <div className="space-y-4 pb-28">
-      <nav aria-label="Ticket filter" className="glass mx-4 flex gap-1 rounded-full p-1">
+      <nav aria-label="Ticket filter" className="glass mx-4 flex gap-1 rounded-full p-1 md:max-w-sm">
         {[
           { href: "/tickets", label: `Upcoming (${upcoming.length})`, active: !showPast },
           { href: "/tickets?tab=past", label: `Past (${past.length})`, active: showPast },
@@ -61,7 +61,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/tickets">["
           {showPast ? "Events you've attended will show up here." : "Register for an event and your ticket will live here."}
         </EmptyState>
       ) : (
-        <ul className="space-y-3 px-4">
+        <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
           {rows.map((r) => <li key={r.id}><TicketCard row={r} past={showPast} /></li>)}
         </ul>
       )}

@@ -83,13 +83,13 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
   });
 
   return (
-    <div className="space-y-8">
-      <div className="px-4">
+    <div className="space-y-8 lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:gap-y-8 lg:space-y-0">
+      <div className="px-4 lg:sticky lg:top-6 lg:col-start-1 lg:row-span-3 lg:row-start-1">
         <CalendarMonth month={month} today={today} selected={selected} marks={marks} />
       </div>
 
       {selected && (
-        <section aria-labelledby="day-heading" aria-live="polite">
+        <section aria-labelledby="day-heading" aria-live="polite" className="lg:col-start-2 lg:row-start-1">
           <SectionHeading
             id="day-heading"
             eyebrow={selected === today ? "Today" : selected < today ? "Past" : "Coming up"}
@@ -119,7 +119,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
       )}
 
       {later.length > 0 && (
-        <section aria-labelledby="later-heading">
+        <section aria-labelledby="later-heading" className="lg:col-start-2 lg:row-start-2">
           <SectionHeading id="later-heading" eyebrow={formatMonth(month)} title="Later this month" count={later.length} />
           <ul className="glass mx-4 divide-y divide-white/[0.07] overflow-hidden rounded-[22px]">
             {later.map((e) => (
@@ -145,7 +145,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
       )}
 
       {entries.length === 0 && (
-        <div className="glass mx-4 flex flex-col items-center gap-4 rounded-[22px] px-6 py-6 text-center">
+        <div className="glass mx-4 flex flex-col items-center gap-4 rounded-[22px] px-6 py-6 text-center lg:col-start-2 lg:row-start-3">
           <p className="text-sm text-muted">
             Nothing in {formatMonth(month)} yet. Save events or grab tickets and they’ll show up here.
           </p>

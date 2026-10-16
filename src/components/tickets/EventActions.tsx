@@ -43,7 +43,7 @@ type Props = {
   googleCalendarUrl: string;
 };
 
-const ctaClass = buttonClass({ size: "lg", className: "shrink-0 px-6" });
+const ctaClass = buttonClass({ size: "lg", className: "shrink-0 px-6 lg:w-full" });
 
 /** Sticky bottom action bar + the registration sheet for the event page. */
 export function EventActions(props: Props) {
@@ -82,7 +82,7 @@ export function EventActions(props: Props) {
       } else {
         const ticketId = defaultTicketId(props.tickets);
         right = (
-          <form onSubmit={submit}>
+          <form onSubmit={submit} className="lg:w-full">
             <input type="hidden" name="eventId" value={eventId} />
             <input type="hidden" name="ticketTypeId" value={ticketId ?? ""} />
             <button type="submit" disabled={pending} aria-busy={pending} className={ctaClass}>
@@ -150,11 +150,11 @@ export function EventActions(props: Props) {
 
   return (
     <>
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-        <div className="glass-strong pointer-events-auto mx-auto max-w-md rounded-[26px] p-2 pl-4">
-          <div className="flex min-h-12 items-center gap-3">
-            <div className="min-w-0 flex-1">{left}</div>
-            {right}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] lg:pointer-events-auto lg:static lg:z-auto lg:p-0">
+        <div className="glass-strong pointer-events-auto mx-auto max-w-md rounded-[26px] p-2 pl-4 lg:max-w-none lg:p-5">
+          <div className="flex min-h-12 items-center gap-3 lg:flex-col lg:items-stretch lg:gap-4">
+            <div className="min-w-0 flex-1 lg:flex-none">{left}</div>
+            {right && <div className="flex shrink-0 lg:w-full">{right}</div>}
           </div>
         </div>
       </div>

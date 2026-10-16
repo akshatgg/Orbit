@@ -43,7 +43,7 @@ export default function ProfilePage() {
         }
       />
 
-      <div className="space-y-9">
+      <div className="space-y-9 lg:columns-2 lg:gap-x-10 lg:[&>*]:break-inside-avoid">
         <Suspense
           fallback={
             <div className="space-y-9">

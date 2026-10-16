@@ -150,7 +150,8 @@ export function CheckInStation({ eventId, counts: serverCounts, guests }: { even
   const pct = counts.going ? Math.min(100, Math.round((counts.checkedIn / counts.going) * 100)) : 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8 lg:space-y-0">
+      <div className="space-y-5">
       {/* Live counter */}
       <section aria-label="Check-in progress" className="px-4">
         <div className="flex items-end justify-between gap-3">
@@ -186,8 +187,12 @@ export function CheckInStation({ eventId, counts: serverCounts, guests }: { even
         </div>
       </section>
 
-      <ManualEntry checkIn={checkIn} onOutcome={show} />
-      <GuestFinder eventId={eventId} guests={guests} onOutcome={show} onCounts={setCounts} />
+      </div>
+
+      <div className="space-y-5">
+        <ManualEntry checkIn={checkIn} onOutcome={show} />
+        <GuestFinder eventId={eventId} guests={guests} onOutcome={show} onCounts={setCounts} />
+      </div>
     </div>
   );
 }

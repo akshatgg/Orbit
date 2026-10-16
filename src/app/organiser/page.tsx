@@ -282,7 +282,7 @@ function EventGroup({ title, events, draft = false }: { title: string; events: E
       <h3 id={`group-${title}`} className="mb-3 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-subtle">
         {title} <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[10px] tracking-normal text-muted">{events.length}</span>
       </h3>
-      <div className="space-y-3">
+      <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
         {events.map((e) => {
           const editable = e.status === "draft" || e.status === "published";
           return (
