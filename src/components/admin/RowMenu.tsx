@@ -1,55 +1,89 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { IconDots } from "./icons";
 
 /**
- * "⋯" menu for table rows. The panel is hidden with CSS (not unmounted) so confirm dialogs
- * opened from an item stay alive after the menu closes.
+ * "⋯" menu for table rows. The panel is rendered into <body> with fixed positioning, so the table's
+ * scroll container can't clip it or scroll the row away when it opens. It is hidden with CSS (not
+ * unmounted) so confirm dialogs opened from an item stay alive after the menu closes.
  */
+const noopSubscribe = () => () => {};
+
 export function RowMenu({ children, label = "Actions" }: { children: ReactNode; label?: string }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  // True only in the browser, so the portal never renders during SSR.
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; right: number }>({ right: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const id = useId();
+
+  const toggle = () => {
+    const r = buttonRef.current?.getBoundingClientRect();
+    if (!open && r) {
+      const right = Math.max(8, window.innerWidth - r.right);
+      const panelH = panelRef.current?.scrollHeight || 280;
+      // Open upwards when there isn't room below the button.
+      setPos(window.innerHeight - r.bottom < panelH + 16 && r.top > panelH + 16
+        ? { bottom: window.innerHeight - r.top + 6, right }
+        : { top: r.bottom + 6, right });
+    }
+    setOpen((o) => !o);
+  };
 
   useEffect(() => {
     if (!open) return;
+    const close = () => setOpen(false);
     const onDown = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (!buttonRef.current?.contains(t) && !panelRef.current?.contains(t)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
     };
   }, [open]);
 
+  const panel = (
+    <div
+      ref={panelRef}
+      id={id}
+      role="menu"
+      onClick={() => setOpen(false)}
+      style={{ position: "fixed", top: pos.top, bottom: pos.bottom, right: pos.right }}
+      className={`${open ? "" : "hidden"} glass-strong z-[60] w-56 rounded-2xl p-1.5`}
+    >
+      {children}
+    </div>
+  );
+
   return (
-    <div ref={ref} className="relative inline-block text-left">
+    <div className="inline-block text-left">
       <button
+        ref={buttonRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={id}
         aria-label={label}
         title={label}
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggle}
         className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/[0.08] hover:text-fg aria-expanded:bg-ink/[0.08] aria-expanded:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
         <IconDots size={18} />
       </button>
-      <div
-        id={id}
-        role="menu"
-        onClick={() => setOpen(false)}
-        className={`${open ? "" : "hidden"} glass-strong absolute right-0 z-30 mt-1.5 w-56 rounded-2xl p-1.5`}
-      >
-        {children}
-      </div>
+      {mounted ? createPortal(panel, document.body) : null}
     </div>
   );
 }
