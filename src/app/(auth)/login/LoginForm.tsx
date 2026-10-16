@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { buttonClass } from "@/components/ui/Button";
 import { inputClass } from "@/components/ui/Field";
@@ -14,6 +14,12 @@ function callbackUrl() {
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [linkExpired, setLinkExpired] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- window.location is only readable on the client
+    setLinkExpired(new URLSearchParams(window.location.search).get("error") === "link");
+  }, []);
 
   if (!isSupabaseConfigured) {
     return (
@@ -42,6 +48,11 @@ export function LoginForm() {
 
   return (
     <div className="glass-strong mt-9 w-full space-y-4 rounded-[24px] p-5">
+      {linkExpired && (
+        <p role="alert" className="rounded-2xl border border-orange/25 bg-orange/10 px-4 py-3 text-center text-sm text-orange">
+          That login link has expired or was already used. Request a new one.
+        </p>
+      )}
       <button
         onClick={signInWithGoogle}
         className="bg-gradient flex h-12 w-full items-center justify-center gap-3 rounded-full text-[15px] font-semibold text-bg transition duration-200 ease-out hover:brightness-95 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
