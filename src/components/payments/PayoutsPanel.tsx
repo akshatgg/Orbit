@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { Eyebrow } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import type { ConnectState } from "@/lib/payments/logic";
 import { PayoutActionForm, type PayoutActionState } from "./PayoutActionForm";
@@ -21,7 +22,7 @@ export type PayoutsPanelProps = {
 function Point({ children }: { children: ReactNode }) {
   return (
     <li className="flex gap-2.5">
-      <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gradient" />
+      <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
       <span>{children}</span>
     </li>
   );
@@ -42,7 +43,7 @@ export function PayoutsPanel(props: PayoutsPanelProps) {
     return (
       <Card className="space-y-3" data-testid="payouts-unconfigured">
         <Badge>Not available yet</Badge>
-        <h2 className="font-display text-lg font-semibold">Paid tickets are switched off on ORBIT</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Paid tickets are switched off on ORBIT</h2>
         <p className="text-sm text-muted">
           ORBIT hasn&apos;t been connected to Stripe yet, so nobody can sell paid tickets for now. Free tickets,
           application forms and Apply-now links all work as normal.
@@ -57,10 +58,10 @@ export function PayoutsPanel(props: PayoutsPanelProps) {
 
   if (state === "not_connected") {
     return (
-      <div className="border-gradient glow space-y-4 rounded-2xl p-5" data-testid="payouts-not-connected">
+      <div className="border-gradient space-y-4 rounded-[24px] p-5" data-testid="payouts-not-connected">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted">Payouts</p>
-          <h2 className="mt-1 font-display text-xl font-semibold">
+          <Eyebrow>Payouts</Eyebrow>
+          <h2 className="mt-1.5 text-xl font-semibold tracking-tight">
             Sell paid tickets for <span className="text-gradient">{org.name}</span>
           </h2>
         </div>
@@ -70,7 +71,7 @@ export function PayoutsPanel(props: PayoutsPanelProps) {
           <Point>Setup takes about 5 minutes — have your bank details and ID handy.</Point>
         </ul>
         {!approved && (
-          <p className="rounded-xl border border-orange/30 bg-orange/10 px-3 py-2 text-sm text-orange">
+          <p className="rounded-2xl border border-orange/25 bg-orange/10 px-4 py-3 text-sm text-orange">
             You can set up payouts once ORBIT has approved {org.name}.
           </p>
         )}
@@ -85,7 +86,7 @@ export function PayoutsPanel(props: PayoutsPanelProps) {
       <Card className="space-y-4" data-testid="payouts-incomplete">
         <Badge tone="warning">{reviewing ? "Being reviewed" : "Setup not finished"}</Badge>
         <div>
-          <h2 className="font-display text-lg font-semibold">
+          <h2 className="text-lg font-semibold tracking-tight">
             {reviewing ? "Stripe is checking your details" : "Finish setting up payouts"}
           </h2>
           <p className="mt-1 text-sm text-muted">
@@ -110,13 +111,13 @@ export function PayoutsPanel(props: PayoutsPanelProps) {
 
   return (
     <div className="space-y-3" data-testid="payouts-connected">
-      <div className="border-gradient glow space-y-4 rounded-2xl p-5">
+      <div className="border-gradient space-y-4 rounded-[24px] p-5">
         <div className="flex items-center gap-3">
-          <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient text-lg font-bold text-bg">
+          <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient text-base font-semibold text-bg">
             ✓
           </span>
           <div>
-            <h2 className="font-display text-lg font-semibold">You can sell paid tickets</h2>
+            <h2 className="text-lg font-semibold tracking-tight">You can sell paid tickets</h2>
             <p className="text-sm text-muted">{org.name} is connected to Stripe.</p>
           </div>
         </div>

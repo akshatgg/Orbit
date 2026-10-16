@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { requireUser } from "@/lib/auth";
 import { formatEventDate } from "@/lib/format";
 import { getCheckInCount, getManagedEvent, listGuests } from "@/lib/guests/queries";
+import { BackLink } from "@/components/nav/BackLink";
+import { Eyebrow } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CheckInStation, type DoorGuest } from "@/components/guests/CheckInStation";
 
@@ -34,16 +35,10 @@ async function CheckIn({ params }: { params: PageProps<"/organiser/events/[id]/c
   return (
     <>
       <header className="flex items-center gap-3 px-4 pb-4 pt-4">
-        <Link
-          href={`/organiser/events/${id}`}
-          aria-label="Back to event overview"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-muted hover:text-fg"
-        >
-          <span aria-hidden>←</span>
-        </Link>
+        <BackLink href={`/organiser/events/${id}`} label="Event" />
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-pink">Door check-in</p>
-          <h1 className="truncate font-display text-lg font-semibold leading-tight">{event.title}</h1>
+          <Eyebrow>Door check-in</Eyebrow>
+          <h1 className="mt-0.5 truncate text-lg font-semibold leading-tight tracking-tight">{event.title}</h1>
           <p className="truncate text-xs text-muted">{formatEventDate(event.starts_at)}</p>
         </div>
       </header>
@@ -56,11 +51,11 @@ function CheckInSkeleton() {
   return (
     <div className="space-y-5 px-4 pt-4" aria-busy="true" aria-label="Loading check-in">
       <div className="flex items-center gap-3">
-        <Skeleton className="h-10 w-10" />
+        <Skeleton className="h-9 w-20 rounded-full" />
         <div className="flex-1 space-y-2"><Skeleton className="h-3 w-24" /><Skeleton className="h-5 w-2/3" /></div>
       </div>
       <Skeleton className="h-12" />
-      <Skeleton className="aspect-[3/4] max-h-[62dvh] w-full rounded-3xl" />
+      <Skeleton className="aspect-[3/4] max-h-[62dvh] w-full rounded-[28px]" />
       <Skeleton className="h-28" />
     </div>
   );

@@ -26,7 +26,7 @@ export function BasicsStep({ form, update, errors, categories }: StepProps & { c
         onChange={(cover_url) => update({ cover_url })}
       />
 
-      <Field label={<span className="flex justify-between">Title <Counter value={form.title} max={140} /></span>} htmlFor="title" required error={errors.title}>
+      <Field label={<span className="inline-flex w-[calc(100%-1rem)] justify-between">Title <Counter value={form.title} max={140} /></span>} htmlFor="title" required error={errors.title}>
         <Input
           id="title" value={form.title} maxLength={140} autoFocus aria-invalid={!!errors.title}
           placeholder="e.g. Case Interview Bootcamp" onChange={(e) => update({ title: e.target.value })}
@@ -34,7 +34,7 @@ export function BasicsStep({ form, update, errors, categories }: StepProps & { c
       </Field>
 
       <Field
-        label={<span className="flex justify-between">Summary <Counter value={form.summary} max={200} /></span>}
+        label={<span className="inline-flex w-[calc(100%-1rem)] justify-between">Summary <Counter value={form.summary} max={200} /></span>}
         htmlFor="summary"
         hint="One line shown on event cards."
         error={errors.summary}

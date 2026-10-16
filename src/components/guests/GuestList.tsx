@@ -49,7 +49,7 @@ export function GuestList({ eventId, guests, questions, initialStatus }: {
       <div className="flex flex-col gap-2 px-4 sm:flex-row sm:items-center">
         <label className="relative flex-1">
           <span className="sr-only">Search guests by name or email</span>
-          <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <svg viewBox="0 0 24 24" className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" strokeLinecap="round" />
           </svg>
           <input
@@ -57,11 +57,11 @@ export function GuestList({ eventId, guests, questions, initialStatus }: {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search name or email"
-            className={`${inputClass} pl-9`}
+            className={`${inputClass} pl-10`}
           />
         </label>
         {counts.pending > 0 && (
-          <Button onClick={approveAll} disabled={bulkPending} className="glow shrink-0">
+          <Button onClick={approveAll} disabled={bulkPending} className="shrink-0">
             {bulkPending ? "Approving…" : `Approve all pending (${counts.pending})`}
           </Button>
         )}
@@ -77,12 +77,12 @@ export function GuestList({ eventId, guests, questions, initialStatus }: {
               role="tab"
               aria-selected={on}
               onClick={() => setStatus(t.value)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                on ? "border-transparent bg-gradient font-medium text-bg" : "border-line bg-surface text-muted hover:text-fg"
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition duration-200 active:scale-[0.97] motion-reduce:transition-none ${
+                on ? "border-transparent bg-gradient font-medium text-bg" : "border-white/10 bg-white/[0.045] text-muted hover:border-white/20 hover:bg-white/[0.08] hover:text-fg"
               }`}
             >
               {t.label}
-              <span className={`tabular-nums text-xs ${on ? "text-bg/70" : "text-muted/80"}`}>{t.count}</span>
+              <span className={`tabular-nums text-xs ${on ? "text-bg/70" : "text-subtle"}`}>{t.count}</span>
             </button>
           );
         })}
@@ -93,8 +93,8 @@ export function GuestList({ eventId, guests, questions, initialStatus }: {
       </p>
 
       {shown.length === 0 ? (
-        <div className="mx-4 rounded-2xl border border-dashed border-line px-6 py-10 text-center">
-          <p className="font-display font-semibold">{guests.length === 0 ? "No registrations yet" : "No guests match"}</p>
+        <div className="mx-4 rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-6 py-10 text-center backdrop-blur-xl">
+          <p className="font-semibold tracking-tight">{guests.length === 0 ? "No registrations yet" : "No guests match"}</p>
           <p className="mt-1 text-sm text-muted">
             {guests.length === 0 ? "Share your event link — guests will appear here as they register." : "Try another status or search."}
           </p>
@@ -104,7 +104,7 @@ export function GuestList({ eventId, guests, questions, initialStatus }: {
           {/* Mobile: cards */}
           <ul className="space-y-2 px-4 md:hidden">
             {shown.map((g) => (
-              <li key={g.id} className="rounded-2xl border border-line bg-surface p-3">
+              <li key={g.id} className="glass rounded-[22px] p-3.5">
                 <div className="flex items-start gap-3">
                   <Avatar name={g.name ?? g.email} size={36} />
                   <div className="min-w-0 flex-1">
@@ -132,23 +132,23 @@ export function GuestList({ eventId, guests, questions, initialStatus }: {
 
           {/* Desktop: table */}
           <div className="hidden px-4 md:block">
-            <table className="w-full table-fixed border-separate border-spacing-0 overflow-hidden rounded-2xl border border-line bg-surface text-sm">
+            <table className="w-full table-fixed border-separate border-spacing-0 glass overflow-hidden rounded-[22px] text-sm">
               <caption className="sr-only">Guests ({shown.length})</caption>
               <thead>
                 <tr className="text-left text-xs text-muted">
-                  <th scope="col" className="w-[31%] border-b border-line px-3 py-2.5 font-medium">Guest</th>
-                  <th scope="col" className="w-[14%] border-b border-line px-3 py-2.5 font-medium">Ticket</th>
-                  <th scope="col" className="w-[17%] border-b border-line px-3 py-2.5 font-medium">Status</th>
-                  <th scope="col" className="w-[14%] border-b border-line px-3 py-2.5 font-medium">Registered</th>
-                  <th scope="col" className="w-[24%] border-b border-line px-3 py-2.5 text-right font-medium">
+                  <th scope="col" className="w-[31%] border-b border-white/[0.07] px-3 py-2.5 font-medium">Guest</th>
+                  <th scope="col" className="w-[14%] border-b border-white/[0.07] px-3 py-2.5 font-medium">Ticket</th>
+                  <th scope="col" className="w-[17%] border-b border-white/[0.07] px-3 py-2.5 font-medium">Status</th>
+                  <th scope="col" className="w-[14%] border-b border-white/[0.07] px-3 py-2.5 font-medium">Registered</th>
+                  <th scope="col" className="w-[24%] border-b border-white/[0.07] px-3 py-2.5 text-right font-medium">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {shown.map((g) => (
-                  <tr key={g.id} className="align-top hover:bg-surface-2/50">
-                    <td className="border-b border-line px-3 py-3">
+                  <tr key={g.id} className="align-top transition-colors hover:bg-white/[0.04]">
+                    <td className="border-b border-white/[0.07] px-3 py-3">
                       <div className="flex gap-2.5">
                         <Avatar name={g.name ?? g.email} size={32} />
                         <div className="min-w-0">
@@ -158,13 +158,13 @@ export function GuestList({ eventId, guests, questions, initialStatus }: {
                         </div>
                       </div>
                     </td>
-                    <td className="border-b border-line px-3 py-3 text-xs">{g.ticket ?? <span className="text-muted">—</span>}</td>
-                    <td className="border-b border-line px-3 py-3">
+                    <td className="border-b border-white/[0.07] px-3 py-3 text-xs">{g.ticket ?? <span className="text-muted">—</span>}</td>
+                    <td className="border-b border-white/[0.07] px-3 py-3">
                       <RegistrationBadge status={g.status} />
                       {g.checkedInAt && <p className="mt-1 text-xs text-emerald-300">In at {formatTimeRange(g.checkedInAt)}</p>}
                     </td>
-                    <td className="border-b border-line px-3 py-3 text-xs text-muted">{formatEventDate(g.registeredAt)}</td>
-                    <td className="border-b border-line px-3 py-3">
+                    <td className="border-b border-white/[0.07] px-3 py-3 text-xs text-muted">{formatEventDate(g.registeredAt)}</td>
+                    <td className="border-b border-white/[0.07] px-3 py-3">
                       <div className="flex flex-wrap justify-end gap-1.5">
                         <GuestActions eventId={eventId} guest={g} onFlash={setFlash} />
                       </div>
@@ -184,12 +184,12 @@ function Answers({ guest, questions }: { guest: Guest; questions: GuestQuestion[
   const rows = labelledAnswers(guest.answers, questions);
   if (rows.length === 0) return null;
   return (
-    <details className="group mt-2 rounded-xl border border-line bg-bg/40 text-xs [&_summary::-webkit-details-marker]:hidden">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 font-medium text-pink">
+    <details className="group mt-2 rounded-2xl border border-white/[0.08] bg-black/20 text-xs [&_summary::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2 font-medium text-accent">
         Application answers ({rows.length})
         <span aria-hidden className="transition-transform group-open:rotate-180">⌄</span>
       </summary>
-      <dl className="space-y-2 border-t border-line px-3 py-2.5">
+      <dl className="space-y-2 border-t border-white/[0.08] px-3 py-2.5">
         {rows.map((r) => (
           <div key={r.id}>
             <dt className="text-muted">{r.label}</dt>

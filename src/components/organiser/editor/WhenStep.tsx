@@ -36,7 +36,7 @@ export function WhenStep({ form, update, errors }: StepProps) {
       </div>
 
       {physical && (
-        <div className="space-y-4 rounded-2xl border border-line bg-surface/50 p-4">
+        <div className="space-y-4 glass rounded-[22px] p-4">
           <Field label="Venue" htmlFor="venue_name" required error={errors.venue_name}>
             <Input id="venue_name" value={form.venue_name} maxLength={120} placeholder="e.g. Imperial College Business School, Room 301"
               aria-invalid={!!errors.venue_name} onChange={(e) => update({ venue_name: e.target.value })} />
@@ -54,7 +54,7 @@ export function WhenStep({ form, update, errors }: StepProps) {
       )}
 
       {online && (
-        <div className="space-y-4 rounded-2xl border border-line bg-surface/50 p-4">
+        <div className="space-y-4 glass rounded-[22px] p-4">
           <Field label="Online link" htmlFor="online_url" error={errors.online_url}
             hint="Zoom, Teams, Meet… Only people with a ticket can see this.">
             <Input id="online_url" inputMode="url" value={form.online_url} placeholder="https://zoom.us/j/…"

@@ -88,7 +88,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
                 href={`/organiser/settings/payments?org=${o.id}`}
                 aria-current={active ? "page" : undefined}
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
-                  active ? "border-transparent bg-gradient font-medium text-bg" : "border-line bg-surface text-muted hover:text-fg"
+                  active ? "border-transparent bg-gradient font-medium text-bg" : "border-transparent glass text-muted hover:text-fg"
                 }`}
               >
                 {o.name}
@@ -99,12 +99,12 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       )}
 
       {notOwner && (
-        <p role="status" className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-muted">
+        <p role="status" className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-muted backdrop-blur-xl">
           Only the owner of {notOwner.name} can manage its payouts.
         </p>
       )}
       {linkError && (
-        <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+        <p role="alert" className="rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-300">
           That Stripe link didn&apos;t work. Tap the button below to try again.
         </p>
       )}

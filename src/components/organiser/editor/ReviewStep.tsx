@@ -21,13 +21,13 @@ function PreviewCard({ form, organiser }: { form: EventForm; organiser: { name: 
   const price = formatPrice(prices.price_min, prices.price_max);
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-line bg-surface">
+    <article className="glass overflow-hidden rounded-[22px]">
       <div className="flex gap-3 p-3">
-        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10">
           <EventCover src={form.cover_url || null} title={form.title || "Your event"} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-pink">{start ? formatEventDate(start) : "Date to be set"}</p>
+          <p className="text-xs font-medium text-accent">{start ? formatEventDate(start) : "Date to be set"}</p>
           <h3 className="mt-0.5 line-clamp-2 font-semibold leading-snug">{form.title || "Untitled event"}</h3>
           <p className="mt-1 truncate text-xs text-muted">{organiser.name}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -56,7 +56,7 @@ export function ReviewStep({ form, organiser, issues, goTo, status }: {
       <PreviewCard form={form} organiser={organiser} />
 
       {issues.length > 0 ? (
-        <div role="alert" className="space-y-2 rounded-2xl border border-orange/30 bg-orange/10 p-4">
+        <div role="alert" className="space-y-2 rounded-[20px] border border-orange/25 bg-orange/10 p-4">
           <p className="text-sm font-semibold text-orange">{live || status === "draft" ? "Fix these before publishing" : "Fix these"}</p>
           <ul className="space-y-1.5 text-sm">
             {issues.map((i, n) => (
@@ -70,12 +70,12 @@ export function ReviewStep({ form, organiser, issues, goTo, status }: {
           {!live && <p className="text-xs text-muted">You can still save as a draft.</p>}
         </div>
       ) : (
-        <p className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+        <p className="rounded-[20px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-200">
           Everything looks good{live ? "." : ", ready to publish."}
         </p>
       )}
 
-      <dl className="divide-y divide-line rounded-2xl border border-line bg-surface text-sm">
+      <dl className="glass divide-y divide-white/[0.07] rounded-[22px] text-sm">
         {[
           ["Registration", { tickets: "Free / paid tickets", application: "Application form", external: "External link", none: "Info only" }[form.registration]],
           ["Tickets", usesTickets(form.registration) ? `${form.tickets.length} type${form.tickets.length === 1 ? "" : "s"}` : "n/a"],

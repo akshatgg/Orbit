@@ -43,7 +43,7 @@ async function Guests({ params, searchParams }: Pick<Props, "params" | "searchPa
       <EventNav eventId={id} active="guests" pending={pending} />
       <div className="flex items-end justify-between gap-3 px-4 pb-3 pt-5">
         <div>
-          <h2 className="font-display text-xl font-semibold tracking-wide">Guest list</h2>
+          <h2 className="text-xl font-semibold tracking-tight">Guest list</h2>
           <p className="text-sm text-muted">
             {guests.length} {guests.length === 1 ? "registration" : "registrations"}
             {questions.length > 0 && ` · ${questions.length} application ${questions.length === 1 ? "question" : "questions"}`}

@@ -10,7 +10,7 @@ export function JoinButton({ code, orgName }: { code: string; orgName: string })
   return (
     <form action={action} className="space-y-3">
       {state && !state.ok && <p role="alert" className="text-center text-sm text-red-300">{state.error}</p>}
-      <SubmitButton size="lg" full className="glow" pendingText="Joining…" aria-label={`Join ${orgName}`}>
+      <SubmitButton size="lg" full pendingText="Joining…" aria-label={`Join ${orgName}`}>
         Join team
       </SubmitButton>
     </form>

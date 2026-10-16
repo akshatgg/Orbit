@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Field, Input, Select } from "@/components/ui/Field";
+import { Field, Input, inputClass, Select } from "@/components/ui/Field";
 import { hasOptions, newQuestion, newTicket, QUESTION_KINDS, type QuestionDraft, type TicketDraft } from "@/lib/organiser/event-form";
 import { usesTickets } from "@/lib/organiser/registration";
 import { MoneyInput, StepIntro, Toggle, type StepProps } from "./fields";
@@ -24,7 +24,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
             ? "Guests register on your own link, so there are no tickets or questions to set up here."
             : "This event is info only, so there are no tickets or questions to set up."}
         </StepIntro>
-        <p className="rounded-2xl border border-dashed border-line px-4 py-6 text-center text-sm text-muted">Nothing to do here. Head to the next step.</p>
+        <p className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-4 py-8 text-center text-sm text-muted">Nothing to do here. Head to the next step.</p>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         </StepIntro>
 
         {!chargesEnabled && (
-          <p className="rounded-xl border border-orange/30 bg-orange/10 px-3.5 py-3 text-sm text-orange">
+          <p className="rounded-2xl border border-orange/25 bg-orange/10 px-4 py-3 text-sm text-orange">
             Paid tickets need a payout account.{" "}
             <Link href={`/organiser/settings/payments?org=${organiserId}`} className="font-semibold underline underline-offset-2">Set up payments</Link>
             . You can still save a paid event as a draft, but not publish it.
@@ -53,9 +53,9 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         {errors.tickets && <p role="alert" className="text-xs text-red-300">{errors.tickets}</p>}
 
         {form.tickets.map((t, i) => (
-          <div key={t.key} className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+          <div key={t.key} className="glass space-y-3 rounded-[22px] p-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted">Ticket {i + 1}</p>
+              <p className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-subtle">Ticket {i + 1}</p>
               {form.tickets.length > 1 && (
                 <button type="button" className="text-xs text-red-300 hover:text-red-200" onClick={() => update({ tickets: form.tickets.filter((_, j) => j !== i) })}>
                   Remove
@@ -81,7 +81,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         ))}
         {form.tickets.length < 10 && (
           <button type="button" onClick={() => update({ tickets: [...form.tickets, newTicket("")] })}
-            className="w-full rounded-xl border border-dashed border-line py-3 text-sm font-medium text-pink hover:bg-surface">
+            className="w-full rounded-[18px] border border-dashed border-white/15 py-3.5 text-sm font-medium text-accent transition duration-200 hover:border-accent/50 hover:bg-white/[0.05]">
             + Add ticket type
           </button>
         )}
@@ -98,9 +98,9 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         {errors.questions && <p role="alert" className="text-xs text-red-300">{errors.questions}</p>}
 
         {form.questions.map((q, i) => (
-          <div key={q.key} className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+          <div key={q.key} className="glass space-y-3 rounded-[22px] p-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted">Question {i + 1}</p>
+              <p className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-subtle">Question {i + 1}</p>
               <div className="flex items-center gap-1 text-xs">
                 <button type="button" aria-label={`Move question ${i + 1} up`} disabled={i === 0} className="rounded-lg px-2 py-1 text-muted hover:text-fg disabled:opacity-30"
                   onClick={() => update({ questions: move(form.questions, i, i - 1) })}>↑</button>
@@ -121,7 +121,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
             {hasOptions(q.kind) && (
               <Field label="Options" htmlFor={`q-opts-${i}`} hint="One per line" error={errors[`questions.${i}.options`]}>
                 <textarea id={`q-opts-${i}`} rows={3} aria-invalid={!!errors[`questions.${i}.options`]}
-                  className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-violet aria-[invalid=true]:border-red-400"
+                  className={inputClass}
                   value={q.options.join("\n")} onChange={(e) => setQuestion(i, { options: e.target.value.split("\n") })} />
               </Field>
             )}
@@ -130,7 +130,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         ))}
         {form.questions.length < 20 && (
           <button type="button" onClick={() => update({ questions: [...form.questions, newQuestion()] })}
-            className="w-full rounded-xl border border-dashed border-line py-3 text-sm font-medium text-pink hover:bg-surface">
+            className="w-full rounded-[18px] border border-dashed border-white/15 py-3.5 text-sm font-medium text-accent transition duration-200 hover:border-accent/50 hover:bg-white/[0.05]">
             + Add question
           </button>
         )}

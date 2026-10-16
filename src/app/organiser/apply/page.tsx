@@ -26,8 +26,8 @@ export default function ApplyPage() {
       <div className="space-y-6 px-4">
         <ol className="grid gap-2 sm:grid-cols-3">
           {STEPS.map((s, i) => (
-            <li key={s.title} className="rounded-2xl border border-line bg-surface/60 p-3.5">
-              <p className="flex items-center gap-2 font-display text-sm font-semibold">
+            <li key={s.title} className="glass rounded-[20px] p-4">
+              <p className="flex items-center gap-2 text-sm font-semibold tracking-tight">
                 <span className="bg-gradient inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] text-bg">{i + 1}</span>
                 {s.title}
               </p>
@@ -35,7 +35,7 @@ export default function ApplyPage() {
             </li>
           ))}
         </ol>
-        <Card className="p-5">
+        <Card className="rounded-[24px] p-5">
           <Suspense fallback={<FormSkeleton />}>
             <Form />
           </Suspense>
@@ -52,7 +52,7 @@ async function Form() {
   return (
     <>
       {pending.length > 0 && (
-        <p className="mb-5 rounded-xl border border-orange/30 bg-orange/10 px-3.5 py-2.5 text-sm text-orange">
+        <p className="mb-5 rounded-2xl border border-orange/25 bg-orange/10 px-4 py-3 text-sm text-orange">
           {pending.map((o) => o.name).join(", ")} {pending.length === 1 ? "is" : "are"} already waiting for approval. You
           can still apply for another organiser.
         </p>

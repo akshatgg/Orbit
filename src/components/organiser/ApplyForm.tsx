@@ -62,12 +62,12 @@ export function ApplyForm({ defaultEmail, defaultUniversity, defaultName = "", s
       </Field>
 
       <Field label="Page link" htmlFor="slug" required error={err("slug")}>
-        <div className={`flex items-center overflow-hidden rounded-xl border bg-surface focus-within:border-violet ${err("slug") || check === "taken" ? "border-red-400" : "border-line"}`}>
-          <span className="select-none border-r border-line px-3 py-2.5 text-sm text-muted">/o/</span>
+        <div className={`flex items-center overflow-hidden rounded-[14px] border bg-white/[0.045] shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] backdrop-blur-xl transition duration-200 focus-within:border-accent/60 focus-within:ring-4 focus-within:ring-accent/15 ${err("slug") || check === "taken" ? "border-red-400/60" : "border-white/10"}`}>
+          <span className="select-none border-r border-white/10 px-3.5 py-3 text-sm text-subtle">/o/</span>
           <input
             id="slug" name="slug" required maxLength={60} value={v.slug} aria-describedby="slug-status"
             aria-invalid={check === "taken" || check === "invalid" || !!err("slug")}
-            className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-fg outline-none"
+            className="min-w-0 flex-1 bg-transparent px-3.5 py-3 text-sm text-fg outline-none"
             onChange={(e) => {
               setSlugEdited(true);
               set("slug")(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"));
@@ -86,11 +86,11 @@ export function ApplyForm({ defaultEmail, defaultUniversity, defaultName = "", s
           {ORGANISER_KINDS.map((k) => (
             <label
               key={k.value}
-              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 text-sm transition-colors ${
-                v.kind === k.value ? "border-gradient text-fg" : "border-line bg-surface text-muted hover:text-fg"
+              className={`flex cursor-pointer items-center gap-3 rounded-[14px] border px-3.5 py-3 text-sm transition duration-200 ${
+                v.kind === k.value ? "border-gradient text-fg" : "border-white/10 bg-white/[0.045] text-muted hover:border-white/20 hover:text-fg"
               }`}
             >
-              <input type="radio" name="kind" value={k.value} checked={v.kind === k.value} onChange={() => set("kind")(k.value)} className="accent-violet" />
+              <input type="radio" name="kind" value={k.value} checked={v.kind === k.value} onChange={() => set("kind")(k.value)} className="accent-accent" />
               {k.label}
             </label>
           ))}
@@ -121,7 +121,7 @@ export function ApplyForm({ defaultEmail, defaultUniversity, defaultName = "", s
 
       <div className="space-y-3 pt-2">
         <FormMessage state={state} />
-        <SubmitButton size="lg" full className="glow" pendingText="Sending application…" disabled={check === "taken" || check === "checking"}>
+        <SubmitButton size="lg" full pendingText="Sending application…" disabled={check === "taken" || check === "checking"}>
           {submitLabel}
         </SubmitButton>
         {after}

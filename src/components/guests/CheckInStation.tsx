@@ -154,21 +154,21 @@ export function CheckInStation({ eventId, counts: serverCounts, guests }: { even
       {/* Live counter */}
       <section aria-label="Check-in progress" className="px-4">
         <div className="flex items-end justify-between gap-3">
-          <p aria-live="polite" className="font-display tabular-nums">
-            <span className="text-gradient text-4xl font-bold">{counts.checkedIn}</span>
-            <span className="text-xl font-semibold text-muted"> / {counts.going}</span>
+          <p aria-live="polite" className="tabular-nums">
+            <span className="text-gradient text-4xl font-semibold tracking-tight">{counts.checkedIn}</span>
+            <span className="text-xl font-medium text-subtle"> / {counts.going}</span>
             <span className="ml-2 text-sm font-medium text-muted">checked in</span>
           </p>
           <span className="pb-1 text-sm tabular-nums text-muted">{pct}%</span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-2" aria-hidden>
+        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]" aria-hidden>
           <div className="bg-gradient h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%` }} />
         </div>
       </section>
 
       {/* Scanner */}
       <section aria-label="Ticket scanner" className="px-4">
-        <div className="glow relative mx-auto aspect-[3/4] max-h-[62dvh] w-full overflow-hidden rounded-3xl border border-line bg-black">
+        <div className="relative mx-auto aspect-[3/4] max-h-[62dvh] w-full overflow-hidden rounded-[28px] bg-black shadow-[0_0_0_1px_rgb(255_255_255/0.12),0_0_0_6px_rgb(255_255_255/0.04),0_24px_60px_-20px_rgb(0_0_0/0.9)]">
           <video
             ref={videoRef}
             playsInline
@@ -195,16 +195,16 @@ export function CheckInStation({ eventId, counts: serverCounts, guests }: { even
 function Viewfinder() {
   return (
     <div className="pointer-events-none absolute inset-0" aria-hidden>
-      <style>{`@keyframes orbit-scan{0%{top:18%}50%{top:76%}100%{top:18%}}`}</style>
+      <style>{`@keyframes orbit-scan{0%{top:18%}50%{top:76%}100%{top:18%}}@keyframes orbit-bracket{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}@media (prefers-reduced-motion:reduce){.orbit-bracket,.orbit-scanline{animation:none!important}}`}</style>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_38%,rgb(0_0_0/0.55)_72%)]" />
       <div className="absolute left-1/2 top-1/2 aspect-square w-[68%] -translate-x-1/2 -translate-y-1/2">
-        {["left-0 top-0 border-l-4 border-t-4 rounded-tl-2xl", "right-0 top-0 border-r-4 border-t-4 rounded-tr-2xl",
-          "left-0 bottom-0 border-l-4 border-b-4 rounded-bl-2xl", "right-0 bottom-0 border-r-4 border-b-4 rounded-br-2xl"].map((c) => (
-          <span key={c} className={`absolute h-10 w-10 border-pink ${c}`} />
+        {["left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-[22px] origin-top-left", "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-[22px] origin-top-right",
+          "left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-[22px] origin-bottom-left", "right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-[22px] origin-bottom-right"].map((c) => (
+          <span key={c} className={`orbit-bracket absolute h-11 w-11 border-white/90 ${c}`} style={{ animation: "orbit-bracket 2.8s ease-in-out infinite" }} />
         ))}
       </div>
       <div
-        className="bg-gradient absolute left-[18%] h-0.5 w-[64%] rounded-full opacity-80 shadow-[0_0_16px_rgb(222_159_251/0.9)]"
+        className="orbit-scanline absolute left-[18%] h-px w-[64%] rounded-full bg-gradient-to-r from-transparent via-white to-transparent opacity-70 shadow-[0_0_14px_rgb(169_155_255/0.8)]"
         style={{ animation: "orbit-scan 2.6s ease-in-out infinite" }}
       />
     </div>
@@ -227,14 +227,14 @@ function CameraMessage({ state, onRetry }: { state: Exclude<CameraState, "scanni
   const copy = CAMERA_COPY[state];
   return (
     <div role={state === "starting" ? "status" : "alert"} className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-8 text-center">
-      <span className={`flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-surface ${state === "starting" ? "animate-pulse" : ""}`} aria-hidden>
+      <span className={`flex h-14 w-14 items-center justify-center glass rounded-2xl ${state === "starting" ? "animate-pulse motion-reduce:animate-none" : ""}`} aria-hidden>
         <svg viewBox="0 0 24 24" className="h-7 w-7 text-muted" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
           <circle cx="12" cy="13" r="3.5" />
           {state !== "starting" && <path d="M4 4l16 16" />}
         </svg>
       </span>
-      <p className="font-display text-base font-semibold">{copy.title}</p>
+      <p className="text-base font-semibold tracking-tight">{copy.title}</p>
       <p className="max-w-xs text-sm text-muted">{copy.body}</p>
       {copy.retry && <Button variant="secondary" size="sm" onClick={onRetry}>Try again</Button>}
     </div>
@@ -242,9 +242,9 @@ function CameraMessage({ state, onRetry }: { state: Exclude<CameraState, "scanni
 }
 
 const TONE: Record<ResultView["tone"], { card: string; icon: string; ring: string }> = {
-  success: { card: "border-emerald-400/50 bg-emerald-950/90", icon: "bg-emerald-400 text-emerald-950", ring: "shadow-[0_0_40px_-6px_rgb(52_211_153/0.7)]" },
-  warning: { card: "border-orange/60 bg-[#2a1a08]/95", icon: "bg-orange text-bg", ring: "shadow-[0_0_40px_-6px_rgb(253_181_112/0.6)]" },
-  danger: { card: "border-red-400/60 bg-red-950/90", icon: "bg-red-400 text-red-950", ring: "shadow-[0_0_40px_-6px_rgb(248_113_113/0.6)]" },
+  success: { card: "border-emerald-300/25 bg-emerald-950/60", icon: "bg-emerald-300/90 text-emerald-950", ring: "shadow-[0_18px_40px_-16px_rgb(16_185_129/0.45)]" },
+  warning: { card: "border-orange/25 bg-orange/[0.12]", icon: "bg-orange/90 text-bg", ring: "shadow-[0_18px_40px_-16px_rgb(253_181_112/0.35)]" },
+  danger: { card: "border-red-300/25 bg-red-950/60", icon: "bg-red-300/90 text-red-950", ring: "shadow-[0_18px_40px_-16px_rgb(248_113_113/0.4)]" },
 };
 
 function ResultCard({ view, eventId, onCounts, onDismiss }: {
@@ -256,18 +256,18 @@ function ResultCard({ view, eventId, onCounts, onDismiss }: {
   return (
     <div
       role="alert"
-      className={`absolute inset-x-3 bottom-3 rounded-2xl border p-4 backdrop-blur-md ${t.card} ${t.ring}`}
+      className={`absolute inset-x-3 bottom-3 rounded-[22px] border p-4 backdrop-blur-2xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgb(255_255_255/0.1)] ${t.card} ${t.ring}`}
     >
       <div className="flex items-start gap-3">
-        <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-2xl font-bold ${t.icon}`} aria-hidden>
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-xl font-semibold ${t.icon}`} aria-hidden>
           {view.tone === "success" ? "✓" : view.tone === "warning" ? "!" : "✕"}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-display text-lg font-bold leading-tight">{undone ? "Check-in undone" : view.title}</p>
+          <p className="text-lg font-semibold leading-tight tracking-tight">{undone ? "Check-in undone" : view.title}</p>
           {view.name && <p className="mt-0.5 truncate text-base font-semibold">{view.name}</p>}
           {view.detail && <p className="mt-0.5 text-sm text-fg/75">{view.detail}</p>}
         </div>
-        <button type="button" onClick={onDismiss} className="-m-1 rounded-lg p-1 text-fg/60 hover:text-fg" aria-label="Dismiss">✕</button>
+        <button type="button" onClick={onDismiss} className="-m-1 rounded-full p-1.5 text-fg/60 transition-colors hover:text-fg" aria-label="Dismiss">✕</button>
       </div>
       {view.registrationId && !undone && (
         <div className="mt-3 flex justify-end">
@@ -298,8 +298,8 @@ function ManualEntry({ checkIn, onOutcome }: {
   const [code, setCode] = useState("");
   const [pending, start] = useTransition();
   return (
-    <section aria-labelledby="manual-entry" className="mx-4 rounded-2xl border border-line bg-surface p-4">
-      <h2 id="manual-entry" className="font-display text-sm font-semibold">Enter a ticket code</h2>
+    <section aria-labelledby="manual-entry" className="glass mx-4 rounded-[22px] p-4">
+      <h2 id="manual-entry" className="text-sm font-semibold tracking-tight">Enter a ticket code</h2>
       <p className="mt-0.5 text-xs text-muted">The code printed under the guest&apos;s QR ticket.</p>
       <form
         className="mt-3 flex gap-2"
@@ -348,8 +348,8 @@ function GuestFinder({ eventId, guests, onOutcome, onCounts }: {
   const visible = query ? list : list.slice(0, 50);
 
   return (
-    <section aria-labelledby="find-guest" className="mx-4 rounded-2xl border border-line bg-surface p-4">
-      <h2 id="find-guest" className="font-display text-sm font-semibold">Find a guest</h2>
+    <section aria-labelledby="find-guest" className="glass mx-4 rounded-[22px] p-4">
+      <h2 id="find-guest" className="text-sm font-semibold tracking-tight">Find a guest</h2>
       <p className="mt-0.5 text-xs text-muted">No ticket on them? Check them in by name.</p>
       <label htmlFor="guest-search" className="sr-only">Search guests by name or email</label>
       <input
@@ -363,7 +363,7 @@ function GuestFinder({ eventId, guests, onOutcome, onCounts }: {
       {visible.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted">{guests.length ? "No one matches that search." : "No guests yet."}</p>
       ) : (
-        <ul className="mt-2 divide-y divide-line">
+        <ul className="mt-2 divide-y divide-white/[0.07]">
           {visible.map((g) => (
             <FinderRow key={g.id} eventId={eventId} guest={g} onOutcome={onOutcome} onCounts={onCounts} />
           ))}

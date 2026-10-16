@@ -20,14 +20,14 @@ export function OrganiserLogo({ src, name, size = 48, className = "" }: {
   const style = { width: size, height: size };
   return src ? (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt="" style={style} className={`shrink-0 rounded-2xl border border-line object-cover ${className}`} />
+    <img src={src} alt="" style={style} className={`shrink-0 rounded-2xl border border-white/10 object-cover ${className}`} />
   ) : (
     <span
       style={{ ...style, fontSize: size * 0.34 }}
-      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-line bg-surface-2 font-display font-semibold text-fg ${className}`}
+      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] font-semibold tracking-tight text-fg ${className}`}
       aria-hidden
     >
-      <span className="bg-gradient absolute inset-0 opacity-20" />
+      <span className="absolute inset-0 bg-[linear-gradient(135deg,rgb(222_159_251/0.22),rgb(63_121_253/0.14)_60%,rgb(253_181_112/0.16))]" />
       <span className="relative">{initials || "?"}</span>
     </span>
   );
