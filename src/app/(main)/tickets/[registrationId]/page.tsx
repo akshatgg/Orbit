@@ -10,7 +10,8 @@ import { PassSkeleton } from "@/components/tickets/Skeletons";
 import { RegistrationBadge } from "@/components/events/RegistrationBadge";
 import { VerifiedMark } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
-import { requireProfile } from "@/lib/auth";
+import { getProfile, requireUser } from "@/lib/auth";
+import { SetupNudge } from "@/components/profile/SetupNudge";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { FORMAT_LABELS, formatLongDate, formatPrice, formatTimeRange } from "@/lib/format";
 import { toCalendarEvent } from "@/lib/tickets/calendar";
@@ -28,9 +29,10 @@ export default function Page({ params }: PageProps<"/tickets/[registrationId]">)
 }
 
 async function Content({ params }: { params: PageProps<"/tickets/[registrationId]">["params"] }) {
-  const profile = await requireProfile();
+  // Signed in is enough: someone can register for a first event before finishing setup.
+  const user = await requireUser();
   const { registrationId } = await params;
-  const found = await getMyTicket(profile.id, registrationId);
+  const [found, profile] = await Promise.all([getMyTicket(user.id, registrationId), getProfile()]);
   if (!found) notFound();
   const { ticket: t, privateInfo } = found;
   const { event } = t;
@@ -130,6 +132,8 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
           )}
         </section>
       )}
+
+      {!profile?.onboarded_at && <SetupNudge next={`/tickets/${t.id}`} />}
 
       <div className="grid gap-2">
         {!ended && !cancelledEvent && (

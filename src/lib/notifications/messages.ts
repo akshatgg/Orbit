@@ -35,6 +35,8 @@ export type Message = {
     paragraphs: string[];
     details: Detail[];
     cta: { label: string; url: string };
+    /** Replaces the default "you saved an event" footer line (and drops the reminders link). */
+    footer?: string;
   };
 };
 
@@ -318,4 +320,56 @@ export function esc(s: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+// ─── Organisation decisions (admin approves / rejects) ──────────────────────
+
+export type OrganiserDecision = "approved" | "rejected";
+
+export function organiserDecisionMessage(
+  org: { name: string; review_note?: string | null },
+  decision: OrganiserDecision,
+): Message {
+  const name = esc(org.name);
+  const footer = "You're getting this because you applied to host events on ORBIT.";
+  if (decision === "approved") {
+    return {
+      title: "You're approved — start hosting on ORBIT",
+      body: `${org.name} is live. Create your first event in Studio.`,
+      url: "/organiser",
+      tag: "organiser-decision",
+      email: {
+        subject: "You're approved — start hosting on ORBIT",
+        preheader: `${org.name} can now create and publish events.`,
+        heading: "You're approved",
+        paragraphs: [
+          `<b>${name}</b> has been approved. You can now create events, take registrations and check guests in.`,
+          "You can also invite teammates from Studio → Settings → Team.",
+        ],
+        details: [],
+        cta: { label: "Open Studio", url: "/organiser" },
+        footer,
+      },
+    };
+  }
+  const note = org.review_note?.trim();
+  return {
+    title: "Update on your ORBIT organisation",
+    body: note ? `${org.name} wasn't approved: ${note}` : `${org.name} wasn't approved this time.`,
+    url: "/organiser",
+    tag: "organiser-decision",
+    email: {
+      subject: "Update on your ORBIT organisation",
+      preheader: `${org.name} wasn't approved this time.`,
+      heading: "Your organisation wasn't approved",
+      paragraphs: [
+        `We couldn't approve <b>${name}</b> this time.`,
+        ...(note ? [`<b>Note from the ORBIT team:</b> ${esc(note)}`] : []),
+        "You're welcome to update your details and apply again.",
+      ],
+      details: [],
+      cta: { label: "Open Studio", url: "/organiser" },
+      footer,
+    },
+  };
 }

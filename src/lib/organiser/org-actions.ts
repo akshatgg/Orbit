@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { fieldErrors, organiserApplicationSchema, organiserProfileSchema, teamMemberSchema, type FieldErrors } from "./schemas";
+import { isValidInviteCode } from "./invites";
 import { isValidSlug } from "./slug";
 
 export type FormState = { ok?: boolean; error?: string; message?: string; fieldErrors?: FieldErrors } | null;
@@ -123,4 +124,49 @@ export async function removeTeamMember(organiserId: string, userId: string): Pro
 
   revalidatePath("/organiser", "layout");
   return { ok: true };
+}
+
+/** Owner creates a team invite link (the organisation must be approved; the database checks). */
+export async function createTeamInvite(organiserId: string): Promise<{ ok: true; code: string } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: SIGNED_OUT };
+  const id = z.uuid().safeParse(organiserId);
+  if (!id.success) return { ok: false, error: "Organiser not found." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_organiser_invite", { org: id.data });
+  if (error || typeof data !== "string") return { ok: false, error: dbMessage(error, "We couldn't create the link. Please try again.") };
+
+  revalidatePath("/organiser/settings");
+  return { ok: true, code: data };
+}
+
+/** Owner turns an invite link off. */
+export async function revokeTeamInvite(inviteId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: SIGNED_OUT };
+  const id = z.uuid().safeParse(inviteId);
+  if (!id.success) return { ok: false, error: "Invite not found." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("organiser_invites").update({ revoked: true }).eq("id", id.data).select("id");
+  if (error) return { ok: false, error: dbMessage(error, "We couldn't turn the link off. Please try again.") };
+  if (!data?.length) return { ok: false, error: "Only owners can turn off invite links." };
+
+  revalidatePath("/organiser/settings");
+  return { ok: true };
+}
+
+/** Signed-in person accepts an invite from /join/<code>; they become an editor and land in Studio. */
+export async function acceptTeamInvite(code: string): Promise<{ ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) redirect(`/login?next=${encodeURIComponent(`/join/${code}`)}`);
+  if (!isValidInviteCode(code)) return { ok: false, error: "This invite link is not valid" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("accept_organiser_invite", { p_code: code });
+  if (error || !data) return { ok: false, error: dbMessage(error, "We couldn't add you to the team. Please try again.") };
+
+  revalidatePath("/", "layout");
+  redirect(`/organiser?org=${(data as { id: string }).id}&joined=1`);
 }

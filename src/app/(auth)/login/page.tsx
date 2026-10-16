@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { OrbitEmblem } from "@/components/brand/OrbitEmblem";
+import { Suspense } from "react";
 import { DevLogin } from "./DevLogin";
+import { HostDoor } from "./HostDoor";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -14,6 +16,9 @@ export default function LoginPage() {
       <h1 className="font-display text-3xl font-semibold tracking-[0.42em] indent-[0.42em]">ORBIT</h1>
       <p className="mt-2.5 font-display text-[11px] font-medium uppercase tracking-[0.34em] text-subtle">Explore opportunities</p>
       <LoginForm />
+      <Suspense fallback={<p className="mt-5 h-5" />}>
+        <HostDoor />
+      </Suspense>
       {process.env.NEXT_PUBLIC_DEV_LOGIN === "1" && <DevLogin />}
     </main>
   );

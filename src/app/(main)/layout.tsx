@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { BottomNav, BottomNavView } from "@/components/nav/BottomNav";
+import { BottomNavView } from "@/components/nav/BottomNav";
+import { MainNav } from "@/components/nav/MainNav";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 
 /** Student-facing screens with the bottom tab bar. Pages guard themselves with requireProfile(). */
@@ -9,7 +10,7 @@ export default function MainLayout({ children }: LayoutProps<"/">) {
       <InstallPrompt />
       {children}
       <Suspense fallback={<BottomNavView pathname={null} />}>
-        <BottomNav />
+        <MainNav />
       </Suspense>
     </div>
   );

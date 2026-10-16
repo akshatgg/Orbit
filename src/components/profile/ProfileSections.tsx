@@ -6,6 +6,7 @@ import { withCounts } from "@/lib/events/queries";
 import type { ProfileEvent, FollowedOrganiser } from "@/lib/profile/queries";
 import { normalizeAvailability, summariseAvailability } from "@/lib/profile/availability";
 import { CAREER_INTERESTS, EVENT_FORMATS, ORGANISER_KINDS, PERSONAL_INTERESTS, labelFor } from "@/lib/taxonomy";
+import { effectiveUserType } from "@/lib/profile/user-type";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, VerifiedMark } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
@@ -35,8 +36,23 @@ export function SectionHeading({ title, count, action }: { title: string; count?
 
 const linkClass = "text-sm font-medium text-pink transition-colors hover:text-fg";
 
+/** One line under the name that fits the person: course for students, job for professionals. */
+export function profileLine(profile: Profile): string {
+  switch (effectiveUserType(profile)) {
+    case "student":
+      return [profile.university, profile.course].filter(Boolean).join(" · ");
+    case "graduate":
+      return [profile.university, profile.graduation_year ? `Class of ${profile.graduation_year}` : null].filter(Boolean).join(" · ");
+    case "professional":
+      return [profile.job_title, profile.company].filter(Boolean).join(" at ") || profile.industry || "";
+    default:
+      return profile.host_role ?? "";
+  }
+}
+
 export function ProfileHero({ profile }: { profile: Profile }) {
-  const line = [profile.university, profile.course].filter(Boolean).join(" · ");
+  const type = effectiveUserType(profile);
+  const line = profileLine(profile);
   return (
     <section className="relative mx-4 overflow-hidden rounded-3xl border-gradient p-5 glow">
       <div aria-hidden className="bg-gradient absolute -right-16 -top-20 h-48 w-48 rounded-full opacity-20 blur-3xl" />
@@ -55,12 +71,13 @@ export function ProfileHero({ profile }: { profile: Profile }) {
                 <VerifiedMark className="h-3.5 w-3.5 text-[8px]" /> Verified student
               </Badge>
             )}
-            {profile.year_of_study && <Badge>{profile.year_of_study}</Badge>}
+            {type === "student" && profile.year_of_study && <Badge>{profile.year_of_study}</Badge>}
+            {profile.goals.includes("host") && <Badge tone="brand">Host</Badge>}
           </div>
         </div>
       </div>
       {line && <p className="relative mt-4 text-sm text-fg/90">{line}</p>}
-      {profile.department && <p className="relative text-xs text-muted">{profile.department}</p>}
+      {type === "student" && profile.department && <p className="relative text-xs text-muted">{profile.department}</p>}
     </section>
   );
 }

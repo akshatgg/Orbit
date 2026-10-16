@@ -287,3 +287,59 @@ describe("rankEvents", () => {
     expect(ranked[0].reason).toBeNull();
   });
 });
+
+describe("user type and goals", () => {
+  const base = { ...profile, goals: [] as string[] };
+  const universityEvent = ev({ university: "Imperial College London", tags: ["MSc Management"] });
+
+  it("gives students and graduates the university and course signals", () => {
+    for (const user_type of ["student", "graduate"]) {
+      const k = scoreEvent(universityEvent, { ...base, user_type }, ctx()).signals.map((s) => s.key);
+      expect(k).toContain("sameUniversity");
+    }
+    expect(scoreEvent(universityEvent, { ...base, user_type: "student" }, ctx()).signals.map((s) => s.key)).toContain("courseMatch");
+  });
+
+  it("never uses university or course for professionals and others, in score or wording", () => {
+    for (const user_type of ["professional", "other"]) {
+      const scored = scoreEvent(universityEvent, { ...base, user_type }, ctx());
+      const k = scored.signals.map((s) => s.key);
+      expect(k).not.toContain("sameUniversity");
+      expect(k).not.toContain("courseMatch");
+      expect(scored.signals.map((s) => s.reason ?? "").join(" ")).not.toMatch(/Imperial|students/);
+    }
+  });
+
+  it("treats a missing user type as a student when a university is set", () => {
+    expect(keys(universityEvent)).toContain("sameUniversity");
+    const noUni = { ...base, university: null };
+    expect(scoreEvent(universityEvent, noUni, ctx()).signals.map((s) => s.key)).not.toContain("sameUniversity");
+  });
+
+  const career = ev({ category: { id: "c", slug: "careers-fair", name: "Careers fair", group: "career" } });
+  const social = ev({ category: { id: "s", slug: "social", name: "Social", group: "social" } });
+  const networking = ev({ category: { id: "n", slug: "networking", name: "Networking", group: "social" } });
+  const taggedNetworking = ev({ tags: ["Networking"] });
+  const fit = (e: RankableEvent, goals: string[]) => scoreEvent(e, { ...base, goals }, ctx()).signals.find((s) => s.key === "goalFit");
+
+  it("boosts the events that serve each goal by a small amount", () => {
+    expect(fit(career, ["career"])).toMatchObject({ weight: WEIGHTS.goalFit, reason: "it fits your career goals" });
+    expect(fit(social, ["social"])?.reason).toBe("it's a good way to meet people");
+    expect(fit(networking, ["network"])?.reason).toBe("it's a chance to grow your network");
+    expect(fit(taggedNetworking, ["network"])).toBeDefined();
+    expect(WEIGHTS.goalFit).toBeLessThan(WEIGHTS.preferredCategory);
+  });
+
+  it("does not boost events that don't match the goal, or for host-only goals", () => {
+    expect(fit(career, ["social"])).toBeUndefined();
+    expect(fit(social, ["career"])).toBeUndefined();
+    expect(fit(career, ["host"])).toBeUndefined();
+    expect(fit(career, [])).toBeUndefined();
+  });
+
+  it("only counts the goal once, preferring networking", () => {
+    const signals = scoreEvent(networking, { ...base, goals: ["network", "social"] }, ctx()).signals.filter((s) => s.key === "goalFit");
+    expect(signals).toHaveLength(1);
+    expect(signals[0].reason).toBe("it's a chance to grow your network");
+  });
+});

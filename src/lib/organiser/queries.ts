@@ -70,6 +70,29 @@ export async function listTeam(organiserId: string) {
   return (data ?? []) as TeamMember[];
 }
 
+export type TeamInvite = {
+  id: string;
+  code: string;
+  role: string;
+  expires_at: string;
+  max_uses: number;
+  uses: number;
+  revoked: boolean;
+  created_at: string;
+};
+
+/** Invite links of an organisation (owners and admins only, enforced by RLS), newest first. */
+export async function listInvites(organiserId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("organiser_invites")
+    .select("id, code, role, expires_at, max_uses, uses, revoked, created_at")
+    .eq("organiser_id", organiserId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  return (data ?? []) as TeamInvite[];
+}
+
 /** Everything the editor needs for one event. Null when it doesn't exist or isn't visible. */
 export async function getEventForEdit(eventId: string) {
   const supabase = await createClient();

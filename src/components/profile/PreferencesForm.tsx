@@ -4,12 +4,16 @@ import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { savePreferences } from "@/lib/profile/actions";
 import { draftErrors, type ProfileDraft } from "@/lib/profile/schema";
+import { useRouter } from "next/navigation";
+import { hasHostGoal } from "@/lib/profile/flow";
 import {
   AvailabilityStep,
-  BasicsStep,
-  CareerStep,
   EventsStep,
-  PersonalStep,
+  GoalsStep,
+  HostRoleField,
+  InterestsStep,
+  NameField,
+  UserTypeFields,
   type CategoryOption,
 } from "./ProfileSteps";
 
@@ -20,6 +24,7 @@ export function PreferencesForm({ initial, categories }: { initial: ProfileDraft
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
@@ -46,6 +51,8 @@ export function PreferencesForm({ initial, categories }: { initial: ProfileDraft
       if (result.ok) {
         setSaved(snapshot);
         setStatus({ ok: true, text: "Saved. Your feed is updating with your new preferences." });
+        // Hosting switched on with no organisation yet → straight to the application.
+        if (result.redirectTo) router.push(result.redirectTo);
       } else {
         setErrors(result.fieldErrors ?? {});
         setStatus({ ok: false, text: result.error });
@@ -64,14 +71,25 @@ export function PreferencesForm({ initial, categories }: { initial: ProfileDraft
       }}
       className="space-y-4 px-4"
     >
+      <Section title="How you use ORBIT">
+        <GoalsStep {...props} />
+        {hasHostGoal(draft.goals) && (
+          <p className="mt-3 text-xs text-muted">
+            Hosting needs an organisation. Save and we&apos;ll take you to the application if you don&apos;t have one yet.
+          </p>
+        )}
+      </Section>
       <Section title="About you">
-        <BasicsStep {...props} />
+        <div className="space-y-7">
+          <NameField {...props} />
+          {hasHostGoal(draft.goals) && <HostRoleField {...props} />}
+        </div>
+      </Section>
+      <Section title="Which describes you">
+        <UserTypeFields {...props} />
       </Section>
       <Section title="Interests">
-        <div className="space-y-7">
-          <CareerStep {...props} />
-          <PersonalStep {...props} />
-        </div>
+        <InterestsStep {...props} />
       </Section>
       <Section title="Events">
         <EventsStep {...props} categories={categories} />

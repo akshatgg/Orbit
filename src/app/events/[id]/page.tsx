@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense, type ReactNode } from "react";
+import { getProfile } from "@/lib/auth";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { FORMAT_LABELS, formatDeadline, formatEventDate, formatLongDate, formatPrice, formatTimeRange, dayKey } from "@/lib/format";
 import { appUrl, toCalendarEvent } from "@/lib/tickets/calendar";
@@ -64,7 +65,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
   // Registration state depends on the current time, so always render per request.
   await connection();
   const { id } = await params;
-  const data = await getEventPageData(id);
+  const [data, viewer] = await Promise.all([getEventPageData(id), getProfile()]);
   if (!data) notFound();
 
   const { event, counts, spotsLeft, tickets, questions, registration, userId, canManage, privateInfo } = data;
@@ -303,6 +304,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         dateLabel={formatEventDate(event.starts_at)}
         cta={cta}
         signedIn={signedIn}
+        onboarded={!!viewer?.onboarded_at}
         tickets={tickets}
         questions={questions}
         requiresApproval={event.requires_approval}

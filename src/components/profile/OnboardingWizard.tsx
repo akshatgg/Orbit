@@ -1,54 +1,77 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { completeOnboarding } from "@/lib/profile/actions";
-import { STEPS, stepErrors, type ProfileDraft } from "@/lib/profile/schema";
+import { hasExplorerGoal, landingPath, stepsFor, type StepKey } from "@/lib/profile/flow";
+import { draftErrors, stepErrors, type ProfileDraft } from "@/lib/profile/schema";
 import { OrbitEmblem } from "@/components/brand/OrbitEmblem";
+import { ApplyForm } from "@/components/organiser/ApplyForm";
 import {
+  AboutStep,
   AvailabilityStep,
-  BasicsStep,
-  CareerStep,
+  DescribeStep,
   EventsStep,
-  PersonalStep,
+  GoalsStep,
+  InterestsStep,
   type CategoryOption,
 } from "./ProfileSteps";
 
-const COPY: Record<(typeof STEPS)[number]["key"], { title: string; subtitle: string }> = {
-  basics: { title: "Let's get to know you", subtitle: "So we can surface events at your university and on your course." },
-  career: { title: "What are you exploring?", subtitle: "Career areas you're curious about — not just the ones you've decided on." },
-  personal: { title: "And outside work?", subtitle: "Socials, sport and society nights count too." },
-  events: { title: "Your kind of events", subtitle: "Tell us what you want to see more of." },
-  availability: { title: "When are you usually free?", subtitle: "Optional — skip it if your week changes a lot." },
+type Copy = { eyebrow: string; title: string; subtitle: string };
+
+const COPY: Record<StepKey, Copy> = {
+  goals: { eyebrow: "Welcome", title: "What brings you to ORBIT?", subtitle: "Pick everything that fits. You can change it any time." },
+  describe: { eyebrow: "About you", title: "Which describes you?", subtitle: "So we show events that actually fit." },
+  about: { eyebrow: "About you", title: "Tell us about you", subtitle: "Who's setting up events on ORBIT?" },
+  interests: { eyebrow: "Interests", title: "What are you into?", subtitle: "Career areas you're curious about, and what you enjoy outside work." },
+  events: { eyebrow: "Your kind of events", title: "Pick your kind of events", subtitle: "Tell us what you want to see more of." },
+  availability: { eyebrow: "Availability", title: "When are you usually free?", subtitle: "Optional. Skip it if your week changes a lot." },
+  organisation: { eyebrow: "Your organisation", title: "Set up your organisation", subtitle: "A few details so people can find and trust your events." },
 };
 
 /**
- * The onboarding flow: a welcome screen, then one step per screen. Answers stay in memory until
- * the final step, which saves everything in one server action and lands on the For You feed.
+ * The onboarding flow: one question per screen. Which screens appear depends on the goals picked
+ * on the first one (see lib/profile/flow). Answers stay in memory until the last profile step,
+ * which saves everything in one server action. The organisation application (hosts) comes after.
  */
-export function OnboardingWizard({ initial, categories }: { initial: ProfileDraft; categories: CategoryOption[] }) {
-  const [step, setStep] = useState(0); // 0 = welcome, 1..STEPS.length = questions
+export function OnboardingWizard({ initial, categories, next, email, university }: {
+  initial: ProfileDraft;
+  categories: CategoryOption[];
+  /** Safe relative path to land on after setup, or null. */
+  next: string | null;
+  email: string;
+  university: string;
+}) {
+  const router = useRouter();
+  const [index, setIndex] = useState(0);
   const [draft, setDraft] = useState(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  const total = STEPS.length;
-  const current = STEPS[step - 1];
-  const isLast = step === total;
+  const steps = stepsFor(draft.goals);
+  const total = steps.length;
+  const key = steps[Math.min(index, total - 1)];
+  const copy = COPY[key];
+  const explorer = hasExplorerGoal(draft.goals);
+  const landing = landingPath(draft.goals, next);
+  // The step that saves the profile: the last one before the organisation application.
+  const saveKey = steps.filter((s) => s !== "organisation").at(-1)!;
+  const isSaveStep = key === saveKey;
 
   useEffect(() => {
-    if (step > 0) headingRef.current?.focus({ preventScroll: true });
-  }, [step]);
+    if (index > 0) headingRef.current?.focus({ preventScroll: true });
+  }, [index]);
 
   function update(patch: Partial<ProfileDraft>) {
     setDraft((d) => ({ ...d, ...patch }));
-    // Clear the errors for whatever the user just changed.
     setErrors((e) => {
-      const next = { ...e };
-      for (const k of Object.keys(patch)) delete next[k];
-      return next;
+      const rest = { ...e };
+      for (const k of Object.keys(patch)) delete rest[k];
+      return rest;
     });
     setFormError(null);
   }
@@ -56,161 +79,190 @@ export function OnboardingWizard({ initial, categories }: { initial: ProfileDraf
   function go(to: number) {
     setErrors({});
     setFormError(null);
-    setStep(to);
+    setIndex(Math.max(0, to));
     window.scrollTo({ top: 0 });
   }
 
-  function submit(final: ProfileDraft) {
+  function save(final: ProfileDraft) {
     startTransition(async () => {
-      const result = await completeOnboarding(final);
-      // On success the action redirects to the feed, so we only get here on failure.
-      if (result && !result.ok) {
+      const result = await completeOnboarding(final, next);
+      if (!result.ok) {
         setFormError(result.error);
+        setErrors(result.fieldErrors ?? {});
         const field = Object.keys(result.fieldErrors ?? {})[0];
-        const bad = STEPS.findIndex((s) => Object.keys(stepErrors(s.key, final)).includes(field));
-        if (bad >= 0) {
-          setStep(bad + 1);
-          setErrors(result.fieldErrors ?? {});
-        }
+        const bad = stepsFor(final.goals).findIndex(
+          (s) => s !== "organisation" && field in stepErrors(s, final),
+        );
+        if (bad >= 0) setIndex(bad);
+        return;
       }
+      // Hosts continue to the organisation application; everyone else is done.
+      if (steps.includes("organisation")) go(index + 1);
+      else router.replace(result.landing ?? landing);
     });
   }
 
-  function next() {
-    if (!current) return go(1);
-    const errs = stepErrors(current.key, draft);
+  function onContinue() {
+    if (key === "organisation") return;
+    const errs = stepErrors(key, draft);
     if (Object.keys(errs).length) {
       setErrors(errs);
       return;
     }
-    if (isLast) submit(draft);
-    else go(step + 1);
+    if (isSaveStep) {
+      const bad = draftErrors(draft);
+      if (Object.keys(bad).length) {
+        setErrors(bad);
+        setFormError(Object.values(bad)[0]);
+        return;
+      }
+      save(draft);
+    } else go(index + 1);
   }
 
-  if (step === 0) return <Welcome name={initial.full_name} onStart={() => go(1)} />;
-
-  const copy = COPY[current.key];
-
   return (
-    <form
-      noValidate
-      onSubmit={(e) => {
-        e.preventDefault();
-        next();
-      }}
-      className="flex min-h-dvh flex-col"
+    <Shell
+      asForm={key !== "organisation"}
+      onSubmit={onContinue}
     >
       <header className="sticky top-0 z-10 px-4 pt-[max(env(safe-area-inset-top),0.75rem)]">
         <div className="glass-strong rounded-full py-2 pl-2 pr-4">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => go(step - 1)}
-            disabled={pending}
-            aria-label="Back"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/[0.08] hover:text-fg disabled:opacity-40"
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 5l-7 7 7 7" />
-            </svg>
-          </button>
-          <div
-            role="progressbar"
-            aria-label="Onboarding progress"
-            aria-valuemin={1}
-            aria-valuemax={total}
-            aria-valuenow={step}
-            aria-valuetext={`Step ${step} of ${total}`}
-            className="h-1 flex-1 overflow-hidden rounded-full bg-white/10"
-          >
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => go(index - 1)}
+              disabled={pending || index === 0}
+              aria-label="Back"
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/[0.08] hover:text-fg disabled:opacity-30"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M15 5l-7 7 7 7" />
+              </svg>
+            </button>
             <div
-              className="bg-gradient h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
-              style={{ width: `${(step / total) * 100}%` }}
-            />
+              role="progressbar"
+              aria-label="Setup progress"
+              aria-valuemin={1}
+              aria-valuemax={total}
+              aria-valuenow={index + 1}
+              aria-valuetext={`Step ${index + 1} of ${total}`}
+              className="h-1 flex-1 overflow-hidden rounded-full bg-white/10"
+            >
+              <div
+                className="bg-gradient h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                style={{ width: `${((index + 1) / total) * 100}%` }}
+              />
+            </div>
+            <span className="w-9 text-right text-xs tabular-nums text-subtle">{index + 1}/{total}</span>
           </div>
-          <span className="w-9 text-right text-xs tabular-nums text-subtle">{step}/{total}</span>
-        </div>
         </div>
       </header>
 
-      <main key={step} className="flex-1 px-5 pb-8 pt-4 transition duration-300 ease-out starting:translate-y-3 starting:opacity-0">
-        <p className="font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">Step {step} · {current.title}</p>
+      <main key={key} className="flex-1 px-5 pb-8 pt-5 transition duration-300 ease-out starting:translate-y-3 starting:opacity-0">
+        {key === "goals" && (
+          <div className="-mb-1 flex items-center gap-3">
+            <OrbitEmblem size={64} />
+            <p className="font-display text-xs font-semibold tracking-[0.4em] text-muted">ORBIT</p>
+          </div>
+        )}
+        <p className="font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">{copy.eyebrow}</p>
         <h1 ref={headingRef} tabIndex={-1} className="mt-2.5 text-[1.7rem] font-semibold leading-tight tracking-tight outline-none">
-          {copy.title}
+          {key === "goals" && initial.full_name ? (
+            <>
+              Hi {initial.full_name.split(/\s+/)[0]}.
+              <br />
+              <span className="text-gradient">{copy.title}</span>
+            </>
+          ) : (
+            copy.title
+          )}
         </h1>
         <p className="mt-2 text-sm text-muted">{copy.subtitle}</p>
 
         <div className="mt-7">
-          {current.key === "basics" && <BasicsStep draft={draft} update={update} errors={errors} />}
-          {current.key === "career" && <CareerStep draft={draft} update={update} errors={errors} />}
-          {current.key === "personal" && <PersonalStep draft={draft} update={update} errors={errors} />}
-          {current.key === "events" && <EventsStep draft={draft} update={update} errors={errors} categories={categories} />}
-          {current.key === "availability" && <AvailabilityStep draft={draft} update={update} errors={errors} />}
+          {key === "goals" && <GoalsStep draft={draft} update={update} errors={errors} />}
+          {key === "describe" && <DescribeStep draft={draft} update={update} errors={errors} />}
+          {key === "about" && <AboutStep draft={draft} update={update} errors={errors} />}
+          {key === "interests" && <InterestsStep draft={draft} update={update} errors={errors} />}
+          {key === "events" && <EventsStep draft={draft} update={update} errors={errors} categories={categories} />}
+          {key === "availability" && <AvailabilityStep draft={draft} update={update} errors={errors} />}
+          {key === "organisation" && (
+            <div className="space-y-6">
+              <p className="glass flex gap-3 rounded-2xl p-4 text-sm leading-relaxed text-muted">
+                <span aria-hidden className="text-lg">🔎</span>
+                <span>
+                  <strong className="font-semibold text-fg">Every organisation is reviewed first.</strong> Until an ORBIT admin
+                  approves yours you can&apos;t create events, not even drafts. We&apos;ll email you the moment it&apos;s approved.
+                </span>
+              </p>
+              <ApplyForm
+                defaultEmail={email}
+                defaultUniversity={university}
+                defaultName=""
+                submitLabel="Submit for review"
+                after={
+                  <Link
+                    href={landing}
+                    className="block py-2 text-center text-sm text-muted underline-offset-4 transition-colors hover:text-fg hover:underline"
+                  >
+                    I&apos;ll do this later
+                  </Link>
+                }
+              />
+            </div>
+          )}
         </div>
       </main>
 
-      <footer className="sticky bottom-0 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-6">
-        {formError && (
-          <p role="alert" className="mb-3 text-center text-sm text-red-300">{formError}</p>
-        )}
-        <div className="glass-strong flex gap-2 rounded-full p-1.5">
-          {isLast && (
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              disabled={pending}
-              onClick={() => {
-                update({ availability: {} });
-                submit({ ...draft, availability: {} });
-              }}
-            >
-              Skip
+      {key !== "organisation" && (
+        <footer className="sticky bottom-0 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-6">
+          {formError && <p role="alert" className="mb-3 text-center text-sm text-red-300">{formError}</p>}
+          <div className="glass-strong flex gap-2 rounded-full p-1.5">
+            {key === "availability" && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                disabled={pending}
+                onClick={() => {
+                  update({ availability: {} });
+                  const cleared = { ...draft, availability: {} };
+                  const bad = draftErrors(cleared);
+                  if (Object.keys(bad).length) {
+                    setErrors(bad);
+                    setFormError(Object.values(bad)[0]);
+                  } else save(cleared);
+                }}
+              >
+                Skip
+              </Button>
+            )}
+            <Button type="submit" size="lg" full disabled={pending} aria-busy={pending}>
+              {pending
+                ? explorer ? "Building your feed…" : "Saving…"
+                : isSaveStep && !steps.includes("organisation") ? "Finish" : "Continue"}
             </Button>
-          )}
-          <Button type="submit" size="lg" full disabled={pending} aria-busy={pending}>
-            {pending ? "Building your feed…" : isLast ? "Finish" : "Continue"}
-          </Button>
-        </div>
-      </footer>
-    </form>
+          </div>
+        </footer>
+      )}
+    </Shell>
   );
 }
 
-function Welcome({ name, onStart }: { name: string; onStart: () => void }) {
-  const first = name.split(/\s+/)[0];
+/** A form (so Enter continues) for question steps; a plain div for the organisation step, which has its own form. */
+function Shell({ asForm, onSubmit, children }: { asForm: boolean; onSubmit: () => void; children: React.ReactNode }) {
+  const className = "flex min-h-dvh flex-col";
+  if (!asForm) return <div className={className}>{children}</div>;
   return (
-    <main className="relative flex min-h-dvh flex-col items-center px-6 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-[max(env(safe-area-inset-top),2rem)] text-center">
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <OrbitEmblem size={124} />
-        <p className="-mt-3 font-display text-xs font-semibold tracking-[0.45em] indent-[0.45em] text-muted">ORBIT</p>
-        <h1 className="mt-5 text-[1.9rem] font-semibold leading-tight tracking-tight">
-          Welcome{first ? `, ${first}` : ""}.
-          <br />
-          <span className="text-gradient">Let&apos;s build your orbit.</span>
-        </h1>
-        <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
-          Career events, networking, socials and society nights — all in one place, ranked for you.
-        </p>
-        <ul className="mt-8 w-full max-w-xs space-y-2.5 text-left text-sm">
-          {[
-            "A feed ranked for your goals",
-            "Every society and careers event in one place",
-            "Reminders before deadlines close",
-          ].map((t) => (
-            <li key={t} className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-fg/90">
-              <span aria-hidden className="text-accent">✦</span>
-              {t}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="w-full max-w-xs pt-8">
-        <Button size="lg" full onClick={onStart} autoFocus>
-          Get started
-        </Button>
-        <p className="mt-3 text-xs text-subtle">5 quick steps · about a minute</p>
-      </div>
-    </main>
+    <form
+      noValidate
+      className={className}
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      {children}
+    </form>
   );
 }

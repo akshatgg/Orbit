@@ -101,6 +101,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/example">["
 | `user_events` | saved / dismissed / external_registered / attended marks |
 | `follows` | user follows organiser |
 | `event_interactions` | analytics: view / apply_click / share / calendar_add |
+| `organiser_invites` | team invite links (owner creates once the organiser is approved; `/join/<code>` accepts) |
 
 Registration **writes only go through SQL functions** (RLS blocks direct writes):
 `register_for_event(p_event_id, p_ticket_type_id?, p_answers jsonb)`, `cancel_registration(p_event_id)`,
@@ -108,6 +109,7 @@ Registration **writes only go through SQL functions** (RLS blocks direct writes)
 `{result: checked_in|already|not_found|not_going, name, ticket}`, `undo_check_in(p_registration_id)`,
 `mark_registration_paid(...)` (service role only). Counts: `event_counts(event_ids uuid[])`.
 Admin roles: `set_user_role(target_email, 'admin'|'user')` (super admin only).
+Team invites: `create_organiser_invite(org)`, `peek_organiser_invite(code)`, `accept_organiser_invite(code)`.
 
 Rules enforced in the database (don't re-implement, don't bypass):
 - New organisers are always `pending`; only admins approve / verify / suspend.
@@ -122,6 +124,17 @@ Apply locally with
 `psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -f supabase/migrations/<file>.sql`.
 **Do not run `npm run db:reset` or stop Supabase** — other people share the local database.
 
+## Sign-up flow
+
+`/onboarding` asks **What brings you to ORBIT?** (goals `career` / `network` / `social` / `host`) and the rest
+follows from the answer. Routing lives in `src/lib/profile/flow.ts` (`stepsFor`, `landingPath`, `safeNextPath`):
+Explorer goals → which describes you (student / graduate / professional / other), interests, event types,
+availability; `host` adds the organisation application; host-only skips every interest question. Hosts land on
+`/organiser`; `?next=` returns people to a ticket. Until an admin approves an organisation, Studio shows only its
+review status (the database already blocks creating events). The `profiles` columns are `goals`, `user_type`,
+`graduation_year`, `company`, `industry`, `job_title`, `host_role`. Ranking only uses university / course for
+students and graduates (`src/lib/ranking`).
+
 ## Design (from the ORBIT logo)
 
 Dark, iridescent, glowing. Use the tokens — never hard-code new colours.
@@ -133,7 +146,7 @@ Dark, iridescent, glowing. Use the tokens — never hard-code new colours.
   `border-gradient`, `glow` (soft halo for hero cards / key CTAs).
 - Headings: `font-display` (Montserrat), wide tracking for brand moments (`tracking-[0.3em]`).
 - Mobile-first: student screens are `max-w-md`; the tab bar is 4 tabs (For You, Explore, Tickets,
-  Profile). Leave `pb-28` room at the bottom. Admin is desktop-first (`max-w-6xl`).
+  Profile), plus a 5th **Studio** tab for hosts (`MainNav`). Leave `pb-28` room at the bottom. Admin is desktop-first (`max-w-6xl`).
 - Components in `src/components/ui`: `Button`/`ButtonLink`/`buttonClass`, `SubmitButton`, `Field`,
   `Input`, `Textarea`, `Select`, `FormMessage`, `Badge`, `VerifiedMark`, `ChipGroup`, `Card`,
   `EmptyState`, `Skeleton`/`ListSkeleton`, `Avatar`, `Tabs`, `PageHeader`.

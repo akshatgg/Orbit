@@ -1,49 +1,62 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { getCurrentUser, getProfile } from "@/lib/auth";
+import { getCurrentUser, getMyOrganisers, getProfile } from "@/lib/auth";
+import { initialGoals, safeNextPath } from "@/lib/profile/flow";
 import { draftFromProfile } from "@/lib/profile/schema";
 import { createClient } from "@/lib/supabase/server";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { OnboardingWizard } from "@/components/profile/OnboardingWizard";
-import { OrbitEmblem } from "@/components/brand/OrbitEmblem";
 import type { CategoryOption } from "@/components/profile/ProfileSteps";
 
 export const metadata: Metadata = { title: "Welcome" };
 
-export default function OnboardingPage() {
+export default function OnboardingPage({ searchParams }: PageProps<"/onboarding">) {
   return (
     <div className="mx-auto min-h-dvh max-w-md">
       <Suspense fallback={<WelcomeSkeleton />}>
-        <Onboarding />
+        <Onboarding searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function Onboarding() {
+async function Onboarding({ searchParams }: { searchParams: PageProps<"/onboarding">["searchParams"] }) {
+  const params = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/onboarding");
   const profile = await getProfile();
   if (!profile) redirect("/login");
-  if (profile.onboarded_at) redirect("/profile/preferences");
+
+  if (profile.onboarded_at) {
+    // Already set up. The "host" door sends people on to their organisation instead.
+    if (params.intent === "host") redirect((await getMyOrganisers()).length ? "/organiser" : "/organiser/apply");
+    redirect("/profile/preferences");
+  }
 
   const supabase = await createClient();
   const { data } = await supabase.from("categories").select("slug, name, group").order("sort_order");
+  const draft = draftFromProfile(profile);
 
-  return <OnboardingWizard initial={draftFromProfile(profile)} categories={(data ?? []) as CategoryOption[]} />;
+  return (
+    <OnboardingWizard
+      initial={{ ...draft, goals: initialGoals(params.intent, draft.goals) }}
+      categories={(data ?? []) as CategoryOption[]}
+      next={safeNextPath(params.next)}
+      email={user.email ?? ""}
+      university={profile.university ?? ""}
+    />
+  );
 }
 
 function WelcomeSkeleton() {
   return (
-    <div className="flex min-h-dvh flex-col items-center px-6 pb-6 pt-8" aria-busy="true" aria-label="Loading">
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <OrbitEmblem size={124} />
-        <Skeleton className="mt-6 h-8 w-56" />
-        <Skeleton className="mt-3 h-8 w-64" />
-        <Skeleton className="mt-5 h-10 w-72" />
+    <div className="space-y-4 px-5 pt-24" aria-busy="true" aria-label="Loading">
+      <Skeleton className="h-8 w-64" />
+      <Skeleton className="h-4 w-52" />
+      <div className="space-y-2.5 pt-4">
+        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[4.5rem] rounded-[20px]" />)}
       </div>
-      <Skeleton className="h-12 w-full max-w-xs" />
     </div>
   );
 }

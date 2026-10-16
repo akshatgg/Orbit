@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getMyOrganisers, requireUser } from "@/lib/auth";
 import { pickOrganiser } from "@/lib/organiser/dashboard";
-import { listTeam } from "@/lib/organiser/queries";
+import { listInvites, listTeam } from "@/lib/organiser/queries";
 
 export const metadata: Metadata = { title: "Organiser settings" };
 
@@ -33,7 +33,8 @@ async function Content({ searchParams }: { searchParams: PageProps<"/organiser/s
   if (!org) {
     return <EmptyState title="No organiser yet" action={<ButtonLink href="/organiser/apply">Become an organiser</ButtonLink>}>Apply to start publishing events.</EmptyState>;
   }
-  const team = await listTeam(org.id);
+  const isOwner = org.member_role === "owner";
+  const [team, invites] = await Promise.all([listTeam(org.id), isOwner ? listInvites(org.id) : Promise.resolve([])]);
 
   return (
     <div className="space-y-8 px-4">
@@ -58,7 +59,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/organiser/s
 
       <section aria-labelledby="team-h" className="space-y-4">
         <h2 id="team-h" className="font-display text-lg font-semibold">Team</h2>
-        <TeamPanel organiserId={org.id} members={team} isOwner={org.member_role === "owner"} currentUserId={user.id} />
+        <TeamPanel organiserId={org.id} members={team} isOwner={isOwner} currentUserId={user.id} approved={org.status === "approved"} invites={invites} />
       </section>
 
       <section aria-labelledby="pay-h" className="space-y-3">

@@ -43,6 +43,8 @@ async function Feed() {
 
   if (ranked.length === 0) {
     return (
+      <>
+      {noInterests && <InterestsCard />}
       <EmptyState
         title="You’re all caught up"
         action={
@@ -55,6 +57,7 @@ async function Feed() {
         Nothing new in the next {HORIZON_DAYS} days that you haven’t already booked or hidden. Explore everything,
         or add a few interests so we can find more for you.
       </EmptyState>
+      </>
     );
   }
 
@@ -67,12 +70,7 @@ async function Feed() {
 
   return (
     <DismissProvider>
-      {noInterests && (
-        <p className="mx-4 mb-4 rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-muted">
-          Tell us what you’re into and this feed gets sharper.{" "}
-          <Link href="/profile" className="font-semibold text-gradient">Add interests</Link>
-        </p>
-      )}
+      {noInterests && <InterestsCard />}
 
       <Dismissible id={top.event.id}>
         <section aria-label="Top pick" className="mx-4 mb-8">
@@ -117,5 +115,21 @@ async function Feed() {
         <ButtonLink href="/search" variant="secondary" size="sm">Search every event</ButtonLink>
       </div>
     </DismissProvider>
+  );
+}
+
+/** For people with no interests yet (e.g. host-only sign-ups): a friendly nudge instead of a bare feed. */
+function InterestsCard() {
+  return (
+    <Link
+      href="/profile/preferences"
+      className="border-gradient group mx-4 mb-5 flex items-center gap-3.5 rounded-3xl p-4 transition-shadow hover:shadow-[0_0_30px_-8px_rgb(181_124_246/0.5)]"
+    >
+      <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg text-bg">✦</span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">Want a personal feed too?</span>
+        <span className="block text-sm text-muted">Pick a few interests <span aria-hidden>→</span></span>
+      </span>
+    </Link>
   );
 }

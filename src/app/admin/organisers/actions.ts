@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import { notifyOrganiserDecision } from "@/lib/notifications";
 import { adminContext, friendlyDbError, logAdminAction, revalidateEverywhere, type ActionResult } from "@/lib/admin/server";
 
 const id = z.uuid();
@@ -49,6 +50,8 @@ export async function decideOrganiser(organiserId: string, decision: Decision, r
   await logAdminAction(supabase, `organiser.${decision}`, "organiser", data.id, {
     name: data.name, ...(parsedNote.data ? { note: parsedNote.data } : {}),
   });
+  // Owners hear about approvals and rejections by email (never throws, runs after the response).
+  if (decision === "approve" || decision === "reject") await notifyOrganiserDecision(data.id);
   revalidateEverywhere();
   return { ok: true, message: `${data.name} ${MESSAGES[decision]}` };
 }
