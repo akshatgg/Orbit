@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { approveAllPending, checkInRegistration, decideRegistration, undoCheckIn } from "@/app/organiser/events/[id]/actions";
+import { approveAllPending, checkInRegistration, decideRegistration, undoCheckIn } from "@/app/(main)/organiser/events/[id]/actions";
 import { labelledAnswers } from "@/lib/guests/answers";
 import { filterGuests, type GuestFilter } from "@/lib/guests/filter";
 import { countByStatus } from "@/lib/guests/stats";
