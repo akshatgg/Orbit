@@ -13,6 +13,10 @@ import type { IntroLogo } from "./logo-data";
 export type IntroOptions = {
   emblemUrl: string;
   reducedMotion: boolean;
+  /** Opened from the home-screen icon: start from the OS launch-screen logo instead of an empty screen. */
+  fromIcon?: boolean;
+  /** Width in px of the logo on the launch screen (the cover draws it there until the overlay mounts). */
+  launchLogoPx?: number;
   /** Hard stop: the overlay is always gone after this many ms. */
   maxMs: number;
 };
@@ -24,9 +28,12 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
   const BG = "#0c0d10";
   const OVERLAY_Z = "2147483647";
 
-  // Timeline (ms from start).
+  // Timeline (ms from start). From the home-screen icon, an extra opening melts the launch-screen
+  // logo into the drops first (BURST), and everything after it shifts by that much.
+  const fromIcon = !!opts.fromIcon && !opts.reducedMotion;
+  const BURST = fromIcon ? 650 : 0; // launch logo melts and the drops fly out of it
   const SWIRL = 1350; // drops swirl in
-  const FORM = SWIRL; // drops become the logo
+  const FORM = BURST + SWIRL; // drops become the logo
   const WIPE = FORM + 350; // wordmark wipes in
   const DIVE = FORM + 1500; // centre opens, logo grows past the viewer
   const DIVE_MS = 1500;
@@ -102,6 +109,10 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
     const k = (B * 0.19) / 100; // px per logo unit (logo radius = 100 units)
     // Zoom far enough that the logo's centre (narrowest at ~38% of the radius) covers the screen.
     const zMax = (Math.hypot(W, H) / 2 / (38 * k)) * 1.2;
+    // Launch-screen logo: centred on the whole screen (Android centres its splash icon), drawn
+    // launchLogoPx wide; the logo circle fills ~91.5% of that image.
+    const dy = H / 2 - CY;
+    const s0 = ((opts.launchLogoPx || 128) * 0.915) / (200 * k);
     const full = "position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;";
     const origin = `transform-origin:${CX}px ${CY}px;`;
 
@@ -194,76 +205,113 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
       return { d, a0: mid + 200 + Math.random() * 60, r0: size * (1.15 + Math.random() * 0.4), a1: mid, r1: size * 0.21 };
     });
 
-    root.appendChild(ov);
-    // The overlay is in place: the CSS cover is no longer needed.
-    root.setAttribute("data-intro", "playing");
-
-    // Skip: any tap, click or key ends it with a quick fade.
-    const skip = () => fadeOut(250);
-    window.addEventListener("pointerdown", skip, true);
-    window.addEventListener("keydown", skip, true);
-    cleanups.push(() => {
-      window.removeEventListener("pointerdown", skip, true);
-      window.removeEventListener("keydown", skip, true);
-    });
-
     const img = new Image();
     img.onerror = () => fadeOut(200); // never leave the page covered
-
-    // ---- Reduced motion: static logo + wordmark, then a short fade.
-    if (opts.reducedMotion) {
-      logoWrap.style.opacity = "1";
-      glow.style.opacity = ".6";
-      wm.style.opacity = "1";
-      dropsWrap.style.display = "none";
-      img.onload = () => later(700, () => fadeOut(250));
-      img.src = opts.emblemUrl;
-      return;
-    }
     img.src = opts.emblemUrl;
 
-    const both = "both" as FillMode;
-    // 1) Drops swirl in along a spiral (ease-out baked into the keyframes, so the path stays smooth).
-    const STEPS = 30;
-    drops.forEach((it) => {
-      const frames: Keyframe[] = [];
-      for (let s = 0; s <= STEPS; s++) {
-        const t = easeOut(s / STEPS);
-        const p = polar(lerp(it.r0, it.r1, t), lerp(it.a0, it.a1, t));
-        frames.push({ transform: `translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px) scale(${lerp(0.55, 1.1, t).toFixed(3)})` });
+    let went = false;
+    const go = () => {
+      if (went || dead) return;
+      went = true;
+      root.appendChild(ov);
+      // The overlay is in place: the CSS cover is no longer needed.
+      root.setAttribute("data-intro", "playing");
+
+      // Skip: any tap, click or key ends it with a quick fade.
+      const skip = () => fadeOut(250);
+      window.addEventListener("pointerdown", skip, true);
+      window.addEventListener("keydown", skip, true);
+      cleanups.push(() => {
+        window.removeEventListener("pointerdown", skip, true);
+        window.removeEventListener("keydown", skip, true);
+      });
+
+      // ---- Reduced motion: static logo + wordmark, then a short fade.
+      if (opts.reducedMotion) {
+        logoWrap.style.opacity = "1";
+        glow.style.opacity = ".6";
+        wm.style.opacity = "1";
+        dropsWrap.style.display = "none";
+        later(700, () => fadeOut(250));
+        return;
       }
-      it.d.animate(frames, { duration: SWIRL, easing: "linear", fill: both });
-    });
-    dropsWrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, fill: both });
 
-    // 2) The drops melt away as the real logo forms; glow pulse; wordmark wipes in.
-    dropsWrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, delay: FORM, fill: "forwards" });
-    logoWrap.animate(
-      [{ opacity: 0, transform: "scale(.88)" }, { opacity: 1, transform: "scale(1)" }],
-      { duration: 620, delay: FORM, easing: "cubic-bezier(.22,1,.36,1)", fill: both },
-    );
-    glow.animate(
-      [{ opacity: 0, transform: "scale(.6)" }, { opacity: 0.85, transform: "scale(1.2)" }, { opacity: 0.6, transform: "scale(1)" }],
-      { duration: 900, delay: FORM + 120, fill: both },
-    );
-    wm.animate(
-      [{ opacity: 1, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0 0 0)" }],
-      { duration: 750, delay: WIPE, easing: "cubic-bezier(.6,0,.2,1)", fill: both },
-    );
+      const both = "both" as FillMode;
+      // 1) Drops swirl in along a spiral (ease-out baked into the keyframes, so the path stays smooth).
+      const STEPS = 30;
+      const TOTAL = BURST + SWIRL;
+      drops.forEach((it) => {
+        const frames: Keyframe[] = [];
+        const at = (x: number, y: number, sc: number, offset: number) =>
+          frames.push({ offset, transform: `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${sc.toFixed(3)})` });
+        // From the launch logo the drops only fly part of the way out before swirling back in.
+        const rStart = fromIcon ? it.r0 * 0.8 : it.r0;
+        if (fromIcon) {
+          // Burst: out of the launch logo's pieces, turning the same way the swirl continues.
+          for (let s = 0; s <= STEPS; s++) {
+            const t = easeOut(s / STEPS);
+            const p = polar(lerp(it.r1 * s0, rStart, t), lerp(it.a1, it.a0 - 360, t));
+            at(p.x, p.y + dy * (1 - t), lerp(0.9 * s0, 0.55, t), (BURST / TOTAL) * (s / STEPS));
+          }
+        }
+        for (let s = fromIcon ? 1 : 0; s <= STEPS; s++) {
+          const t = easeOut(s / STEPS);
+          const p = polar(lerp(rStart, it.r1, t), lerp(it.a0, it.a1, t));
+          at(p.x, p.y, lerp(0.55, 1.1, t), (BURST + SWIRL * (s / STEPS)) / TOTAL);
+        }
+        it.d.animate(frames, { duration: TOTAL, easing: "linear", fill: both });
+      });
+      if (fromIcon) {
+        // The launch-screen logo is already on screen: it melts away as the drops burst out of it.
+        logoWrap.animate(
+          [
+            { opacity: 1, transform: `translate(0px,${dy.toFixed(1)}px) scale(${s0.toFixed(3)})` },
+            { opacity: 0, transform: `translate(0px,${(dy * 0.6).toFixed(1)}px) scale(${(s0 * 1.15).toFixed(3)})` },
+          ],
+          { duration: 420, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" },
+        );
+        dropsWrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, fill: both });
+      } else {
+        dropsWrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, fill: both });
+      }
 
-    // 3) The centre opens onto the page and the whole logo grows past the viewer.
-    coreWrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, delay: DIVE, easing: "linear", fill: "forwards" });
-    glow.animate([{ opacity: 0.6 }, { opacity: 0 }], { duration: 500, delay: DIVE, fill: "forwards", composite: "replace" });
-    wm.animate(
-      [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(60px) scale(1.8)" }],
-      { duration: 750, delay: DIVE, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" },
-    );
-    const dive = zoomWrap.animate(
-      [{ transform: "scale(1) rotate(0deg)" }, { transform: `scale(${zMax.toFixed(2)}) rotate(28deg)` }],
-      { duration: DIVE_MS, delay: DIVE + 100, easing: "cubic-bezier(.55,.055,.675,.19)", fill: "forwards" },
-    );
-    dive.onfinish = finish;
-    later(END + 400, finish);
+      // 2) The drops melt away as the real logo forms; glow pulse; wordmark wipes in.
+      dropsWrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, delay: FORM, fill: "forwards" });
+      logoWrap.animate(
+        [{ opacity: 0, transform: "scale(.88)" }, { opacity: 1, transform: "scale(1)" }],
+        { duration: 620, delay: FORM, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" },
+      );
+      glow.animate(
+        [{ opacity: 0, transform: "scale(.6)" }, { opacity: 0.85, transform: "scale(1.2)" }, { opacity: 0.6, transform: "scale(1)" }],
+        { duration: 900, delay: FORM + 120, fill: both },
+      );
+      wm.animate(
+        [{ opacity: 1, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0 0 0)" }],
+        { duration: 750, delay: WIPE, easing: "cubic-bezier(.6,0,.2,1)", fill: both },
+      );
+
+      // 3) The centre opens onto the page and the whole logo grows past the viewer.
+      coreWrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, delay: DIVE, easing: "linear", fill: "forwards" });
+      glow.animate([{ opacity: 0.6 }, { opacity: 0 }], { duration: 500, delay: DIVE, fill: "forwards", composite: "replace" });
+      wm.animate(
+        [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(60px) scale(1.8)" }],
+        { duration: 750, delay: DIVE, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" },
+      );
+      const dive = zoomWrap.animate(
+        [{ transform: "scale(1) rotate(0deg)" }, { transform: `scale(${zMax.toFixed(2)}) rotate(28deg)` }],
+        { duration: DIVE_MS, delay: DIVE + 100, easing: "cubic-bezier(.55,.055,.675,.19)", fill: "forwards" },
+      );
+      dive.onfinish = finish;
+      later(END + 400, finish);
+    };
+    // From the home-screen icon the cover is still showing the launch logo: keep it until the logo
+    // image is ready (at most ~1.2s), so the hand-over never shows an empty frame.
+    if (fromIcon && !img.complete) {
+      img.onload = go;
+      later(1200, go);
+    } else {
+      go();
+    }
   } catch {
     finish();
   }
