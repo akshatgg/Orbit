@@ -47,11 +47,12 @@ export default function manifest(): OrbitManifest {
       { name: "Studio", short_name: "Studio", description: "Manage your events as an organiser", url: "/organiser", icons: shortcutIcon },
     ],
     screenshots: [
-      { src: "/screenshots/for-you.png", sizes: "780x1688", type: "image/png", form_factor: "narrow", label: "For You feed with events picked for you" },
-      { src: "/screenshots/event.png", sizes: "780x1688", type: "image/png", form_factor: "narrow", label: "Event details and booking" },
-      { src: "/screenshots/ticket.png", sizes: "780x1688", type: "image/png", form_factor: "narrow", label: "Your ticket pass with QR code" },
-      { src: "/screenshots/for-you-wide.png", sizes: "1280x800", type: "image/png", form_factor: "wide", label: "ORBIT on desktop: the For You feed" },
-      { src: "/screenshots/admin-wide.png", sizes: "1280x800", type: "image/png", form_factor: "wide", label: "Admin overview dashboard" },
+      { src: "/screenshots/for-you.jpg", sizes: "780x1688", type: "image/jpeg", form_factor: "narrow", label: "For You feed with events picked for you" },
+      { src: "/screenshots/event.jpg", sizes: "780x1688", type: "image/jpeg", form_factor: "narrow", label: "Event details and booking" },
+      { src: "/screenshots/ticket.jpg", sizes: "780x1688", type: "image/jpeg", form_factor: "narrow", label: "Your ticket pass with QR code" },
+      { src: "/screenshots/for-you-light.jpg", sizes: "780x1688", type: "image/jpeg", form_factor: "narrow", label: "Light mode, with events grouped by day" },
+      { src: "/screenshots/for-you-wide.jpg", sizes: "1280x800", type: "image/jpeg", form_factor: "wide", label: "ORBIT on desktop: the For You feed" },
+      { src: "/screenshots/event-wide.jpg", sizes: "1280x800", type: "image/jpeg", form_factor: "wide", label: "Event page on desktop in light mode" },
     ],
     share_target: {
       action: "/search",

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { RankedCard } from "@/components/discovery/Cards";
 import { FilterBar } from "@/components/discovery/FilterBar";
-import { DiscoveryHeader, SearchSkeleton, SectionHeading } from "@/components/discovery/Layout";
+import { SearchSkeleton, SectionHeading } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
 import {
   clearFiltersHref, isSearching, parseSearchFilters, searchHref, SORT_OPTIONS, toSearchParams, type SearchFilters,
@@ -22,7 +22,10 @@ export const metadata: Metadata = { title: "Explore" };
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <>
-      <DiscoveryHeader title="Explore" subtitle="Search every event" />
+      {/* No visible title: the search box leads the page. */}
+      <header className="pt-[max(env(safe-area-inset-top),1.25rem)] lg:pt-8">
+        <h1 className="sr-only">Explore</h1>
+      </header>
       <Suspense fallback={<SearchSkeleton />}>
         <Explore searchParams={searchParams} />
       </Suspense>

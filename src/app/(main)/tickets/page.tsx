@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Badge, VerifiedMark } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
@@ -18,7 +17,10 @@ export const metadata = { title: "My Tickets" };
 export default function Page({ searchParams }: PageProps<"/tickets">) {
   return (
     <>
-      <PageHeader title="My Tickets" subtitle="QR tickets for events you're going to" />
+      {/* No visible title: the Upcoming / Past switch leads the page. */}
+      <header className="pt-[max(env(safe-area-inset-top),1.5rem)] lg:pt-8">
+        <h1 className="sr-only">My Tickets</h1>
+      </header>
       <Suspense fallback={<TicketsSkeleton />}>
         <Content searchParams={searchParams} />
       </Suspense>

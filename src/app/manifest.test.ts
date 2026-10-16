@@ -38,7 +38,7 @@ describe("web app manifest", () => {
     expect(shots.filter((s) => s.form_factor === "wide").length).toBeGreaterThanOrEqual(1);
     for (const s of shots) {
       expect(s.label).toBeTruthy();
-      expect(s.type).toBe("image/png");
+      expect(s.type).toBe(s.src.endsWith(".png") ? "image/png" : "image/jpeg");
       expect(existsSync(pub(s.src)), s.src).toBe(true);
     }
   });

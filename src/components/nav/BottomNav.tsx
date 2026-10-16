@@ -24,9 +24,11 @@ const STUDIO_TAB = {
 /** Tab bar that highlights the current tab. Render inside <Suspense> (it reads the URL). */
 export function BottomNav({ showStudio = false }: { showStudio?: boolean }) {
   const pathname = usePathname();
+  // The event editor has its own fixed Back / Next bar at the bottom of phones and tablets.
+  const editing = /^\/organiser\/events\/(new|[^/]+\/edit)\/?$/.test(pathname);
   return (
     <>
-      <BottomNavView pathname={pathname} showStudio={showStudio} />
+      {!editing && <BottomNavView pathname={pathname} showStudio={showStudio} />}
       <SideNavView pathname={pathname} showStudio={showStudio} />
     </>
   );
