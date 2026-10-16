@@ -35,7 +35,7 @@ export function TeamPanel({ organiserId, members, isOwner, currentUserId, approv
 
   return (
     <div className="space-y-5">
-      <ul className="divide-y divide-line rounded-2xl border border-line bg-surface" aria-label="Team members">
+      <ul className="glass divide-y divide-white/[0.07] rounded-[22px]" aria-label="Team members">
         {members.map((m) => (
           <li key={m.user_id} className="flex items-center gap-3 px-4 py-3">
             <Avatar name={m.full_name ?? m.email ?? "?"} src={m.avatar_url} size={36} />
@@ -55,9 +55,9 @@ export function TeamPanel({ organiserId, members, isOwner, currentUserId, approv
       {isOwner && <InviteLinks organiserId={organiserId} approved={approved} invites={invites} />}
 
       {isOwner ? (
-        <form ref={formRef} action={action} className="space-y-3 rounded-2xl border border-line bg-surface/50 p-4" noValidate>
+        <form ref={formRef} action={action} className="glass space-y-3 rounded-[22px] p-4" noValidate>
           <input type="hidden" name="organiser_id" value={organiserId} />
-          <p className="text-sm font-medium">Add a team member</p>
+          <p className="text-sm font-semibold tracking-tight">Add a team member</p>
           <div className="grid gap-3 sm:grid-cols-[1fr_8rem]">
             <Field label="Email" htmlFor="member-email" error={state?.fieldErrors?.email}>
               <Input id="member-email" name="email" type="email" required placeholder="name@university.ac.uk" />
@@ -119,9 +119,9 @@ function InviteLinks({ organiserId, approved, invites }: { organiserId: string; 
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-line bg-surface/50 p-4">
+    <div className="glass space-y-3 rounded-[22px] p-4">
       <div>
-        <p className="text-sm font-medium">Invite link</p>
+        <p className="text-sm font-semibold tracking-tight">Invite link</p>
         <p className="mt-0.5 text-xs text-muted">
           {approved
             ? "Anyone signed in who opens the link can join your team as an editor. Links last 14 days."
@@ -130,7 +130,7 @@ function InviteLinks({ organiserId, approved, invites }: { organiserId: string; 
       </div>
 
       {approved && active.length > 0 && (
-        <ul className="divide-y divide-line rounded-xl border border-line" aria-label="Active invite links">
+        <ul className="divide-y divide-white/[0.07] rounded-2xl border border-white/10 bg-white/[0.03]" aria-label="Active invite links">
           {active.map((i) => (
             <li key={i.id} className="flex items-center gap-2 px-3 py-2.5">
               <div className="min-w-0 flex-1">

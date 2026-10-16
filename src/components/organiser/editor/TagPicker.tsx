@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { buttonClass } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
 import { CAREER_INTERESTS, PERSONAL_INTERESTS } from "@/lib/taxonomy";
 
 const SUGGESTIONS = [...CAREER_INTERESTS, ...PERSONAL_INTERESTS].filter(
@@ -28,8 +30,8 @@ export function TagPicker({ value, onChange, error }: { value: string[]; onChang
   }
 
   const chip = (on: boolean) =>
-    `rounded-full border px-3 py-1.5 text-xs transition-colors ${
-      on ? "border-transparent bg-gradient font-semibold text-bg" : "border-line bg-surface text-muted hover:text-fg disabled:opacity-40"
+    `rounded-full border px-3 py-1.5 text-xs transition duration-200 active:scale-[0.97] motion-reduce:transition-none ${
+      on ? "border-transparent bg-gradient font-semibold text-bg" : "border-white/10 bg-white/[0.045] text-muted hover:border-white/20 hover:bg-white/[0.08] hover:text-fg disabled:opacity-40"
     }`;
 
   return (
@@ -60,9 +62,9 @@ export function TagPicker({ value, onChange, error }: { value: string[]; onChang
           maxLength={30}
           aria-label="Add your own tag"
           placeholder={full ? "10 tags max" : "Add your own tag, e.g. case interviews"}
-          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm outline-none placeholder:text-muted/60 focus:border-violet"
+          className={`${inputClass} min-w-0 flex-1 py-2.5`}
         />
-        <button type="button" onClick={addCustom} disabled={!custom.trim() || full} className="rounded-xl border border-line px-3.5 text-sm font-medium text-fg hover:bg-surface-2 disabled:opacity-40">
+        <button type="button" onClick={addCustom} disabled={!custom.trim() || full} className={buttonClass({ variant: "secondary" }) + " h-auto"}>
           Add
         </button>
       </div>

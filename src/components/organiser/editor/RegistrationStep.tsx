@@ -15,8 +15,8 @@ export function RegistrationStep({ form, update, errors }: StepProps) {
         {REGISTRATION_CHOICES.map((c) => {
           const on = form.registration === c.value;
           return (
-            <label key={c.value} className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-colors ${on ? "border-gradient bg-surface" : "border-line bg-surface/50 hover:bg-surface"}`}>
-              <input type="radio" name="registration" value={c.value} checked={on} className="mt-1 accent-violet"
+            <label key={c.value} className={`flex cursor-pointer items-start gap-3 rounded-[20px] border p-4 transition duration-200 ${on ? "border-gradient" : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"}`}>
+              <input type="radio" name="registration" value={c.value} checked={on} className="mt-1 accent-accent"
                 onChange={() => update({ registration: c.value })} />
               <span>
                 <span className="block text-sm font-semibold">{c.label}</span>
@@ -29,7 +29,7 @@ export function RegistrationStep({ form, update, errors }: StepProps) {
       {errors.registration && <p className="text-xs text-red-300">{errors.registration}</p>}
 
       {form.registration === "external" && (
-        <div className="space-y-4 rounded-2xl border border-line bg-surface/50 p-4">
+        <div className="space-y-4 glass rounded-[22px] p-4">
           <Field label="Registration link" htmlFor="external_url" required error={errors.external_url}>
             <Input id="external_url" inputMode="url" value={form.external_url} placeholder="https://…" aria-invalid={!!errors.external_url}
               onChange={(e) => update({ external_url: e.target.value })} />
@@ -50,7 +50,7 @@ export function RegistrationStep({ form, update, errors }: StepProps) {
       )}
 
       {tickets && (
-        <div className="space-y-4 rounded-2xl border border-line bg-surface/50 p-4">
+        <div className="space-y-4 glass rounded-[22px] p-4">
           <Field label="Capacity" htmlFor="capacity" hint="Total places across all ticket types. Leave blank for unlimited." error={errors.capacity}>
             <Input id="capacity" inputMode="numeric" value={form.capacity} placeholder="Unlimited" aria-invalid={!!errors.capacity}
               onChange={(e) => update({ capacity: e.target.value.replace(/\D/g, "") })} />

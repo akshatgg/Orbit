@@ -4,6 +4,7 @@ import type { ManagedEvent } from "@/lib/guests/queries";
 import { formatEventDate, formatTimeRange, FORMAT_LABELS } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { EventCover } from "@/components/events/EventCover";
+import { BackLink } from "@/components/nav/BackLink";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 const STATUS: Record<EventStatus, { label: string; tone: "success" | "warning" | "danger" | "neutral" | "info" }> = {
@@ -30,13 +31,11 @@ export function EventHeader({ event, compact = false }: { event: ManagedEvent; c
   const end = event.ends_at ?? event.starts_at;
   return (
     <header className="px-4 pt-5">
-      <Link href="/organiser" className="inline-flex items-center gap-1 text-sm text-muted hover:text-fg">
-        <span aria-hidden>←</span> Studio
-      </Link>
+      <BackLink href="/organiser" label="Studio" />
       <div className={`mt-3 flex gap-4 ${compact ? "items-center" : "flex-col sm:flex-row sm:items-end"}`}>
-        <div className={`relative shrink-0 overflow-hidden rounded-2xl border border-line ${compact ? "h-14 w-14" : "aspect-[2/1] w-full sm:aspect-auto sm:h-32 sm:w-56"}`}>
+        <div className={`relative shrink-0 overflow-hidden rounded-[20px] ring-1 ring-white/10 ${compact ? "h-14 w-14" : "aspect-[2/1] w-full sm:aspect-auto sm:h-32 sm:w-56"}`}>
           {compact && !event.cover_url ? (
-            <div className="bg-gradient h-full w-full opacity-60" aria-hidden />
+            <div className="h-full w-full bg-[linear-gradient(135deg,rgb(222_159_251/0.35),rgb(63_121_253/0.25)_60%,rgb(253_181_112/0.3))]" aria-hidden />
           ) : (
             <EventCover src={event.cover_url} title={event.title} />
           )}
@@ -47,11 +46,11 @@ export function EventHeader({ event, compact = false }: { event: ManagedEvent; c
             {event.requires_approval && <Badge tone="brand">Applications</Badge>}
             {event.organiser && <span className="truncate text-xs text-muted">{event.organiser.name}</span>}
           </div>
-          <h1 className={`mt-1.5 font-display font-semibold leading-tight tracking-wide ${compact ? "text-lg" : "text-2xl"}`}>
+          <h1 className={`mt-2 font-semibold leading-tight tracking-tight ${compact ? "text-lg" : "text-2xl"}`}>
             {event.title}
           </h1>
           <p className="mt-1 text-sm text-muted">
-            <span className="text-pink">{formatEventDate(event.starts_at)}</span>
+            <span className="text-accent">{formatEventDate(event.starts_at)}</span>
             {event.ends_at && <> – {formatTimeRange(event.ends_at)}</>}
             {where(event) && <> · {where(event)}</>}
           </p>
@@ -86,7 +85,7 @@ export function EventNav({ eventId, active, pending = 0 }: { eventId: string; ac
     { key: "check-in", href: `${base}/check-in`, label: "Check-in" },
   ] as const;
   return (
-    <nav aria-label="Event management" className="mx-4 mt-5 flex gap-1 rounded-xl border border-line bg-surface p-1">
+    <nav aria-label="Event management" className="glass mx-4 mt-5 flex gap-1 rounded-full p-1">
       {items.map((item) => {
         const on = item.key === active;
         return (
@@ -94,13 +93,13 @@ export function EventNav({ eventId, active, pending = 0 }: { eventId: string; ac
             key={item.key}
             href={item.href}
             aria-current={on ? "page" : undefined}
-            className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              on ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"
+            className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition duration-200 ${
+              on ? "bg-gradient text-bg" : "text-muted hover:text-fg"
             }`}
           >
             {item.label}
             {item.key === "guests" && pending > 0 && (
-              <span className="rounded-full bg-orange/15 px-1.5 text-[11px] font-semibold text-orange" aria-label={`${pending} pending`}>
+              <span className="rounded-full bg-orange/20 px-1.5 text-[11px] font-semibold text-orange" aria-label={`${pending} pending`}>
                 {pending}
               </span>
             )}

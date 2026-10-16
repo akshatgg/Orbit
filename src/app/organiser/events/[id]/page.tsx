@@ -39,9 +39,9 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
       <EventNav eventId={id} active="overview" pending={pending} />
 
       {pending > 0 && (
-        <section className="border-gradient glow mx-4 flex items-center justify-between gap-3 rounded-2xl p-4" aria-live="polite">
+        <section className="border-gradient mx-4 flex items-center justify-between gap-3 rounded-[22px] p-4" aria-live="polite">
           <div className="min-w-0">
-            <p className="font-display font-semibold">
+            <p className="font-semibold tracking-tight">
               {pending} {pending === 1 ? "application is" : "applications are"} waiting
             </p>
             <p className="text-sm text-muted">Approve or decline so people know where they stand.</p>
@@ -53,16 +53,16 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
       <section aria-label="Quick actions" className="space-y-3 px-4">
         <Link
           href={`${base}/check-in`}
-          className="bg-gradient glow group flex items-center justify-between gap-3 rounded-2xl px-5 py-4 text-bg transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet"
+          className="bg-gradient group flex items-center justify-between gap-3 rounded-[22px] px-5 py-4 text-bg transition duration-200 hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <span className="flex items-center gap-3">
             <ScanIcon />
             <span>
-              <span className="block font-display text-lg font-bold tracking-wide">Check guests in</span>
+              <span className="block text-lg font-semibold tracking-tight">Check guests in</span>
               <span className="block text-sm font-medium text-bg/70">Scan tickets at the door</span>
             </span>
           </span>
-          <span aria-hidden className="text-2xl transition-transform group-hover:translate-x-1">→</span>
+          <span aria-hidden className="text-2xl transition-transform duration-200 group-hover:translate-x-1 motion-reduce:transition-none">→</span>
         </Link>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <ButtonLink href={`${base}/guests`} variant="secondary">Guest list</ButtonLink>
@@ -73,7 +73,7 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
       </section>
 
       {event.registration_mode !== "tickets" && (
-        <p className="mx-4 rounded-xl border border-line bg-surface-2/60 px-4 py-3 text-sm text-muted">
+        <p className="mx-4 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-muted">
           {event.registration_mode === "external"
             ? "People register on your own site, so ORBIT counts Apply-now clicks instead of tickets."
             : "This event is information only — there are no ORBIT tickets to track."}
@@ -90,7 +90,7 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
 
 function ScanIcon() {
   return (
-    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-bg/15" aria-hidden>
+    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-bg/10" aria-hidden>
       <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
         <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10" />
       </svg>

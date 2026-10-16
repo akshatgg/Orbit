@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
 import type { EventForm } from "@/lib/organiser/event-form";
 import { cancelEvent, deleteDraftEvent, saveEvent } from "@/lib/organiser/event-actions";
 import { EDITOR_STEPS, validateEventForm, type EventIssue, type StepId } from "@/lib/organiser/schemas";
@@ -142,7 +143,16 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
 
   return (
     <div ref={top} className="scroll-mt-16">
-      <nav aria-label="Event steps" className="scrollbar-none -mt-1 mb-5 flex gap-1 overflow-x-auto px-4">
+      <div className="mx-4 mb-5" role="presentation">
+        <div className="mb-3 flex items-center justify-between text-xs text-muted">
+          <span className="font-display font-semibold uppercase tracking-[0.24em] text-subtle">Step {stepIndex + 1} of {EDITOR_STEPS.length}</span>
+          <span className="font-medium text-fg/80">{EDITOR_STEPS[stepIndex].label}</span>
+        </div>
+        <div className="h-1 overflow-hidden rounded-full bg-white/[0.08]" aria-hidden>
+          <div className="bg-gradient h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none" style={{ width: `${((stepIndex + 1) / EDITOR_STEPS.length) * 100}%` }} />
+        </div>
+      </div>
+      <nav aria-label="Event steps" className="scrollbar-none mb-6 flex gap-1.5 overflow-x-auto px-4">
         {EDITOR_STEPS.map((s, i) => {
           const active = s.id === step;
           const hasIssue = issues.some((x) => x.step === s.id);
@@ -152,11 +162,11 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
               type="button"
               onClick={() => goTo(s.id)}
               aria-current={active ? "step" : undefined}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                active ? "border-gradient text-fg" : hasIssue ? "border-red-400/60 text-red-300" : "border-line text-muted hover:text-fg"
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition duration-200 ${
+                active ? "border-gradient text-fg" : hasIssue ? "border-red-400/50 bg-red-400/10 text-red-300" : "glass text-muted hover:text-fg"
               }`}
             >
-              <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${active ? "bg-gradient text-bg" : "bg-surface-2"}`}>{i + 1}</span>
+              <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] ${active ? "bg-gradient text-bg" : "bg-white/[0.08]"}`}>{i + 1}</span>
               {s.label}
             </button>
           );
@@ -172,7 +182,7 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
           <>
             <ReviewStep form={form} organiser={organiser} issues={publishIssues} goTo={goTo} status={status} />
             {eventId && (live || status === "draft") && (
-              <section className="mt-8 space-y-3 rounded-2xl border border-red-500/20 p-4" aria-label="Danger zone">
+              <section className="mt-8 space-y-3 rounded-[22px] border border-red-400/20 bg-red-500/[0.04] p-4" aria-label="Danger zone">
                 {live ? (
                   cancelling ? (
                     <div className="space-y-3">
@@ -180,7 +190,7 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
                         Why is it cancelled? <span className="font-normal text-muted">Guests ({registrations}) will be told.</span>
                       </label>
                       <textarea id="cancel-reason" rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)}
-                        className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-violet" />
+                        className={inputClass} />
                       <div className="flex gap-2">
                         <Button type="button" variant="danger" onClick={cancel} disabled={busy || reason.trim().length < 3}>Cancel event</Button>
                         <Button type="button" variant="ghost" onClick={() => setCancelling(false)}>Keep event</Button>
@@ -198,10 +208,10 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/90 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto max-w-3xl space-y-2 px-4 py-3">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <div className="glass-strong pointer-events-auto mx-auto max-w-3xl space-y-2 rounded-[24px] p-2.5">
           {notice && (
-            <p role={notice.tone === "error" ? "alert" : "status"} className={`text-xs ${notice.tone === "error" ? "text-red-300" : "text-emerald-300"}`}>
+            <p role={notice.tone === "error" ? "alert" : "status"} className={`px-2 pt-1 text-xs ${notice.tone === "error" ? "text-red-300" : "text-emerald-300"}`}>
               {notice.text}
             </p>
           )}
@@ -209,7 +219,7 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
             {stepIndex > 0 ? (
               <Button type="button" variant="ghost" onClick={() => goTo(EDITOR_STEPS[stepIndex - 1].id)}>Back</Button>
             ) : (
-              <Link href={`/organiser?org=${organiser.id}`} className="px-3 text-sm text-muted hover:text-fg">Close</Link>
+              <Link href={`/organiser?org=${organiser.id}`} className="rounded-full px-4 py-2 text-sm text-muted transition-colors hover:bg-white/[0.06] hover:text-fg">Close</Link>
             )}
             <div className="ml-auto flex gap-2">
               {!live && (
@@ -218,7 +228,7 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
                 </Button>
               )}
               {lastStep ? (
-                <Button type="button" onClick={() => save("publish")} disabled={busy || publishIssues.length > 0} className="glow">
+                <Button type="button" onClick={() => save("publish")} disabled={busy || publishIssues.length > 0}>
                   {busy ? "Saving…" : live ? "Save changes" : "Publish"}
                 </Button>
               ) : (
