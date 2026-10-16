@@ -161,7 +161,7 @@ export function SearchSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading" className="space-y-4">
       <div className="space-y-3 px-4">
-        <Skeleton className="h-12 rounded-[14px]" />
+        <Skeleton className="h-12 rounded-[14px] lg:h-14 lg:max-w-3xl lg:rounded-[18px]" />
         <Skeleton className="h-10 rounded-full" />
       </div>
       <CardListSkeleton rows={3} />
