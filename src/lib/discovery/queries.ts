@@ -158,9 +158,10 @@ export function sortResults(ranked: RankedEvent[], sort: SearchFilters["sort"], 
 /** Soonest upcoming events (for the browse view). */
 export async function listHappeningSoon(viewer: Viewer, now: Date, limit = 6): Promise<RankedEvent[]> {
   const events = await listCandidates({ to: new Date(now.getTime() + 14 * DAY), now, limit: 40 });
+  // Explore shows everything, including events you've booked (marked on the card); only For You hides them.
   const ranked = rankEvents(events, viewer.profile, {
     followedOrganiserIds: viewer.followedOrganiserIds, state: viewer.state, now,
-  });
+  }, { keepPersonal: true });
   return sortResults(ranked, "date", now).slice(0, limit);
 }
 
