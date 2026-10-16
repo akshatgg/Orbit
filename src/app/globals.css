@@ -175,14 +175,43 @@ body {
 @keyframes emblem-bob { 0%, 100% { transform: translateY(-5px); } 50% { transform: translateY(6px); } }
 @keyframes emblem-spin { to { transform: rotate(360deg); } }
 
+
+/* ORBIT loader */
+.loader-scene { perspective: 700px; }
+.loader-plane { transform-style: preserve-3d; transform: rotateX(70deg); }
+.loader-spin-1 { animation: emblem-spin 3.2s linear infinite; }
+.loader-spin-2 { animation: emblem-spin 7s linear infinite reverse; }
+.loader-spin-3 { animation: emblem-spin 11s linear infinite; }
+.loader-breathe { animation: loader-breathe 2.4s ease-in-out infinite; }
+.loader-glow { animation: loader-glow 2.4s ease-in-out infinite; }
+.loader-word {
+  background: linear-gradient(100deg, rgb(244 244 246 / 0.55) 35%, #fff 50%, rgb(244 244 246 / 0.55) 65%) 100% 0 / 250% 100% no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: loader-sheen 2.4s ease-in-out infinite;
+}
+@keyframes loader-breathe { 0%, 100% { transform: scale(0.96); } 50% { transform: scale(1.04); } }
+@keyframes loader-glow { 0%, 100% { opacity: 0.55; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes loader-sheen { to { background-position: 0% 0; } }
+
 @media (prefers-reduced-motion: reduce) {
   .ambient-orb,
   .shimmer::after,
   .emblem-bob,
   .emblem-spin-1,
   .emblem-spin-2,
-  .emblem-spin-3 {
+  .emblem-spin-3,
+  .loader-spin-1,
+  .loader-spin-2,
+  .loader-spin-3,
+  .loader-breathe,
+  .loader-glow {
     animation: none !important;
+  }
+  .loader-word {
+    animation: none !important;
+    background-position: 50% 0;
   }
   * {
     transition-duration: 0.01ms !important;
