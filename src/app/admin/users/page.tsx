@@ -1,13 +1,12 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Form from "next/form";
-import Link from "next/link";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { inputClass } from "@/components/ui/Field";
 import { AddAdminForm } from "@/components/admin/AddAdminForm";
 import { IconSearch } from "@/components/admin/icons";
-import { AdminHeader, Empty, Pagination, Panel, TableSkeleton, hrefWith, table } from "@/components/admin/primitives";
+import { AdminHeader, Empty, Pagination, Panel, SegmentedLinks, TableSkeleton, hrefWith, table } from "@/components/admin/primitives";
 import { Toaster } from "@/components/admin/Toaster";
 import { RemoveAdminButton, VerifyStudentButton } from "@/components/admin/UserActions";
 import { isSuperAdmin, requireAdmin } from "@/lib/auth";
@@ -63,25 +62,25 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
   const total = count ?? 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Panel title="Admins">
         <ul className="divide-y divide-line/60">
           {adminRows.map((a) => (
-            <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <li key={a.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
               <Avatar src={a.avatar_url} name={a.full_name ?? a.email} size={36} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{a.full_name ?? a.email}</span>
-                <span className="block truncate text-xs text-muted">{a.email}</span>
+                <span className="block truncate text-xs text-subtle">{a.email}</span>
               </span>
               <Badge tone={a.role === "super_admin" ? "brand" : "info"}>{a.role === "super_admin" ? "Super admin" : "Admin"}</Badge>
               {superAdmin && a.role === "admin" && a.email && <RemoveAdminButton email={a.email} />}
             </li>
           ))}
         </ul>
-        <div className="border-t border-line p-4">
+        <div className="border-t border-line p-5">
           {superAdmin ? (
             <>
-              <h3 className="mb-2 text-sm font-medium">Add admin by email</h3>
+              <h3 className="mb-3 text-sm font-medium">Add admin by email</h3>
               <AddAdminForm />
             </>
           ) : (
@@ -95,26 +94,22 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
           <Form action="/admin/users" className="relative min-w-56 flex-1">
             {only && <input type="hidden" name="only" value={only} />}
             {type && <input type="hidden" name="type" value={type} />}
-            <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-subtle" />
             <label htmlFor="user-q" className="sr-only">Search users</label>
             <input id="user-q" name="q" defaultValue={q} placeholder="Search name, email, university, course" className={`${inputClass} py-2 pl-9`} />
           </Form>
-          <nav aria-label="Filter" className="flex gap-1 rounded-xl border border-line bg-surface p-1 text-sm">
-            {([["", "All"], ["verified", "Verified"], ["unverified", "Not verified"]] as const).map(([v, label]) => (
-              <Link key={v} href={hrefWith("/admin/users", { q, only: v, type })} aria-current={only === v ? "page" : undefined}
-                className={`rounded-lg px-3 py-1.5 ${only === v ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"}`}>
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <nav aria-label="User type" className="flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1 text-sm">
-            {USER_TYPE_FILTERS.map((f) => (
-              <Link key={f.value} href={hrefWith("/admin/users", { q, only, type: f.value })} aria-current={type === f.value ? "page" : undefined}
-                className={`rounded-lg px-3 py-1.5 ${type === f.value ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"}`}>
-                {f.label}
-              </Link>
-            ))}
-          </nav>
+          <SegmentedLinks
+            label="Filter"
+            items={([["", "All"], ["verified", "Verified"], ["unverified", "Not verified"]] as const).map(([v, label]) => ({
+              key: v || "all", label, active: only === v, href: hrefWith("/admin/users", { q, only: v, type }),
+            }))}
+          />
+          <SegmentedLinks
+            label="User type"
+            items={USER_TYPE_FILTERS.map((f) => ({
+              key: f.value || "all", label: f.label, active: type === f.value, href: hrefWith("/admin/users", { q, only, type: f.value }),
+            }))}
+          />
         </div>
 
         {rows.length === 0 ? (
@@ -143,7 +138,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
                           <Avatar src={u.avatar_url} name={u.full_name ?? u.email} size={32} />
                           <span className="min-w-0">
                             <span className="block truncate font-medium">{u.full_name ?? "—"}</span>
-                            <span className="block truncate text-xs text-muted">{u.email}</span>
+                            <span className="block truncate text-xs text-subtle">{u.email}</span>
                           </span>
                         </span>
                       </td>
@@ -152,7 +147,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
                         {[u.university, u.course].filter(Boolean).join(" · ") || "—"}
                       </td>
                       <td className={table.td}>
-                        {u.role === "user" ? <span className="text-muted">User</span> : <Badge tone={u.role === "super_admin" ? "brand" : "info"}>{u.role === "super_admin" ? "Super admin" : "Admin"}</Badge>}
+                        {u.role === "user" ? <span className="text-muted">User</span> : <Badge className="whitespace-nowrap" tone={u.role === "super_admin" ? "brand" : "info"}>{u.role === "super_admin" ? "Super admin" : "Admin"}</Badge>}
                       </td>
                       <td className={table.td}>{u.onboarded_at ? <Badge tone="success">Yes</Badge> : <span className="text-muted">No</span>}</td>
                       <td className={`${table.td} whitespace-nowrap text-muted tabular-nums`}>{dateFmt.format(new Date(u.created_at))}</td>

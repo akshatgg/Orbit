@@ -52,9 +52,9 @@ export function AddCategoryForm() {
     if (state?.ok) toast(state.message ?? "Added");
   }, [state]);
   return (
-    <form action={action} className={`${grid} p-4`}>
+    <form action={action} className={`${grid} p-5`}>
       <CategoryFields state={state} idp="new-cat" />
-      <SubmitButton pendingText="Adding…">Add</SubmitButton>
+      <SubmitButton className="sm:mt-0.5" pendingText="Adding…">Add</SubmitButton>
       {state?.error && !state.fieldErrors && <p role="alert" className="text-sm text-red-300 sm:col-span-5">{state.error}</p>}
       {state?.error && state.fieldErrors && <p role="alert" className="text-sm text-red-300 sm:col-span-5">{state.error}</p>}
     </form>
@@ -67,10 +67,10 @@ export function CategoryEditRow({ row }: { row: CategoryRow }) {
     if (state?.ok) toast(state.message ?? "Saved");
   }, [state]);
   return (
-    <li className="px-4 py-3">
+    <li className="px-5 py-4">
       <form action={action} className={grid}>
         <CategoryFields row={row} state={state} idp={`cat-${row.id}`} />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:mt-1.5">
           <SubmitButton variant="secondary" size="sm" pendingText="Saving…">Save</SubmitButton>
           <ActionButton
             action={() => deleteCategory(row.id)}
@@ -89,7 +89,7 @@ export function CategoryEditRow({ row }: { row: CategoryRow }) {
           </ActionButton>
         </div>
       </form>
-      <p className="mt-1 text-xs text-muted">{row.event_count} event{row.event_count === 1 ? "" : "s"}</p>
+      <p className="mt-1.5 text-xs text-subtle tabular-nums">{row.event_count} event{row.event_count === 1 ? "" : "s"}</p>
       {state?.error && <p role="alert" className="mt-1 text-sm text-red-300">{state.error}</p>}
     </li>
   );

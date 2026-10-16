@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState, useTransition } from "react";
 import Papa from "papaparse";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { importEvents, type ImportReport } from "@/app/admin/import/actions";
 import { CSV_COLUMNS, MAX_IMPORT_ROWS, csvTemplate, pickColumns, summariseRows, validateCsvRows, type RawCsvRow } from "@/lib/admin/csv";
 import { Empty, table } from "./primitives";
@@ -73,10 +73,10 @@ export function CsvImporter({ organiserSlugs, categorySlugs }: { organiserSlugs:
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 rounded-2xl border border-line bg-surface/80 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
+    <div className="space-y-5">
+      <div className="glass grid gap-4 rounded-[20px] p-6 sm:grid-cols-[1fr_auto] sm:items-center">
         <div>
-          <h2 className="font-display text-sm font-semibold">1. Get the template</h2>
+          <h2 className="text-sm font-semibold tracking-tight">1. Get the template</h2>
           <p className="mt-1 text-sm text-muted">
             Columns: <span className="font-mono text-xs">{CSV_COLUMNS.join(", ")}</span>. Times are UK time as{" "}
             <span className="font-mono text-xs">2026-11-12 18:30</span>, or ISO with a zone. Separate tags with <span className="font-mono text-xs">;</span>.
@@ -86,11 +86,11 @@ export function CsvImporter({ organiserSlugs, categorySlugs }: { organiserSlugs:
         <Button variant="secondary" onClick={downloadTemplate}><IconDownload size={15} /> Download template</Button>
       </div>
 
-      <div className="rounded-2xl border border-line bg-surface/80 p-5">
-        <h2 className="font-display text-sm font-semibold">2. Upload your CSV</h2>
+      <div className="glass rounded-[20px] p-6">
+        <h2 className="text-sm font-semibold tracking-tight">2. Upload your CSV</h2>
         <label
           htmlFor="csv-file"
-          className="mt-3 flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-muted transition-colors hover:border-violet hover:bg-surface-2"
+          className="mt-3 flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-10 text-center text-sm text-muted transition-colors hover:border-accent/50 hover:bg-white/[0.05] has-[:focus-visible]:border-accent"
         >
           <IconUpload size={22} />
           <span>{fileName ? <span className="text-fg">{fileName}</span> : "Choose a .csv file"}</span>
@@ -102,7 +102,7 @@ export function CsvImporter({ organiserSlugs, categorySlugs }: { organiserSlugs:
       {rows && !report && (
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-sm font-semibold">3. Preview</h2>
+            <h2 className="text-sm font-semibold tracking-tight">3. Preview</h2>
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="success">{summary.valid} valid</Badge>
               {summary.invalid > 0 && <Badge tone="danger">{summary.invalid} with errors (will be skipped)</Badge>}
@@ -150,14 +150,14 @@ export function CsvImporter({ organiserSlugs, categorySlugs }: { organiserSlugs:
       )}
 
       {report && (
-        <div role="status" className="rounded-2xl border border-line bg-surface/80 p-5">
+        <div role="status" className="glass rounded-[20px] p-6">
           {report.ok ? (
             <>
-              <h2 className="font-display text-lg font-semibold">Import finished</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Import finished</h2>
               <dl className="mt-3 grid max-w-md grid-cols-3 gap-3 text-center">
                 {([["Inserted", report.inserted], ["Updated", report.updated], ["Skipped", report.skipped]] as const).map(([l, n]) => (
-                  <div key={l} className="rounded-xl border border-line p-3">
-                    <dd className="font-display text-2xl font-semibold tabular-nums">{n}</dd>
+                  <div key={l} className="rounded-2xl border border-line bg-white/[0.03] p-4">
+                    <dd className="text-2xl font-semibold tracking-tight tabular-nums">{n}</dd>
                     <dt className="text-xs text-muted">{l}</dt>
                   </div>
                 ))}
@@ -165,7 +165,7 @@ export function CsvImporter({ organiserSlugs, categorySlugs }: { organiserSlugs:
               {report.notes.length > 0 && <ul className="mt-3 list-disc pl-5 text-sm text-muted">{report.notes.map((n) => <li key={n}>{n}</li>)}</ul>}
               <div className="mt-4 flex gap-2">
                 <Button variant="secondary" onClick={reset}>Import another file</Button>
-                <a href="/admin/events?source=csv&when=all" className="inline-flex h-10 items-center rounded-xl px-4 text-sm text-muted hover:text-fg">View imported events</a>
+                <ButtonLink href="/admin/events?source=csv&when=all" variant="ghost">View imported events</ButtonLink>
               </div>
             </>
           ) : (

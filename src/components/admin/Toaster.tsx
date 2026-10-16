@@ -30,19 +30,24 @@ const EMPTY: Toast[] = [];
 export function Toaster() {
   const items = useSyncExternalStore(subscribe, () => toasts, () => EMPTY);
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:left-auto">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-4 bottom-4 z-[100] flex flex-col items-end gap-2">
       {items.map((t) => (
         <div
           key={t.id}
           role={t.tone === "error" ? "alert" : "status"}
-          className={`pointer-events-auto max-w-sm rounded-xl border px-4 py-2.5 text-sm shadow-xl backdrop-blur ${
-            t.tone === "error"
-              ? "border-red-500/40 bg-red-950/80 text-red-200"
-              : "border-violet/40 bg-surface/90 text-fg"
+          className={`glass-strong pointer-events-auto flex max-w-sm items-start gap-2.5 rounded-2xl px-4 py-3 text-sm text-fg ${
+            t.tone === "error" ? "!border-red-400/30" : ""
           }`}
         >
-          {t.tone === "success" && <span className="text-gradient mr-1.5 font-semibold">✓</span>}
-          {t.text}
+          <span
+            aria-hidden
+            className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+              t.tone === "error" ? "bg-red-400/20 text-red-300" : "bg-accent/20 text-accent"
+            }`}
+          >
+            {t.tone === "error" ? "!" : "✓"}
+          </span>
+          <span className={t.tone === "error" ? "text-red-100" : ""}>{t.text}</span>
         </div>
       ))}
     </div>

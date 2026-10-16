@@ -73,15 +73,15 @@ export function ActionButton({
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
-        className="m-auto w-full max-w-md rounded-2xl border border-line bg-[#101018] p-0 text-fg backdrop:bg-bg/80 backdrop:backdrop-blur-sm"
+        className="glass-strong m-auto w-[min(28rem,calc(100vw-2rem))] rounded-[22px] p-0 text-fg backdrop:bg-black/50 backdrop:backdrop-blur-md"
       >
         <form action={formAction} className="space-y-4 p-6">
           {hidden}
-          <h2 id={titleId} className="font-display text-lg font-semibold">{confirm.title}</h2>
+          <h2 id={titleId} className="text-lg font-semibold tracking-tight">{confirm.title}</h2>
           <div className="text-sm text-muted">{confirm.body}</div>
           {extra}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" size="md" onClick={() => dialogRef.current?.close()}>Cancel</Button>
+            <Button type="button" variant="secondary" size="md" onClick={() => dialogRef.current?.close()}>Cancel</Button>
             <Submit pendingText={pendingText} variant={variant === "danger" ? "danger" : "primary"} size="md">
               {confirm.confirmLabel}
             </Submit>

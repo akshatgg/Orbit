@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { ApproveRejectButtons } from "@/components/admin/OrganiserActions";
 import { MarkReviewedButton } from "@/components/admin/EventActions";
-import { AdminHeader, Empty, KpiTile, Panel } from "@/components/admin/primitives";
+import { AdminHeader, Empty, KpiTile, Panel, SectionLabel } from "@/components/admin/primitives";
 import { SignupsChart } from "@/components/admin/SignupsChart";
 import { Toaster } from "@/components/admin/Toaster";
 import { requireAdmin } from "@/lib/auth";
@@ -31,11 +32,11 @@ export default function Page() {
 
 function OverviewSkeleton() {
   return (
-    <div className="space-y-6" aria-busy="true" aria-label="Loading">
+    <div className="space-y-5" aria-busy="true" aria-label="Loading">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-28" />)}
+        {Array.from({ length: 8 }, (_, i) => <Skeleton key={i} className="h-[7.5rem] rounded-[18px]" />)}
       </div>
-      <Skeleton className="h-64" />
+      <Skeleton className="h-64 rounded-[20px]" />
     </div>
   );
 }
@@ -98,7 +99,7 @@ async function Content() {
   const attention = s.organisers_pending + s.needs_review + needsApproval.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <KpiTile label="Users" value={compactNumber(s.users)} hint={`+${s.signups_7d} this week`} href="/admin/users" accent />
         <KpiTile label="Onboarded" value={`${percent(s.onboarded, s.users)}%`} hint={`${s.onboarded} of ${s.users} users`} />
@@ -116,22 +117,21 @@ async function Content() {
         <KpiTile label="Check-ins" value={compactNumber(s.check_ins)} hint={`${percent(s.check_ins, s.registrations)}% of registrations`} />
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-5 lg:grid-cols-5">
         <Panel
           className="lg:col-span-3"
-          title={<>Needs attention {attention > 0 && <span className="bg-gradient ml-1.5 rounded-full px-1.5 py-px text-[11px] text-bg tabular-nums">{attention}</span>}</>}
+          title={<>Needs attention {attention > 0 && <span className="bg-gradient ml-1.5 rounded-full px-1.5 py-px align-middle text-[11px] font-semibold text-bg tabular-nums">{attention}</span>}</>}
         >
           {attention === 0 ? (
-            <div className="p-4"><Empty title="All clear">No applications, reviews or approvals waiting.</Empty></div>
+            <div className="p-5"><Empty title="All clear">No applications, reviews or approvals waiting.</Empty></div>
           ) : (
             <div className="divide-y divide-line">
               {orgs.length > 0 && (
-                <div className="p-4">
-                  <h3 className="mb-2 flex justify-between text-[11px] font-semibold uppercase tracking-wider text-muted">
+                <div className="p-5">
+                  <SectionLabel action={<Link href="/admin/organisers" className="text-muted transition-colors hover:text-fg">See all {s.organisers_pending}</Link>}>
                     Organiser applications
-                    <Link href="/admin/organisers" className="normal-case tracking-normal hover:text-fg">See all {s.organisers_pending}</Link>
-                  </h3>
-                  <ul className="space-y-2">
+                  </SectionLabel>
+                  <ul className="space-y-3">
                     {orgs.map((o) => (
                       <li key={o.id} className="flex flex-wrap items-center justify-between gap-2">
                         <span className="min-w-0">
@@ -145,16 +145,15 @@ async function Content() {
                 </div>
               )}
               {reviews.length > 0 && (
-                <div className="p-4">
-                  <h3 className="mb-2 flex justify-between text-[11px] font-semibold uppercase tracking-wider text-muted">
+                <div className="p-5">
+                  <SectionLabel action={<Link href="/admin/events?review=1&when=all" className="text-muted transition-colors hover:text-fg">See all {s.needs_review}</Link>}>
                     Events to review
-                    <Link href="/admin/events?review=1&when=all" className="normal-case tracking-normal hover:text-fg">See all {s.needs_review}</Link>
-                  </h3>
-                  <ul className="space-y-2">
+                  </SectionLabel>
+                  <ul className="space-y-3">
                     {reviews.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2">
                         <span className="min-w-0">
-                          <Link href={`/events/${e.id}`} className="block truncate text-sm font-medium hover:underline">{e.title}</Link>
+                          <Link href={`/events/${e.id}`} className="block truncate text-sm font-medium transition-colors hover:text-accent">{e.title}</Link>
                           <span className="block text-xs text-muted">{whenFmt.format(new Date(e.starts_at))} · {e.source}</span>
                         </span>
                         <MarkReviewedButton eventId={e.id} />
@@ -164,18 +163,16 @@ async function Content() {
                 </div>
               )}
               {needsApproval.length > 0 && (
-                <div className="p-4">
-                  <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted">Starting soon with guests awaiting approval</h3>
-                  <ul className="space-y-2">
+                <div className="p-5">
+                  <SectionLabel>Starting soon with guests awaiting approval</SectionLabel>
+                  <ul className="space-y-3">
                     {needsApproval.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-2 text-sm">
                         <span className="min-w-0">
-                          <Link href={`/events/${e.id}`} className="block truncate font-medium hover:underline">{e.title}</Link>
+                          <Link href={`/events/${e.id}`} className="block truncate font-medium transition-colors hover:text-accent">{e.title}</Link>
                           <span className="block text-xs text-muted">{whenFmt.format(new Date(e.starts_at))}</span>
                         </span>
-                        <span className="shrink-0 rounded-full border border-orange/30 bg-orange/10 px-2 py-0.5 text-xs text-orange">
-                          {e.pending} pending
-                        </span>
+                        <Badge tone="warning" className="shrink-0 tabular-nums">{e.pending} pending</Badge>
                       </li>
                     ))}
                   </ul>
@@ -192,19 +189,19 @@ async function Content() {
 
       <Panel title="Recent admin activity">
         {log.length === 0 ? (
-          <div className="p-4"><Empty title="No activity yet">Approvals, cancellations and role changes will be logged here.</Empty></div>
+          <div className="p-5"><Empty title="No activity yet">Approvals, cancellations and role changes will be logged here.</Empty></div>
         ) : (
           <ul className="divide-y divide-line/60 text-sm">
             {log.map((l) => {
               const detail = (l.details?.name ?? l.details?.title ?? l.details?.email ?? "") as string;
               return (
-                <li key={l.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 px-4 py-2.5">
+                <li key={l.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 px-5 py-3">
                   <span className="min-w-0">
-                    <span className="font-medium">{personName(l.actor ? people.get(l.actor) : null)}</span>{" "}
+                    <span className="font-medium text-fg">{personName(l.actor ? people.get(l.actor) : null)}</span>{" "}
                     <span className="text-muted">{AUDIT_ACTIONS[l.action] ?? l.action}</span>{" "}
                     {detail && <span>{detail}</span>}
                   </span>
-                  <time dateTime={l.created_at} className="shrink-0 text-xs text-muted tabular-nums">{whenFmt.format(new Date(l.created_at))}</time>
+                  <time dateTime={l.created_at} className="shrink-0 text-xs text-subtle tabular-nums">{whenFmt.format(new Date(l.created_at))}</time>
                 </li>
               );
             })}
