@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Montserrat } from "next/font/google";
+import Script from "next/script";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
-import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -27,13 +27,21 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+// Registered from an inline script so it runs before hydration (scanners such as
+// PWABuilder look for a service worker on load). Production only; dev stays SW-free.
+const SW_REGISTER = `if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' }).catch(function (e) { console.error('Service worker registration failed', e); }); }`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} ${montserrat.variable} h-full antialiased`}>
       <body className="min-h-full">
         <AmbientBackground />
         {children}
-        <ServiceWorkerRegister />
+        {process.env.NODE_ENV === "production" && (
+          <Script id="sw-register" strategy="beforeInteractive">
+            {SW_REGISTER}
+          </Script>
+        )}
       </body>
     </html>
   );
