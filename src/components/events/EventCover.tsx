@@ -1,4 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
+import { cloudinaryUrl } from "@/lib/cloudinary";
 
 function hash(s: string) {
   let h = 2166136261;
@@ -7,8 +8,8 @@ function hash(s: string) {
 }
 
 /** Event cover image, or a calm mesh gradient derived from the title when there isn't one. */
-export function EventCover({ src, title, className = "" }: { src?: string | null; title: string; className?: string }) {
-  if (src) return <img src={src} alt="" className={`h-full w-full object-cover ${className}`} />;
+export function EventCover({ src, title, className = "", width = 800 }: { src?: string | null; title: string; className?: string; width?: number }) {
+  if (src) return <img src={cloudinaryUrl(src, { width })} alt="" className={`h-full w-full object-cover ${className}`} />;
   const h = hash(title);
   const base = h % 360;
   const h2 = (base + 40 + ((h >> 8) % 50)) % 360;

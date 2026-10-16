@@ -167,6 +167,7 @@ See [`.env.example`](.env.example) for the full list.
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Email reminders over SMTP (e.g. Gmail app password); used before Resend when set |
 | `RESEND_API_KEY`, `EMAIL_FROM` | Email reminders via Resend (alternative to SMTP) |
 | `CRON_SECRET` | Protects `/api/cron/*` |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Image uploads (covers, logos) via signed Cloudinary uploads (server only); falls back to Supabase Storage when unset |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `PLATFORM_FEE_PERCENT` | Paid tickets |
 
 Every optional integration degrades gracefully — without Stripe, paid tickets are switched off;
