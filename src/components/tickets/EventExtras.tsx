@@ -20,7 +20,7 @@ export function ViewLogger({ eventId }: { eventId: string }) {
 }
 
 const roundBtn =
-  "flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-bg/60 text-fg backdrop-blur-md transition-colors hover:bg-bg/80";
+  "glass flex h-10 w-10 items-center justify-center rounded-full text-fg transition duration-200 hover:bg-white/[0.12] active:scale-95 motion-reduce:transition-none";
 
 /** Native share sheet on phones (WhatsApp etc.), copy-link fallback elsewhere. */
 export function ShareButton({ eventId, title, text, className = roundBtn }: {
@@ -49,7 +49,7 @@ export function ShareButton({ eventId, title, text, className = roundBtn }: {
       <button type="button" onClick={share} aria-label="Share event" className={className}>
         <Icon name="share" />
       </button>
-      <span role="status" className={`pointer-events-none absolute right-0 top-12 whitespace-nowrap rounded-lg border border-line bg-surface-2 px-2.5 py-1 text-xs text-fg shadow-lg transition-opacity ${copied ? "opacity-100" : "opacity-0"}`}>
+      <span role="status" className={`pointer-events-none absolute right-0 top-12 whitespace-nowrap glass-strong rounded-full px-3 py-1 text-xs text-fg transition-opacity ${copied ? "opacity-100" : "opacity-0"}`}>
         {copied ? "Link copied" : ""}
       </span>
     </span>
@@ -92,7 +92,7 @@ export function CalendarButton({ eventId, googleUrl, className, children }: {
 }) {
   const [open, setOpen] = useState(false);
   const item =
-    "flex w-full items-center gap-3 rounded-2xl border border-line bg-surface-2 px-4 py-3.5 text-left text-sm font-medium transition-colors hover:border-violet/50";
+    "flex w-full items-center gap-3 rounded-[18px] border border-white/10 bg-white/[0.05] px-4 py-3.5 text-left text-sm font-medium transition-colors hover:bg-white/[0.1]";
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={className}>
@@ -102,7 +102,7 @@ export function CalendarButton({ eventId, googleUrl, className, children }: {
           </>
         )}
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title={<h2 className="font-display text-lg font-semibold">Add to calendar</h2>}>
+      <Sheet open={open} onClose={() => setOpen(false)} title={<h2 className="text-lg font-semibold tracking-tight">Add to calendar</h2>}>
         <div className="space-y-2 pb-6">
           <a
             href={googleUrl}
@@ -114,12 +114,12 @@ export function CalendarButton({ eventId, googleUrl, className, children }: {
             }}
             className={item}
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue/15 text-blue"><Icon name="calendar" /></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-blue/15 text-blue"><Icon name="calendar" /></span>
             <span className="flex-1">Google Calendar</span>
             <Icon name="external" className="h-4 w-4 text-muted" />
           </a>
           <a href={`/events/${eventId}/calendar.ics`} download onClick={() => setOpen(false)} className={item}>
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange/15 text-orange"><Icon name="download" /></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-orange/15 text-orange"><Icon name="download" /></span>
             <span className="flex-1">Apple Calendar, Outlook &amp; others <span className="block text-xs font-normal text-muted">Downloads an .ics file</span></span>
           </a>
         </div>
@@ -136,7 +136,7 @@ export function ExternalRegisteredToggle({ eventId, registered, signedIn }: { ev
 
   if (!signedIn) {
     return (
-      <Link href={`/login?next=${encodeURIComponent(`/events/${eventId}`)}`} className="text-sm font-medium text-pink hover:underline">
+      <Link href={`/login?next=${encodeURIComponent(`/events/${eventId}`)}`} className="text-sm font-medium text-accent hover:underline">
         Sign in to track it
       </Link>
     );
@@ -158,9 +158,9 @@ export function ExternalRegisteredToggle({ eventId, registered, signedIn }: { ev
             if (!res.ok) setError(res.error);
           })
         }
-        className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors ${optimistic ? "border-transparent bg-gradient" : "border-line bg-surface-2"}`}
+        className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors ${optimistic ? "border-transparent bg-gradient" : "border-white/10 bg-white/[0.08]"}`}
       >
-        <span className={`absolute top-0.5 h-5.5 w-5.5 rounded-full bg-fg shadow transition-[left] ${optimistic ? "left-[1.4rem]" : "left-0.5"}`} />
+        <span className={`absolute top-0.5 h-5.5 w-5.5 rounded-full shadow transition-[left] motion-reduce:transition-none ${optimistic ? "left-[1.4rem] bg-bg" : "left-0.5 bg-fg/80"}`} />
       </button>
       {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
     </div>

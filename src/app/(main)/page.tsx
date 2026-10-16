@@ -110,7 +110,7 @@ async function Feed() {
         </section>
       )}
 
-      <div className="mx-4 mt-8 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-line px-6 py-6 text-center">
+      <div className="mx-4 mt-8 flex flex-col items-center gap-3 rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-6 py-6 text-center">
         <p className="text-sm text-muted">Looking for something specific?</p>
         <ButtonLink href="/search" variant="secondary" size="sm">Search every event</ButtonLink>
       </div>
@@ -123,11 +123,11 @@ function InterestsCard() {
   return (
     <Link
       href="/profile/preferences"
-      className="border-gradient group mx-4 mb-5 flex items-center gap-3.5 rounded-3xl p-4 transition-shadow hover:shadow-[0_0_30px_-8px_rgb(181_124_246/0.5)]"
+      className="border-gradient group mx-4 mb-5 flex items-center gap-3.5 rounded-[22px] p-4 transition duration-200 hover:brightness-110 motion-reduce:transition-none"
     >
-      <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-lg text-bg">✦</span>
+      <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-lg text-bg">✦</span>
       <span className="min-w-0 flex-1">
-        <span className="block font-semibold">Want a personal feed too?</span>
+        <span className="block font-semibold tracking-tight">Want a personal feed too?</span>
         <span className="block text-sm text-muted">Pick a few interests <span aria-hidden>→</span></span>
       </span>
     </Link>

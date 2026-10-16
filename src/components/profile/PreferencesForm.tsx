@@ -102,7 +102,7 @@ export function PreferencesForm({ initial, categories }: { initial: ProfileDraft
         <div aria-live="polite" className="min-h-5 pb-2 text-center text-sm">
           {status && <span className={status.ok ? "text-emerald-300" : "text-red-300"}>{status.text}</span>}
         </div>
-        <Button type="submit" size="lg" full disabled={pending || !dirty} aria-busy={pending} className={dirty ? "glow" : ""}>
+        <Button type="submit" size="lg" full disabled={pending || !dirty} aria-busy={pending} className="">
           {pending ? "Saving…" : dirty ? "Save changes" : "All changes saved"}
         </Button>
       </div>
@@ -112,8 +112,8 @@ export function PreferencesForm({ initial, categories }: { initial: ProfileDraft
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-line bg-surface/60 p-4">
-      <h2 className="mb-4 font-display text-base font-semibold">{title}</h2>
+    <section className="glass rounded-[22px] p-4">
+      <h2 className="mb-4 text-base font-semibold tracking-tight">{title}</h2>
       {children}
     </section>
   );

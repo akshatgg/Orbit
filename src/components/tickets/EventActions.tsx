@@ -43,7 +43,7 @@ type Props = {
   googleCalendarUrl: string;
 };
 
-const ctaClass = buttonClass({ size: "lg", className: "glow shrink-0 px-6" });
+const ctaClass = buttonClass({ size: "lg", className: "shrink-0 px-6" });
 
 /** Sticky bottom action bar + the registration sheet for the event page. */
 export function EventActions(props: Props) {
@@ -150,9 +150,9 @@ export function EventActions(props: Props) {
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-30">
-        <div className="mx-auto max-w-md border-t border-line bg-bg/85 px-4 pt-3 backdrop-blur-xl pb-safe">
-          <div className="flex min-h-12 items-center gap-3 pb-1">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <div className="glass-strong pointer-events-auto mx-auto max-w-md rounded-[26px] p-2 pl-4">
+          <div className="flex min-h-12 items-center gap-3">
             <div className="min-w-0 flex-1">{left}</div>
             {right}
           </div>
@@ -166,7 +166,7 @@ export function EventActions(props: Props) {
         title={
           state?.ok ? null : (
             <div>
-              <h2 id="register-title" className="font-display text-lg font-semibold leading-tight">
+              <h2 id="register-title" className="text-lg font-semibold leading-tight tracking-tight">
                 {props.requiresApproval ? "Request to join" : "Get tickets"}
               </h2>
               <p className="mt-0.5 truncate text-xs text-muted">{props.eventTitle} · {props.dateLabel}</p>
@@ -188,12 +188,12 @@ function BarText({ title, sub, icon, tone }: { title: string; sub?: string | nul
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       {icon && (
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone === "danger" ? "bg-red-500/10 text-red-300" : "bg-surface-2 text-muted"}`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] ${tone === "danger" ? "bg-red-500/10 text-red-300" : "bg-white/[0.07] text-muted"}`}>
           <Icon name={icon} />
         </span>
       )}
       <div className="min-w-0">
-        <p className="truncate font-display text-base font-semibold">{title}</p>
+        <p className="truncate text-[15px] font-semibold tracking-tight">{title}</p>
         {sub && <p className="truncate text-xs text-muted">{sub}</p>}
       </div>
     </div>
@@ -219,7 +219,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
 
       {tickets.length > 0 && (
         <fieldset className="space-y-2">
-          <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted">Ticket</legend>
+          <legend className="mb-2.5 font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-subtle">Ticket</legend>
           {tickets.map((t) => {
             const avail = ticketAvailability(t);
             const on = t.id === ticketId;
@@ -227,8 +227,8 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
             return (
               <label
                 key={t.id}
-                className={`relative flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition-colors ${
-                  on ? "border-gradient glow" : "border-line bg-surface-2 hover:border-violet/40"
+                className={`relative flex cursor-pointer items-center gap-3 rounded-[20px] p-4 transition duration-200 motion-reduce:transition-none ${
+                  on ? "border-gradient glow" : "border border-white/10 bg-white/[0.045] hover:bg-white/[0.08]"
                 } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
               >
                 <input
@@ -240,7 +240,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
                   onChange={() => setTicketId(t.id)}
                   className="sr-only"
                 />
-                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${on ? "border-pink" : "border-line"}`} aria-hidden>
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${on ? "border-accent" : "border-white/20"}`} aria-hidden>
                   {on && <span className="bg-gradient h-2.5 w-2.5 rounded-full" />}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -248,7 +248,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
                   {t.description && <span className="mt-0.5 block text-xs text-muted">{t.description}</span>}
                   <TicketNote ticket={t} waitlist={props.waitlistEnabled} />
                 </span>
-                <span className="font-display text-base font-semibold">{formatTicketPrice(t.price, t.currency)}</span>
+                <span className="text-base font-semibold tabular-nums tracking-tight">{formatTicketPrice(t.price, t.currency)}</span>
               </label>
             );
           })}
@@ -257,7 +257,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
 
       {questions.length > 0 && (
         <fieldset className="space-y-5">
-          <legend className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted">
+          <legend className="mb-3 font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-subtle">
             {props.requiresApproval ? "Your application" : "A few questions"}
           </legend>
           {questions.map((q) => (
@@ -267,7 +267,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
       )}
 
       {state && !state.ok && (
-        <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-3 text-sm text-red-200">
+        <div role="alert" className="flex items-start gap-2 rounded-[14px] border border-red-400/25 bg-red-500/10 px-3.5 py-3 text-sm text-red-200">
           <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             {state.error}
@@ -282,7 +282,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
       )}
 
       <div className="space-y-2">
-        <button type="submit" disabled={pending || blocked} aria-busy={pending} className={buttonClass({ size: "lg", full: true, className: "glow" })}>
+        <button type="submit" disabled={pending || blocked} aria-busy={pending} className={buttonClass({ size: "lg", full: true, className: "" })}>
           {pending ? "One moment…" : blocked ? (full ? "Sold out" : "Not available") : registerLabel(variant, selected?.price ?? 0, selected?.currency)}
         </button>
         <p className="text-center text-xs text-muted">
@@ -327,9 +327,9 @@ function QuestionField({ question: q, error }: { question: Question; error?: str
   if (q.kind === "checkbox") {
     return (
       <div>
-        <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-surface-2 p-4">
+        <label className="flex cursor-pointer items-start gap-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-4 transition-colors hover:bg-white/[0.08]">
           <input type="checkbox" name={name} aria-invalid={!!error} aria-describedby={describedBy} aria-required={q.required}
-            className="mt-0.5 h-5 w-5 shrink-0 accent-violet" />
+            className="mt-0.5 h-5 w-5 shrink-0 accent-[#a99bff]" />
           <span className="text-sm">{label}</span>
         </label>
         {errorText}
@@ -341,7 +341,7 @@ function QuestionField({ question: q, error }: { question: Question; error?: str
     const multi = q.kind === "multi_select";
     return (
       <fieldset aria-invalid={!!error} aria-describedby={describedBy}>
-        <legend className="mb-2 text-sm font-medium">
+        <legend className="mb-2 text-sm font-medium text-fg/90">
           {label}
           {multi && <span className="ml-1.5 text-xs font-normal text-muted">Choose any</span>}
         </legend>
@@ -349,7 +349,7 @@ function QuestionField({ question: q, error }: { question: Question; error?: str
           {q.options.map((opt) => (
             <label key={opt} className="cursor-pointer">
               <input type={multi ? "checkbox" : "radio"} name={name} value={opt} required={!multi && q.required} className="peer sr-only" />
-              <span className="inline-flex rounded-full border border-line bg-surface-2 px-3.5 py-2 text-sm text-muted transition-colors peer-checked:border-transparent peer-checked:bg-gradient peer-checked:font-medium peer-checked:text-bg peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-violet">
+              <span className="inline-flex rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-1.5 text-sm text-muted transition duration-200 hover:bg-white/[0.08] peer-checked:border-transparent peer-checked:bg-gradient peer-checked:font-medium peer-checked:text-bg peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
                 {opt}
               </span>
             </label>
@@ -363,7 +363,7 @@ function QuestionField({ question: q, error }: { question: Question; error?: str
   const Control = q.kind === "long_text" ? "textarea" : "input";
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium">{label}</label>
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-fg/90">{label}</label>
       <Control
         id={id}
         name={name}
@@ -405,16 +405,16 @@ function RegisterResult({ state, onDone, onboarded }: { state: Extract<RegisterS
   return (
     <div className="flex flex-col items-center pb-6 text-center" role="status" aria-live="polite">
       <div className="relative mb-5 mt-2">
-        <div className="bg-gradient absolute inset-0 rounded-full opacity-50 blur-2xl" aria-hidden />
+        <div className="bg-gradient absolute inset-0 rounded-full opacity-25 blur-2xl" aria-hidden />
         <div className={`relative flex h-20 w-20 items-center justify-center rounded-full ${going ? "bg-gradient text-bg" : "border-gradient text-fg"}`}>
           <Icon name={RESULT_ICON[state.status]} className="h-9 w-9" strokeWidth={2.2} />
         </div>
       </div>
-      <h2 id="register-title" className="font-display text-2xl font-semibold">{title}</h2>
+      <h2 id="register-title" className="text-2xl font-semibold tracking-tight">{title}</h2>
       <p className="mt-2 max-w-xs text-sm text-muted">{body}</p>
 
       {state.paymentError && (
-        <p role="alert" className="mt-4 w-full rounded-xl border border-orange/30 bg-orange/10 px-3.5 py-3 text-sm text-orange">
+        <p role="alert" className="mt-4 w-full rounded-[14px] border border-orange/25 bg-orange/10 px-3.5 py-3 text-sm text-orange">
           {state.paymentError}
         </p>
       )}
@@ -423,7 +423,7 @@ function RegisterResult({ state, onDone, onboarded }: { state: Extract<RegisterS
 
       <div className="mt-6 grid w-full gap-2">
         {state.status === "awaiting_payment" && !state.paymentError && <CompletePaymentButton registrationId={state.registrationId} />}
-        <Link href={`/tickets/${state.registrationId}`} className={buttonClass({ size: "lg", full: true, variant: going ? "primary" : "secondary", className: going ? "glow" : "" })}>
+        <Link href={`/tickets/${state.registrationId}`} className={buttonClass({ size: "lg", full: true, variant: going ? "primary" : "secondary" })}>
           <Icon name="ticket" /> {going ? "View ticket" : "View in My Tickets"}
         </Link>
         <button type="button" onClick={onDone} className={buttonClass({ size: "lg", full: true, variant: "ghost" })}>

@@ -59,7 +59,7 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
 function FilterForm({ filters, categories, open, count }: {
   filters: SearchFilters; categories: Category[]; open: boolean; count: number;
 }) {
-  const label = "mb-2 block font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-muted";
+  const label = "mb-2.5 block font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-subtle";
   return (
     <form action="/search" method="get" className="space-y-3 px-4" role="search">
       <div className="flex gap-2">
@@ -71,18 +71,18 @@ function FilterForm({ filters, categories, open, count }: {
           aria-label="Search events"
           maxLength={120}
         />
-        <SubmitButton>Search</SubmitButton>
+        <SubmitButton size="lg">Search</SubmitButton>
       </div>
 
-      <details open={open} className="group rounded-2xl border border-line bg-surface">
-        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium [&::-webkit-details-marker]:hidden">
+      <details open={open} className="glass group overflow-hidden rounded-[22px]">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5 text-sm font-medium transition-colors hover:bg-white/[0.03] [&::-webkit-details-marker]:hidden">
           <span>
             Filters
             {count > 0 && <span className="ml-2 rounded-full bg-gradient px-2 py-0.5 text-[11px] font-semibold text-bg">{count}</span>}
           </span>
-          <span aria-hidden className="text-muted transition-transform group-open:rotate-180">▾</span>
+          <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 text-muted transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
         </summary>
-        <div className="space-y-5 border-t border-line px-4 py-4">
+        <div className="space-y-5 border-t border-white/[0.07] bg-white/[0.02] px-4 py-5">
           <fieldset>
             <legend className={label}>When</legend>
             <ChipGroup name="date" multiple={false} options={DATE_PRESETS} defaultValue={filters.date ? [filters.date] : []} />
@@ -139,7 +139,7 @@ async function Results({ filters, viewer, categories, now, names }: {
               <Link
                 href={c.href}
                 aria-label={`Remove filter ${c.label}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 py-1 text-xs hover:border-violet/60"
+                className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors hover:bg-white/[0.09]"
               >
                 {c.label} <span aria-hidden className="text-muted">✕</span>
               </Link>
@@ -201,10 +201,10 @@ async function Browse({ viewer, categories, now }: { viewer: Viewer; categories:
             <li key={c.id}>
               <Link
                 href={searchHref({ ...base, categories: [c.slug] })}
-                className="flex items-center justify-between gap-2 rounded-2xl border border-line bg-surface px-3.5 py-3 text-sm transition-colors hover:border-violet/50"
+                className="glass flex items-center justify-between gap-2 rounded-[18px] px-3.5 py-3 text-sm transition duration-200 hover:bg-white/[0.09] active:scale-[0.98] motion-reduce:transition-none"
               >
                 <span className="truncate font-medium">{c.name}</span>
-                <span className="text-xs text-muted">{counts.get(c.id) ?? 0}</span>
+                <span className="text-xs tabular-nums text-subtle">{counts.get(c.id) ?? 0}</span>
               </Link>
             </li>
           ))}

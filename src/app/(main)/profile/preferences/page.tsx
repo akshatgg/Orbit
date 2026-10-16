@@ -37,7 +37,7 @@ function PreferencesSkeleton() {
   return (
     <div className="space-y-4 px-4" aria-busy="true" aria-label="Loading preferences">
       {[64, 52, 60, 40].map((h) => (
-        <div key={h} className="space-y-3 rounded-2xl border border-line p-4">
+        <div key={h} className="glass space-y-3 rounded-[22px] p-4">
           <Skeleton className="h-5 w-32" />
           <Skeleton className="h-10" />
           <Skeleton className="h-8 w-3/4" />

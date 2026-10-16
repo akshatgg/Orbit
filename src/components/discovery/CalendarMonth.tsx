@@ -13,7 +13,7 @@ function NavArrow({ to, label, path }: { to: string; label: string; path: string
       href={to}
       scroll={false}
       aria-label={label}
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface-2 text-muted transition-colors hover:text-fg"
+      className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-muted transition duration-200 hover:bg-white/[0.1] hover:text-fg active:scale-95 motion-reduce:transition-none"
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d={path} />
@@ -31,10 +31,10 @@ export function CalendarMonth({ month, today, selected, marks }: {
 }) {
   const weeks = monthGrid(month);
   return (
-    <div className="rounded-3xl border border-line bg-surface p-3">
+    <div className="glass rounded-[26px] p-3.5">
       <div className="mb-3 flex items-center justify-between px-1">
         <NavArrow to={href(shiftMonth(month, -1))} label="Previous month" path={ICONS.chevronLeft} />
-        <h2 className="font-display text-base font-semibold tracking-wide" aria-live="polite">{formatMonth(month)}</h2>
+        <h2 className="text-base font-semibold tracking-tight" aria-live="polite">{formatMonth(month)}</h2>
         <NavArrow to={href(shiftMonth(month, 1))} label="Next month" path={ICONS.chevronRight} />
       </div>
 
@@ -42,7 +42,7 @@ export function CalendarMonth({ month, today, selected, marks }: {
         <thead>
           <tr>
             {WEEKDAYS.map((d) => (
-              <th key={d.value} scope="col" className="pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted">
+              <th key={d.value} scope="col" className="pb-1 text-[10px] font-medium uppercase tracking-widest text-subtle">
                 <abbr title={d.label} className="no-underline">{d.label.slice(0, 1)}</abbr>
               </th>
             ))}
@@ -64,24 +64,24 @@ export function CalendarMonth({ month, today, selected, marks }: {
                       scroll={false}
                       aria-label={label}
                       aria-current={isSelected ? "date" : undefined}
-                      className={`relative flex aspect-square flex-col items-center justify-center rounded-xl text-sm transition-colors ${
+                      className={`relative flex aspect-square flex-col items-center justify-center rounded-[14px] text-sm tabular-nums transition duration-200 motion-reduce:transition-none ${
                         isSelected
                           ? "bg-gradient font-semibold text-bg"
                           : isToday
-                            ? "border border-violet/60 font-semibold text-fg"
+                            ? "bg-white/[0.07] font-semibold text-fg ring-1 ring-inset ring-accent/50"
                             : d.inMonth
-                              ? "text-fg hover:bg-surface-2"
-                              : "text-muted/40 hover:bg-surface-2"
+                              ? "text-fg/90 hover:bg-white/[0.07]"
+                              : "text-subtle/50 hover:bg-white/[0.05]"
                       }`}
                     >
                       {d.day}
                       {m && (
                         <span className="absolute bottom-1.5 flex gap-0.5" aria-hidden>
                           {m.registered > 0 && (
-                            <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-bg" : "bg-gradient"}`} />
+                            <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-bg" : "bg-accent"}`} />
                           )}
                           {m.saved > 0 && (
-                            <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-bg/60" : "bg-pink/70"}`} />
+                            <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-bg/50" : "bg-white/35"}`} />
                           )}
                         </span>
                       )}
@@ -94,9 +94,9 @@ export function CalendarMonth({ month, today, selected, marks }: {
         </tbody>
       </table>
 
-      <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-muted">
-        <span className="flex items-center gap-1.5"><span className="bg-gradient h-1.5 w-1.5 rounded-full" /> Registered</span>
-        <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-pink/70" /> Saved</span>
+      <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-subtle">
+        <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> Registered</span>
+        <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-white/35" /> Saved</span>
       </div>
     </div>
   );

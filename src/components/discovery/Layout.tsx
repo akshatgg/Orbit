@@ -6,12 +6,12 @@ export function DiscoveryHeader({ title, subtitle, action }: { title: string; su
   return (
     <header className="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.25rem)]">
       <div className="flex items-center justify-between gap-3">
-        <p className="font-display text-[11px] font-semibold tracking-[0.4em] text-muted">
+        <p className="font-display text-[11px] font-semibold tracking-[0.4em] text-subtle">
           <span className="text-gradient">ORBIT</span>
         </p>
         {action}
       </div>
-      <h1 className="mt-3 font-display text-[28px] font-semibold leading-tight tracking-wide">{title}</h1>
+      <h1 className="mt-3 text-[1.75rem] font-semibold leading-tight tracking-tight">{title}</h1>
       {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
     </header>
   );
@@ -25,9 +25,9 @@ export function SectionHeading({ id, eyebrow, title, count, action }: {
     <div className="mb-3 flex items-end justify-between gap-3 px-4">
       <div className="min-w-0">
         {eyebrow && (
-          <p className="font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-muted">{eyebrow}</p>
+          <p className="font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-subtle">{eyebrow}</p>
         )}
-        <h2 id={id} className="font-display text-lg font-semibold">
+        <h2 id={id} className="text-lg font-semibold tracking-tight">
           {title}
           {count !== undefined && <span className="ml-2 align-middle text-xs font-medium text-muted">{count}</span>}
         </h2>
@@ -45,7 +45,7 @@ export function IconLink({ href, label, path, download }: { href: string; label:
       aria-label={label}
       title={label}
       download={download}
-      className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-muted transition-colors hover:text-fg"
+      className="glass flex h-10 w-10 items-center justify-center rounded-full text-muted transition duration-200 ease-out hover:bg-white/[0.09] hover:text-fg active:scale-95 motion-reduce:transition-none"
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d={path} />
@@ -65,8 +65,8 @@ export const ICONS = {
 
 function CardRowSkeleton() {
   return (
-    <div className="flex gap-3 rounded-2xl border border-line bg-surface p-3">
-      <Skeleton className="h-24 w-24 shrink-0" />
+    <div className="glass flex gap-3 rounded-[22px] p-3">
+      <Skeleton className="h-24 w-24 shrink-0 rounded-2xl" />
       <div className="flex-1 space-y-2 py-1">
         <Skeleton className="h-3 w-24" />
         <Skeleton className="h-4 w-4/5" />
@@ -91,7 +91,7 @@ export function CardListSkeleton({ rows = 4 }: { rows?: number }) {
 export function FeedSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading your feed" className="space-y-6">
-      <div className="mx-4 overflow-hidden rounded-3xl border border-line bg-surface">
+      <div className="glass mx-4 overflow-hidden rounded-[26px]">
         <Skeleton className="aspect-[16/9] rounded-none" />
         <div className="space-y-2 p-4">
           <Skeleton className="h-3 w-28" />
@@ -109,7 +109,7 @@ export function WeekSkeleton() {
     <div aria-busy="true" aria-label="Loading this week" className="space-y-6">
       <div className="flex gap-3 overflow-hidden px-4">
         {[0, 1].map((i) => (
-          <div key={i} className="w-64 shrink-0 overflow-hidden rounded-2xl border border-line bg-surface">
+          <div key={i} className="glass w-64 shrink-0 overflow-hidden rounded-[22px]">
             <Skeleton className="aspect-[16/10] rounded-none" />
             <div className="space-y-2 p-3">
               <Skeleton className="h-3 w-24" />
@@ -126,13 +126,13 @@ export function WeekSkeleton() {
 export function CalendarSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading calendar" className="space-y-4 px-4">
-      <div className="rounded-3xl border border-line bg-surface p-4">
+      <div className="glass rounded-[26px] p-4">
         <Skeleton className="mx-auto mb-4 h-5 w-36" />
         <div className="grid grid-cols-7 gap-1.5">
           {Array.from({ length: 35 }, (_, i) => <Skeleton key={i} className="aspect-square rounded-xl" />)}
         </div>
       </div>
-      <Skeleton className="h-28" />
+      <Skeleton className="h-28 rounded-[22px]" />
     </div>
   );
 }
@@ -141,8 +141,8 @@ export function SearchSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading" className="space-y-4">
       <div className="space-y-3 px-4">
-        <Skeleton className="h-12 rounded-2xl" />
-        <Skeleton className="h-10 rounded-2xl" />
+        <Skeleton className="h-12 rounded-[14px]" />
+        <Skeleton className="h-10 rounded-full" />
       </div>
       <CardListSkeleton rows={3} />
     </div>

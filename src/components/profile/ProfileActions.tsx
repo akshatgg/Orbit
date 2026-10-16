@@ -23,9 +23,9 @@ export function FollowToggle({ organiserId, name }: { organiserId: string; name:
           if (res.ok) setFollowing(next);
         })
       }
-      className={`h-8 shrink-0 rounded-full border px-3.5 text-xs font-semibold transition-colors ${
+      className={`h-8 shrink-0 rounded-full border px-3.5 text-xs font-semibold transition duration-200 motion-reduce:transition-none ${
         optimistic
-          ? "border-line bg-surface-2 text-fg hover:border-red-500/40 hover:text-red-300"
+          ? "border-white/10 bg-white/[0.07] text-fg hover:border-red-400/30 hover:text-red-300"
           : "border-transparent bg-gradient text-bg"
       }`}
     >
@@ -51,8 +51,8 @@ export function AttendedToggle({ eventId, attended }: { eventId: string; attende
       }
       className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold transition-colors ${
         optimistic
-          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-          : "border-line text-muted hover:border-violet/50 hover:text-fg"
+          ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+          : "border-white/10 bg-white/[0.04] text-muted hover:bg-white/[0.1] hover:text-fg"
       }`}
     >
       <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

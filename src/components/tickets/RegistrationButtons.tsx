@@ -28,7 +28,7 @@ export function CancelRegistrationButton({ eventId, eventTitle, status, classNam
         open={open}
         onClose={() => setOpen(false)}
         labelledBy="cancel-title"
-        title={<h2 id="cancel-title" className="font-display text-lg font-semibold">Cancel your {noun}?</h2>}
+        title={<h2 id="cancel-title" className="text-lg font-semibold tracking-tight">Cancel your {noun}?</h2>}
       >
         <p className="text-sm text-muted">
           You&apos;ll lose your place at <span className="text-fg">{eventTitle}</span>. If there&apos;s a waitlist, your spot goes to the next person.
@@ -78,7 +78,7 @@ export function CompletePaymentButton({ registrationId, full = true }: { registr
             if (!res.ok) setError(res.error);
           })
         }
-        className={buttonClass({ size: "lg", full, className: "glow" })}
+        className={buttonClass({ size: "lg", full, className: "" })}
       >
         <Icon name="card" /> {pending ? "Opening checkout…" : "Complete payment"}
       </button>

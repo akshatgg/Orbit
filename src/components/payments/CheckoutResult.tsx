@@ -24,23 +24,21 @@ export function CheckoutSuccess({
   return (
     <section className="relative mt-4 text-center" data-testid="checkout-success">
       {/* soft iridescent halo */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-10 mx-auto h-64 w-64 rounded-full bg-gradient opacity-25 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-10 mx-auto h-64 w-64 rounded-full bg-accent opacity-20 blur-3xl" />
 
-      <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient p-[3px] glow">
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-bg">
-          <span className="text-gradient font-display text-4xl font-bold" aria-hidden>
-            ✓
-          </span>
-        </div>
+      <div className="border-gradient glow relative mx-auto flex h-24 w-24 items-center justify-center rounded-full">
+        <svg viewBox="0 0 24 24" className="h-10 w-10 text-fg" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </svg>
       </div>
 
-      <p className="relative mt-6 text-xs font-semibold uppercase tracking-[0.3em] text-muted">Payment confirmed</p>
-      <h1 className="relative mt-2 font-display text-3xl font-semibold">
+      <p className="relative mt-6 font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-subtle">Payment confirmed</p>
+      <h1 className="relative mt-2 text-3xl font-semibold tracking-tight">
         <span className="text-gradient">You&apos;re in!</span>
       </h1>
 
-      <div className="border-gradient glow relative mt-6 space-y-3 rounded-2xl p-5 text-left">
-        <p className="font-display text-lg font-semibold leading-snug">{eventTitle}</p>
+      <div className="border-gradient relative mt-6 space-y-3 rounded-[24px] p-5 text-left">
+        <p className="text-lg font-semibold leading-snug tracking-tight">{eventTitle}</p>
         <dl className="space-y-1.5 text-sm">
           {when && <Row label="When">{when}</Row>}
           {where && <Row label="Where">{where}</Row>}
@@ -65,17 +63,17 @@ export function CheckoutSuccess({
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-muted">{label}</dt>
+      <dt className="text-subtle">{label}</dt>
       <dd className="text-right font-medium">{children}</dd>
     </div>
   );
 }
 
 const tones = {
-  neutral: "border-line text-muted",
-  info: "border-blue/40 text-blue",
-  warning: "border-orange/40 text-orange",
-  danger: "border-red-500/40 text-red-300",
+  neutral: "border-white/12 text-muted",
+  info: "border-blue/30 text-blue",
+  warning: "border-orange/30 text-orange",
+  danger: "border-red-400/30 text-red-300",
 } as const;
 
 const icons = { neutral: "i", info: "…", warning: "!", danger: "×" } as const;
@@ -93,14 +91,14 @@ export function CheckoutMessage({
   action?: ReactNode;
 }) {
   return (
-    <section className="mt-6 rounded-2xl border border-line bg-surface p-6 text-center" data-testid="checkout-message">
+    <section className="glass mt-6 rounded-[24px] p-6 text-center" data-testid="checkout-message">
       <span
         aria-hidden
-        className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full border bg-surface-2 font-display text-xl font-bold ${tones[tone]}`}
+        className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full border bg-white/[0.05] text-xl font-semibold ${tones[tone]}`}
       >
         {icons[tone]}
       </span>
-      <h1 className="mt-4 font-display text-xl font-semibold">{title}</h1>
+      <h1 className="mt-4 text-xl font-semibold tracking-tight">{title}</h1>
       <p className="mt-2 text-sm text-muted">{children}</p>
       {action && <div className="mt-6">{action}</div>}
     </section>

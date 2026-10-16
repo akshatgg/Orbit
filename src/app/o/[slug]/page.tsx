@@ -53,11 +53,12 @@ async function Content({ params }: { params: PageProps<"/o/[slug]">["params"] })
 
   return (
     <>
-      <header className="px-4 pb-6 pt-[max(env(safe-area-inset-top),2rem)]">
+      <header className="px-4 pb-6 pt-[max(env(safe-area-inset-top),1.5rem)]">
+       <div className="border-gradient rounded-[26px] p-5">
         <div className="flex items-start gap-4">
           <OrganiserLogo src={org.logo_url} name={org.name} size={80} />
           <div className="min-w-0 flex-1">
-            <h1 className="flex items-center gap-2 font-display text-2xl font-semibold leading-tight">
+            <h1 className="flex items-center gap-2 text-2xl font-semibold leading-tight tracking-tight">
               <span className="min-w-0 break-words">{org.name}</span> {org.is_verified && <VerifiedMark />}
             </h1>
             <p className="mt-1 text-sm text-muted">
@@ -65,7 +66,7 @@ async function Content({ params }: { params: PageProps<"/o/[slug]">["params"] })
               {org.university ? ` · ${org.university}` : ""}
             </p>
             {site && org.website && (
-              <a href={org.website} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-sm text-pink hover:text-fg">{site} ↗</a>
+              <a href={org.website} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-sm text-accent hover:text-fg">{site} ↗</a>
             )}
           </div>
         </div>
@@ -73,6 +74,7 @@ async function Content({ params }: { params: PageProps<"/o/[slug]">["params"] })
         <div className="mt-5">
           <FollowButton organiserId={org.id} slug={org.slug} signedIn={Boolean(user)} following={following} count={followers} />
         </div>
+       </div>
       </header>
 
       <div className="space-y-8 px-4">
@@ -88,9 +90,9 @@ function EventList({ title, events, empty, state }: {
 }) {
   return (
     <section aria-label={title}>
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-muted">{title}</h2>
+      <h2 className="mb-3 font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">{title}</h2>
       {events.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-sm text-muted">{empty}</p>
+        <p className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-4 py-8 text-center text-sm text-muted">{empty}</p>
       ) : (
         <div className="space-y-3">
           {events.map((e) => (
@@ -106,11 +108,11 @@ function PageSkeleton() {
   return (
     <div className="space-y-6 px-4 pt-8" aria-busy="true" aria-label="Loading">
       <div className="flex gap-4">
-        <Skeleton className="h-20 w-20 rounded-2xl" />
+        <Skeleton className="h-20 w-20 rounded-[20px]" />
         <div className="flex-1 space-y-2"><Skeleton className="h-7 w-48" /><Skeleton className="h-4 w-32" /></div>
       </div>
-      <Skeleton className="h-16" />
-      {[0, 1].map((i) => <Skeleton key={i} className="h-28" />)}
+      <Skeleton className="h-16 rounded-[22px]" />
+      {[0, 1].map((i) => <Skeleton key={i} className="h-28 rounded-[22px]" />)}
     </div>
   );
 }

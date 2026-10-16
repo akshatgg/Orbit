@@ -14,7 +14,7 @@ import { RegistrationBadge } from "@/components/events/RegistrationBadge";
 import { SaveButton } from "@/components/events/SaveButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, VerifiedMark } from "@/components/ui/Badge";
-import { ButtonLink } from "@/components/ui/Button";
+import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { EventActions } from "@/components/tickets/EventActions";
 import { BackButton, CalendarButton, ExternalRegisteredToggle, ShareButton, SignInToSave, ViewLogger } from "@/components/tickets/EventExtras";
 import { EventPageSkeleton } from "@/components/tickets/Skeletons";
@@ -103,16 +103,16 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
     <>
       {/* Cover */}
       <div className="relative">
-        <div className="aspect-[16/11] w-full overflow-hidden">
+        <div className="aspect-[4/3] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,#000_50%,transparent_100%)]">
           <EventCover src={event.cover_url} title={event.title} className={cancelled ? "grayscale" : ""} />
         </div>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-bg via-bg/30 to-bg/10" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent" aria-hidden />
         <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),1rem)]">
           <BackButton />
           <div className="flex items-center gap-2">
             <ShareButton eventId={event.id} title={event.title} text={event.summary} />
             {signedIn ? (
-              <SaveButton eventId={event.id} saved={data.saved} className="h-10 w-10 border-white/10 bg-bg/60 backdrop-blur-md" />
+              <SaveButton eventId={event.id} saved={data.saved} className="h-10 w-10" />
             ) : (
               <SignInToSave next={`/events/${event.id}`} />
             )}
@@ -120,7 +120,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         </div>
       </div>
 
-      <div className="relative -mt-14 space-y-6 px-4">
+      <div className="relative -mt-16 space-y-5 px-4">
         {/* Status banners */}
         {cancelled && (
           <Banner tone="danger" icon="x" title="This event has been cancelled">
@@ -141,7 +141,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
             <Badge>{FORMAT_LABELS[event.format as keyof typeof FORMAT_LABELS] ?? event.format}</Badge>
             {registration && isActiveStatus(registration.status) && <RegistrationBadge status={registration.status} />}
           </div>
-          <h1 className={`mt-3 font-display text-[28px] font-semibold leading-[1.15] tracking-tight ${cancelled ? "text-muted" : ""}`}>
+          <h1 className={`mt-3 text-[1.75rem] font-semibold leading-[1.15] tracking-tight ${cancelled ? "text-muted" : ""}`}>
             {event.title}
           </h1>
           {event.summary && <p className="mt-2 text-[15px] leading-relaxed text-muted">{event.summary}</p>}
@@ -151,11 +151,11 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         {event.organiser && (
           <Link
             href={`/o/${event.organiser.slug}`}
-            className="flex items-center gap-3 rounded-2xl border border-line bg-surface/70 p-3 transition-colors hover:border-violet/50"
+            className="glass flex items-center gap-3 rounded-[22px] p-3 transition duration-200 hover:bg-white/[0.08] motion-reduce:transition-none"
           >
             <Avatar src={event.organiser.logo_url} name={event.organiser.name} size={40} />
             <span className="min-w-0 flex-1">
-              <span className="block text-xs text-muted">Hosted by</span>
+              <span className="block text-xs text-subtle">Hosted by</span>
               <span className="flex items-center gap-1.5 truncate font-medium">
                 {event.organiser.name}
                 {event.organiser.is_verified && <VerifiedMark />}
@@ -166,7 +166,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         )}
 
         {/* Key facts */}
-        <section aria-label="Event details" className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+        <section aria-label="Event details" className="glass divide-y divide-white/[0.07] overflow-hidden rounded-[22px]">
           <InfoRow
             icon="calendar"
             title={formatLongDate(event.starts_at)}
@@ -174,7 +174,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
               ? `${formatTimeRange(event.starts_at, event.ends_at)} · UK time`
               : `${formatTimeRange(event.starts_at)} until ${formatEventDate(event.ends_at!)} · UK time`}
             action={!ended && !cancelled ? (
-              <CalendarButton eventId={event.id} googleUrl={googleUrl} className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-fg hover:border-violet/60">
+              <CalendarButton eventId={event.id} googleUrl={googleUrl} className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-fg transition-colors hover:bg-white/[0.12]">
                 Add to calendar
               </CalendarButton>
             ) : null}
@@ -185,7 +185,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
               title={event.venue_name ?? event.address!}
               sub={[event.venue_name ? event.address : null, event.city].filter(Boolean).join(" · ") || null}
               action={maps ? (
-                <a href={maps} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-full border border-line px-3 py-1.5 text-xs font-medium hover:border-violet/60">
+                <a href={maps} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/[0.12]">
                   Open in Maps
                 </a>
               ) : null}
@@ -213,10 +213,10 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
 
         {/* Your registration */}
         {usesTickets && registration && isActiveStatus(registration.status) && !cancelled && (
-          <section className="border-gradient glow rounded-2xl p-4" aria-labelledby="your-reg">
+          <section className="border-gradient glow rounded-[22px] p-4" aria-labelledby="your-reg">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 id="your-reg" className="font-display text-base font-semibold">{STATUS_COPY[registration.status].title}</h2>
+                <h2 id="your-reg" className="text-base font-semibold tracking-tight">{STATUS_COPY[registration.status].title}</h2>
                 <p className="mt-1 text-sm text-muted">
                   {registration.status === "pending" ? "Request sent — the organiser will review it." : STATUS_COPY[registration.status].body}
                 </p>
@@ -237,7 +237,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
 
         {/* External registration */}
         {event.registration_mode === "external" && !cancelled && !ended && (
-          <section className="flex items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-4">
+          <section className="glass flex items-center justify-between gap-4 rounded-[22px] p-4">
             <div className="min-w-0">
               <p className="text-sm font-medium">Did you register?</p>
               <p className="mt-0.5 text-xs text-muted">Registration happens on the organiser&apos;s site. Mark it here to keep track.</p>
@@ -248,7 +248,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
 
         {/* Guest-only details */}
         {privateInfo && !cancelled && (
-          <section className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-4" aria-labelledby="guest-info">
+          <section className="rounded-[22px] border border-emerald-400/20 bg-emerald-400/[0.06] p-4 backdrop-blur-xl" aria-labelledby="guest-info">
             <h2 id="guest-info" className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
               <Icon name="check" /> For guests
             </h2>
@@ -258,7 +258,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
                 href={safeHttpUrl(privateInfo.online_url)!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-fg px-4 py-3 text-sm font-semibold text-bg"
+                className={buttonClass({ full: true, className: "mt-3" })}
               >
                 <Icon name="video" /> Join online
               </a>
@@ -269,7 +269,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         {/* About */}
         {event.description && (
           <section aria-labelledby="about">
-            <h2 id="about" className="mb-3 font-display text-xs font-semibold uppercase tracking-[0.3em] text-muted">About</h2>
+            <h2 id="about" className="mb-3 font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">About</h2>
             <RichText text={event.description} />
           </section>
         )}
@@ -277,7 +277,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         {event.tags.length > 0 && (
           <ul className="flex flex-wrap gap-2" aria-label="Tags">
             {event.tags.map((t) => (
-              <li key={t} className="rounded-full border border-line bg-surface px-3 py-1 text-xs text-muted">#{t}</li>
+              <li key={t} className="glass rounded-full px-3 py-1 text-xs text-muted">#{t}</li>
             ))}
           </ul>
         )}
@@ -285,7 +285,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         {source && (
           <p className="text-xs text-muted">
             Listed from{" "}
-            <a href={source} target="_blank" rel="noopener noreferrer nofollow" className="text-fg underline underline-offset-2">
+            <a href={source} target="_blank" rel="noopener noreferrer nofollow" className="text-fg/90 underline decoration-white/30 underline-offset-2">
               {new URL(source).hostname}
             </a>
           </p>
@@ -324,7 +324,7 @@ function InfoRow({ icon, title, sub, action, tone }: {
 }) {
   return (
     <div className="flex items-center gap-3 p-3.5">
-      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line ${tone === "danger" ? "bg-red-500/10 text-red-300" : "bg-surface-2 text-pink"}`}>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border ${tone === "danger" ? "border-red-400/20 bg-red-500/10 text-red-300" : "border-white/10 bg-white/[0.06] text-accent"}`}>
         <Icon name={icon} className="h-[18px] w-[18px]" />
       </span>
       <div className="min-w-0 flex-1">
@@ -338,12 +338,12 @@ function InfoRow({ icon, title, sub, action, tone }: {
 
 function Banner({ tone, icon, title, children }: { tone: "danger" | "warning" | "neutral"; icon: IconName; title: string; children: ReactNode }) {
   const tones = {
-    danger: "border-red-500/40 bg-red-950/70 text-red-200",
-    warning: "border-orange/40 bg-[#2a1a08]/90 text-orange",
-    neutral: "border-line bg-surface-2/95 text-fg",
+    danger: "border-red-400/25 bg-red-500/10 text-red-200",
+    warning: "border-orange/25 bg-orange/10 text-orange",
+    neutral: "border-white/10 bg-white/[0.06] text-fg",
   } as const;
   return (
-    <div role="status" className={`flex gap-3 rounded-2xl border p-4 backdrop-blur-md ${tones[tone]}`}>
+    <div role="status" className={`flex gap-3 rounded-[22px] border p-4 backdrop-blur-xl ${tones[tone]}`}>
       <Icon name={icon} className="mt-0.5 h-5 w-5 shrink-0" />
       <div>
         <p className="font-semibold">{title}</p>
