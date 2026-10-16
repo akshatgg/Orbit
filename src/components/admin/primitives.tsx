@@ -86,7 +86,7 @@ export function CountTabs({ items, label }: { items: TabItem[]; label: string })
 export const table = {
   wrap: "glass max-h-[calc(100dvh-13rem)] overflow-auto rounded-[20px]",
   table: "w-full min-w-[720px] border-separate border-spacing-0 text-left text-sm",
-  th: "sticky top-0 z-[1] border-b border-line bg-bg/90 px-4 py-3 text-xs font-medium text-muted first:rounded-tl-[20px] last:rounded-tr-[20px]",
+  th: "sticky top-0 z-[1] border-b border-line bg-bg px-4 py-3 text-xs font-medium text-muted first:rounded-tl-[20px] last:rounded-tr-[20px]",
   tr: "group/row transition-colors hover:bg-ink/[0.035] [&>td]:border-b [&>td]:border-line/60 last:[&>td]:border-0",
   td: "px-4 py-3 align-middle tabular-nums",
 };
