@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Instrument_Sans } from "next/font/google";
 import Script from "next/script";
+import { INTRO_SCRIPT } from "@/components/intro/intro-script";
 import { InstallProvider } from "@/components/pwa/InstallProvider";
 import { INSTALL_CAPTURE_SCRIPT } from "@/components/pwa/install-store";
 import { THEME_COLORS, THEME_SCRIPT } from "@/components/theme/theme";
@@ -54,6 +55,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <InstallProvider>{children}</InstallProvider>
         {/* Sets data-theme from localStorage / the OS before first paint. */}
+        {/* Opening animation: decides and covers the page before first paint, then plays once per session. */}
+        <Script id="orbit-intro" strategy="beforeInteractive">
+          {INTRO_SCRIPT}
+        </Script>
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_SCRIPT}
         </Script>
