@@ -150,55 +150,90 @@ function ReviewCard({ org, justApplied }: { org: MyOrganiser; justApplied?: bool
     { label: "Approved", hint: "Create events, sell tickets and check guests in.", state: "next" },
   ] as const;
   return (
-    <section className="glass mx-auto w-full max-w-xl rounded-[24px] p-5 sm:p-7 lg:mx-0" aria-labelledby={`review-${org.id}`}>
-      <div className="flex items-center gap-3.5">
-        <OrganiserLogo src={org.logo_url} name={org.name} size={52} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-semibold tracking-tight">{org.name}</p>
-          <div className="mt-1"><OrganiserStatusBadge status={org.status} /></div>
+    <div className="mx-auto grid w-full max-w-xl gap-4 lg:max-w-none lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-6">
+      <section className="glass w-full rounded-[24px] p-5 sm:p-7" aria-labelledby={`review-${org.id}`}>
+        <div className="flex items-center gap-3.5">
+          <OrganiserLogo src={org.logo_url} name={org.name} size={52} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[15px] font-semibold tracking-tight">{org.name}</p>
+            <div className="mt-1"><OrganiserStatusBadge status={org.status} /></div>
+          </div>
         </div>
-      </div>
 
-      <h2 id={`review-${org.id}`} className="mt-6 text-xl font-semibold tracking-tight">
-        {justApplied ? "Thanks, your application is in" : "Your organisation is in review"}
-      </h2>
+        <h2 id={`review-${org.id}`} className="mt-6 text-xl font-semibold tracking-tight">
+          {justApplied ? "Thanks, your application is in" : "Your organisation is in review"}
+        </h2>
 
-      <ol className="mt-5" aria-label="Review progress">
-        {steps.map((st, i) => (
-          <li key={st.label} className="relative flex gap-3.5 pb-5 last:pb-0">
-            {i < steps.length - 1 && (
-              <span aria-hidden className={`absolute left-[11px] top-7 bottom-1 w-px ${st.state === "done" ? "bg-accent/60" : "bg-ink/10"}`} />
-            )}
-            <span
-              aria-hidden
-              className={`relative mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                st.state === "done"
-                  ? "bg-accent text-white"
-                  : st.state === "now"
-                    ? "border-2 border-accent bg-accent/10"
-                    : "border-2 border-ink/15"
-              }`}
-            >
-              {st.state === "done" ? "\u2713" : st.state === "now" ? <span className="h-2 w-2 animate-pulse rounded-full bg-accent motion-reduce:animate-none" /> : null}
+        <ol className="mt-5" aria-label="Review progress">
+          {steps.map((st, i) => (
+            <li key={st.label} className="relative flex gap-3.5 pb-5 last:pb-0">
+              {i < steps.length - 1 && (
+                <span aria-hidden className={`absolute left-[11px] top-7 bottom-1 w-px ${st.state === "done" ? "bg-accent/60" : "bg-ink/10"}`} />
+              )}
+              <span
+                aria-hidden
+                className={`relative mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                  st.state === "done"
+                    ? "bg-accent text-white"
+                    : st.state === "now"
+                      ? "border-2 border-accent bg-accent/10"
+                      : "border-2 border-ink/15"
+                }`}
+              >
+                {st.state === "done" ? "\u2713" : st.state === "now" ? <span className="h-2 w-2 animate-pulse rounded-full bg-accent motion-reduce:animate-none" /> : null}
+              </span>
+              <div className="min-w-0">
+                <p className={`text-sm font-semibold ${st.state === "next" ? "text-muted" : "text-fg"}`}>
+                  {st.label}
+                  {st.state === "now" && <span className="sr-only"> (current step)</span>}
+                </p>
+                <p className="mt-0.5 text-sm text-muted">{st.hint}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-6 border-t border-ink/[0.07] pt-5">
+          <p className="text-sm text-muted">While you wait, add a logo and description so students know who you are.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <ButtonLink href={`/organiser/settings?org=${org.id}`} variant="secondary" size="sm">Edit organisation profile</ButtonLink>
+            <ButtonLink href="/" variant="ghost" size="sm">Browse events</ButtonLink>
+          </div>
+        </div>
+      </section>
+      <ApprovedPreview />
+    </div>
+  );
+}
+
+const ORGANISER_TOOLS = [
+  { title: "Free or paid tickets", text: "Sell tickets with payouts straight to your account, or keep it free.", icon: "M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.5a2.5 2.5 0 0 0 0 5V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.5a2.5 2.5 0 0 0 0-5zm10-2v12" },
+  { title: "Applications", text: "Ask your own questions and approve who gets a place.", icon: "M8 4h8l3 3v13H5V4zM9 11h6M9 15h4" },
+  { title: "QR check-in", text: "Scan tickets at the door with your phone camera.", icon: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2" },
+  { title: "Guests and stats", text: "See who's coming, export the list and track page views.", icon: "M4 19V9M10 19V5M16 19v-7M20 19H3" },
+] as const;
+
+/** What organisers can do once approved: fills the laptop layout next to the review timeline. */
+function ApprovedPreview() {
+  return (
+    <section className="glass w-full rounded-[24px] p-5 sm:p-7" aria-labelledby="approved-preview">
+      <h2 id="approved-preview" className="text-base font-semibold tracking-tight">Once you&apos;re approved</h2>
+      <p className="mt-1 text-sm text-muted">Everything you need to run events on ORBIT.</p>
+      <ul className="mt-5 grid gap-4">
+        {ORGANISER_TOOLS.map((t) => (
+          <li key={t.title} className="flex gap-3.5">
+            <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d={t.icon} />
+              </svg>
             </span>
             <div className="min-w-0">
-              <p className={`text-sm font-semibold ${st.state === "next" ? "text-muted" : "text-fg"}`}>
-                {st.label}
-                {st.state === "now" && <span className="sr-only"> (current step)</span>}
-              </p>
-              <p className="mt-0.5 text-sm text-muted">{st.hint}</p>
+              <p className="text-sm font-semibold">{t.title}</p>
+              <p className="mt-0.5 text-sm text-muted">{t.text}</p>
             </div>
           </li>
         ))}
-      </ol>
-
-      <div className="mt-6 border-t border-ink/[0.07] pt-5">
-        <p className="text-sm text-muted">While you wait, add a logo and description so students know who you are.</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <ButtonLink href={`/organiser/settings?org=${org.id}`} variant="secondary" size="sm">Edit organisation profile</ButtonLink>
-          <ButtonLink href="/" variant="ghost" size="sm">Browse events</ButtonLink>
-        </div>
-      </div>
+      </ul>
     </section>
   );
 }
