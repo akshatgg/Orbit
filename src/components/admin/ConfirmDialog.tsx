@@ -53,17 +53,17 @@ export function ConfirmDialog({
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(e) => { if (e.target === ref.current && !pending) onClose(); }}
-      className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-2xl border border-line bg-[#101018] p-0 text-fg shadow-2xl backdrop:bg-bg/70 backdrop:backdrop-blur-sm"
+      className="glass-strong m-auto w-[min(28rem,calc(100vw-2rem))] rounded-[22px] p-0 text-fg backdrop:bg-black/50 backdrop:backdrop-blur-md"
     >
       <form
         method="dialog"
-        className="space-y-4 p-5"
+        className="space-y-4 p-6"
         onSubmit={(e) => {
           e.preventDefault();
           if (!needsReason && !pending) onConfirm(reason.trim());
         }}
       >
-        <h2 id={titleId} className="font-display text-lg font-semibold">{options.title}</h2>
+        <h2 id={titleId} className="text-lg font-semibold tracking-tight">{options.title}</h2>
         {options.body && <div className="text-sm text-muted">{options.body}</div>}
         {options.reason && (
           <div className="space-y-1.5">
@@ -85,7 +85,7 @@ export function ConfirmDialog({
         )}
         {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
         <div className="flex justify-end gap-2 pt-1">
-          <button type="button" onClick={onClose} disabled={pending} className={buttonClass({ variant: "ghost", size: "md" })}>
+          <button type="button" onClick={onClose} disabled={pending} className={buttonClass({ variant: "secondary", size: "md" })}>
             Cancel
           </button>
           <button

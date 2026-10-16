@@ -22,11 +22,11 @@ export function SourceForm({ source, organisers, categories }: {
   const canEnable = permission && note.trim().length > 0;
 
   return (
-    <form action={formAction} className="grid gap-8 lg:grid-cols-[1fr_22rem]">
+    <form action={formAction} className="grid gap-5 lg:grid-cols-[1fr_22rem]">
       <input type="hidden" name="id" value={source?.id ?? ""} />
 
-      <section className="space-y-5 rounded-2xl border border-line bg-surface p-6">
-        <h2 className="font-display text-base font-semibold">Feed</h2>
+      <section className="glass space-y-5 rounded-[20px] p-6">
+        <h2 className="text-base font-semibold tracking-tight">Feed</h2>
         <Field label="Name" htmlFor="name" required hint="Shown to admins, e.g. “Imperial Careers Service calendar”.">
           <Input id="name" name="name" required minLength={2} maxLength={80} defaultValue={source?.name ?? ""} />
         </Field>
@@ -56,8 +56,8 @@ export function SourceForm({ source, organisers, categories }: {
       </section>
 
       <aside className="space-y-5">
-        <section className="space-y-4 rounded-2xl border border-gradient bg-surface p-6">
-          <h2 className="font-display text-base font-semibold">Permission</h2>
+        <section className="glass space-y-4 rounded-[20px] p-6">
+          <h2 className="text-base font-semibold tracking-tight">Permission</h2>
           <p className="text-sm text-muted">
             ORBIT only uses feeds we&rsquo;re allowed to. No scraping — check the owner&rsquo;s terms or get written OK first.
           </p>
@@ -70,7 +70,7 @@ export function SourceForm({ source, organisers, categories }: {
                 setPermission(e.target.checked);
                 if (!e.target.checked) setEnabled(false);
               }}
-              className="mt-0.5 h-4 w-4 accent-[var(--color-violet)]"
+              className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
             />
             <span className="font-medium">We have permission to use this feed</span>
           </label>
@@ -89,7 +89,7 @@ export function SourceForm({ source, organisers, categories }: {
           </Field>
         </section>
 
-        <section className="space-y-3 rounded-2xl border border-line bg-surface p-6">
+        <section className="glass space-y-3 rounded-[20px] p-6">
           <label className={`flex items-start gap-3 text-sm ${canEnable ? "" : "opacity-60"}`}>
             <input
               type="checkbox"
@@ -97,7 +97,7 @@ export function SourceForm({ source, organisers, categories }: {
               checked={enabled && canEnable}
               disabled={!canEnable}
               onChange={(e) => setEnabled(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-[var(--color-violet)]"
+              className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
             />
             <span>
               <span className="font-medium">Enabled</span>

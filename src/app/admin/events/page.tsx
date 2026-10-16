@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "Events · Admin" };
 
 const PAGE_SIZE = 40;
 const STATUSES: EventStatus[] = ["published", "draft", "cancelled", "expired", "removed"];
-const selectClass = `${inputClass} w-auto py-2 pr-8`;
+const selectClass = `${inputClass} !w-auto py-2 pr-8`;
 
 type Row = Pick<
   OrbitEvent,
@@ -108,7 +108,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
     <>
       <AutoSubmitForm action="/admin/events" className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">
-          <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-subtle" />
           <label htmlFor="ev-q" className="sr-only">Search events by title</label>
           <input id="ev-q" name="q" defaultValue={f.q} placeholder="Search titles" className={`${inputClass} py-2 pl-9`} />
         </div>
@@ -134,11 +134,11 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
           <option value="">Any source</option>
           {sources.map((s) => <option key={s} value={s}>{sourceLabel(s)}</option>)}
         </select>
-        <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm text-muted has-checked:border-orange/50 has-checked:text-orange">
+        <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-[14px] border border-white/10 bg-white/[0.045] px-3.5 text-sm text-muted backdrop-blur-xl transition-colors hover:border-white/15 has-checked:border-orange/40 has-checked:bg-orange/10 has-checked:text-orange">
           <input type="checkbox" name="review" value="1" defaultChecked={!!f.review} className="accent-orange" />
           Needs review
         </label>
-        {filtered && <Link href="/admin/events" className="px-2 text-sm text-muted hover:text-fg">Reset</Link>}
+        {filtered && <Link href="/admin/events" className="px-2 text-sm text-muted transition-colors hover:text-fg">Reset</Link>}
         <button type="submit" className="sr-only">Apply filters</button>
       </AutoSubmitForm>
 
@@ -170,9 +170,9 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
                   const c = going.get(e.id);
                   return (
                     <tr key={e.id} className={`${table.tr} ${e.status === "removed" ? "opacity-60" : ""}`}>
-                      <td className={`${table.td} max-w-80`}>
-                        <Link href={`/events/${e.id}`} target="_blank" className="line-clamp-1 font-medium hover:underline">{e.title}</Link>
-                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                      <td className={`${table.td} min-w-52 max-w-80`}>
+                        <Link href={`/events/${e.id}`} target="_blank" className="line-clamp-1 font-medium transition-colors hover:text-accent">{e.title}</Link>
+                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-subtle">
                           {e.category?.name ?? "No category"}
                           {e.is_featured && <Badge tone="brand"><IconStar size={11} /> Featured</Badge>}
                           {e.needs_review && <Badge tone="warning"><IconFlag size={11} /> Needs review</Badge>}

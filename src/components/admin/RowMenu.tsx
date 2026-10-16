@@ -38,7 +38,7 @@ export function RowMenu({ children, label = "Actions" }: { children: ReactNode; 
         aria-label={label}
         title={label}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-muted transition-colors hover:border-line hover:bg-surface-2 hover:text-fg aria-expanded:border-line aria-expanded:bg-surface-2 aria-expanded:text-fg"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/[0.08] hover:text-fg aria-expanded:bg-white/[0.08] aria-expanded:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
         <IconDots size={18} />
       </button>
@@ -46,7 +46,7 @@ export function RowMenu({ children, label = "Actions" }: { children: ReactNode; 
         id={id}
         role="menu"
         onClick={() => setOpen(false)}
-        className={`${open ? "" : "hidden"} absolute right-0 z-30 mt-1 w-56 rounded-xl border border-line bg-surface p-1 shadow-2xl shadow-black/60`}
+        className={`${open ? "" : "hidden"} glass-strong absolute right-0 z-30 mt-1.5 w-56 rounded-2xl p-1.5`}
       >
         {children}
       </div>
@@ -61,7 +61,7 @@ export function MenuLink({ href, children, external }: { href: string; children:
       href={href}
       role="menuitem"
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
-      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-fg transition-colors hover:bg-surface-2"
+      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-fg transition-colors hover:bg-white/[0.08]"
     >
       {children}
     </a>

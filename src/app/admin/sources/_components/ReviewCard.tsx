@@ -10,26 +10,26 @@ const when = (iso: string) =>
 function Side({ heading, event, label }: { heading: string; event: ReviewEvent | null; label: (s: string) => string }) {
   if (!event) {
     return (
-      <div className="rounded-xl border border-dashed border-line p-4 text-sm text-muted">
-        <p className="text-xs font-medium uppercase tracking-wide">{heading}</p>
+      <div className="rounded-2xl border border-dashed border-white/12 bg-white/[0.02] p-4 text-sm text-muted">
+        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-subtle">{heading}</p>
         <p className="mt-2">This event is no longer available.</p>
       </div>
     );
   }
   const url = event.source_url ?? event.external_url;
   return (
-    <div className="space-y-2 rounded-xl border border-line bg-surface-2 p-4 text-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">{heading}</p>
-      <p className="font-display text-base font-semibold">{event.title}</p>
+    <div className="space-y-2.5 rounded-2xl border border-line bg-white/[0.03] p-4 text-sm">
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-subtle">{heading}</p>
+      <p className="text-base font-semibold tracking-tight">{event.title}</p>
       <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-1 text-xs">
-        <dt className="text-muted">Starts</dt><dd>{when(event.starts_at)}</dd>
-        {event.ends_at && (<><dt className="text-muted">Ends</dt><dd>{when(event.ends_at)}</dd></>)}
-        <dt className="text-muted">Where</dt>
+        <dt className="text-subtle">Starts</dt><dd>{when(event.starts_at)}</dd>
+        {event.ends_at && (<><dt className="text-subtle">Ends</dt><dd>{when(event.ends_at)}</dd></>)}
+        <dt className="text-subtle">Where</dt>
         <dd>{[event.venue_name, event.address].filter(Boolean).join(", ") || FORMAT_LABELS[event.format as keyof typeof FORMAT_LABELS] || event.format}</dd>
-        <dt className="text-muted">Organiser</dt><dd>{event.organiser?.name ?? "—"}</dd>
-        <dt className="text-muted">Source</dt><dd>{label(event.source)}</dd>
-        <dt className="text-muted">Status</dt><dd>{event.status}</dd>
-        {url && (<><dt className="text-muted">Link</dt><dd className="break-all"><a href={url} target="_blank" rel="noreferrer" className="text-blue hover:underline">{url}</a></dd></>)}
+        <dt className="text-subtle">Organiser</dt><dd>{event.organiser?.name ?? "—"}</dd>
+        <dt className="text-subtle">Source</dt><dd>{label(event.source)}</dd>
+        <dt className="text-subtle">Status</dt><dd>{event.status}</dd>
+        {url && (<><dt className="text-subtle">Link</dt><dd className="break-all"><a href={url} target="_blank" rel="noreferrer" className="text-accent transition-colors hover:underline">{url}</a></dd></>)}
       </dl>
       {(event.summary ?? event.description) && (
         <p className="line-clamp-3 text-xs text-muted">{event.summary ?? event.description}</p>
@@ -53,7 +53,7 @@ export function ReviewCard({ item, label, resolve, resolved = false }: {
   const { event, original, reason } = item;
   const r = REASONS[reason];
   return (
-    <article className="space-y-4 rounded-2xl border border-line bg-surface p-5">
+    <article className="glass space-y-4 rounded-[20px] p-6">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={resolved ? "neutral" : r.tone}>{resolved ? "Kept hidden" : r.text}</Badge>
         {reason === "missing" && (
