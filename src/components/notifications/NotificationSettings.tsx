@@ -12,6 +12,7 @@ import {
   unsubscribeThisDevice,
   type PushSupport,
 } from "./push-client";
+import { Switch } from "@/components/ui/Switch";
 
 type Notice = { tone: "ok" | "error" | "info"; text: string } | null;
 type DeviceState = {
@@ -294,25 +295,13 @@ function Toggle({ label, hint, checked, disabled, onChange }: {
         <p id={`${id}-label`} className="text-sm font-medium text-fg">{label}</p>
         <p id={`${id}-hint`} className="text-xs text-muted">{hint}</p>
       </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
+      <Switch
+        checked={checked}
         aria-labelledby={`${id}-label`}
         aria-describedby={`${id}-hint`}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-          checked ? "border-transparent bg-gradient" : "border-ink/10 bg-ink/[0.08]"
-        }`}
-      >
-        <span
-          aria-hidden
-          className={`inline-block h-4.5 w-4.5 rounded-full shadow transition-transform ${
-            checked ? "translate-x-[22px] bg-bg" : "translate-x-[3px] bg-muted"
-          }`}
-        />
-      </button>
+      />
     </div>
   );
 }
