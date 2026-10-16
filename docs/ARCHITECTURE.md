@@ -8,7 +8,7 @@ Read this before changing code. Product scope lives in `docs/orbit-product-notes
   This is NOT the Next.js you know — read `node_modules/next/dist/docs/` when unsure.
   Middleware is called **`proxy.ts`** (`src/proxy.ts`).
 - **Tailwind CSS 4** (tokens in `src/app/globals.css`).
-- **Supabase**: Postgres + Auth + Storage. Local dev runs in Docker (`npm run db:start`).
+- **Supabase**: Postgres + Auth + Storage (buckets kept as the image-upload fallback; images normally live on Cloudinary). Local dev runs in Docker (`npm run db:start`).
 - **PWA**: `src/app/manifest.ts` + `public/sw.js`.
 - Tests: **Vitest** (`npm test`) for pure logic in `src/**/*.test.ts`.
 
@@ -85,7 +85,9 @@ async function Content({ searchParams }: { searchParams: PageProps<"/example">["
   `logInteraction`.
 - `src/lib/calendar`: `googleCalendarUrl`, `buildIcs`. `src/lib/format.ts`: dates (UK time), prices.
 - `src/lib/taxonomy.ts`: interests, formats, organiser kinds, weekdays, day parts.
-- `src/lib/storage.ts`: `uploadImage("event-covers" | "organiser-logos", file)` (client-side).
+- `src/lib/storage.ts`: `uploadImage("event-covers" | "organiser-logos", file)` (client-side). Gets a signature from
+  `POST /api/uploads/sign` and uploads straight to Cloudinary (`orbit/<kind>/<user id>/…`); falls back to Supabase
+  Storage when Cloudinary env vars are missing. `src/lib/cloudinary.ts`: `signParams`, `cloudinaryUrl` (f_auto/q_auto delivery).
 
 ## Database (see `supabase/migrations/`)
 
