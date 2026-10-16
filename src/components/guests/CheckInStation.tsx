@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { checkInByCode, checkInRegistration, undoCheckIn } from "@/app/organiser/events/[id]/actions";
+import { checkInByCode, checkInRegistration, undoCheckIn } from "@/app/(main)/organiser/events/[id]/actions";
 import { matchesQuery } from "@/lib/guests/filter";
 import { createScanHandler, describeOutcome, type ResultView, type ScanOutcome } from "@/lib/guests/scan";
 import type { Guest } from "@/lib/guests/types";

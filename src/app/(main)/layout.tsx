@@ -9,7 +9,7 @@ import type { Metadata } from "next";
 // Signed-in screens: nothing here is for search engines (signed-out "/" is the public landing page).
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
-/** Student-facing screens with the bottom tab bar. Pages guard themselves with requireProfile(). */
+/** Tabbed screens (For You, Explore, Tickets, Profile, Studio) share this shell, so the top and tab bars stay mounted between tabs. Pages guard themselves. */
 export default function MainLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="lg:pl-64">

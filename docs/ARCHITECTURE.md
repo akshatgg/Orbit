@@ -164,9 +164,9 @@ shared component, build it inside your own folder.
 | onboarding-profile | `src/app/onboarding/**`, `src/app/(main)/profile/**`, `src/lib/profile/**`, `src/components/profile/**` |
 | discovery | `src/app/(main)/page.tsx`, `src/app/(main)/week/**`, `src/app/(main)/calendar/**`, `src/app/(main)/search/**`, `src/lib/ranking/**`, `src/lib/discovery/**`, `src/components/discovery/**` |
 | event-tickets | `src/app/events/**`, `src/app/go/**`, `src/app/(main)/tickets/**`, `src/lib/tickets/**`, `src/components/tickets/**` |
-| organiser-studio | `src/app/organiser/page.tsx`, `src/app/organiser/apply/**`, `src/app/organiser/settings/page.tsx` (+ new non-payments subroutes), `src/app/organiser/events/new/**`, `src/app/organiser/events/[id]/edit/**`, `src/app/o/**`, `src/lib/organiser/**`, `src/components/organiser/**` |
-| organiser-guests | `src/app/organiser/events/[id]/page.tsx`, `…/[id]/guests/**`, `…/[id]/check-in/**`, `…/[id]/actions.ts`, `src/lib/guests/**`, `src/components/guests/**` |
-| payments | `src/app/organiser/settings/payments/**`, `src/app/api/stripe/**`, `src/app/checkout/**`, `src/lib/payments/**`, `src/components/payments/**` |
+| organiser-studio | `src/app/(main)/organiser/page.tsx`, `src/app/(main)/organiser/apply/**`, `src/app/(main)/organiser/settings/page.tsx` (+ new non-payments subroutes), `src/app/(main)/organiser/events/new/**`, `src/app/(main)/organiser/events/[id]/edit/**`, `src/app/o/**`, `src/lib/organiser/**`, `src/components/organiser/**` |
+| organiser-guests | `src/app/(main)/organiser/events/[id]/page.tsx`, `…/[id]/guests/**`, `…/[id]/check-in/**`, `…/[id]/actions.ts`, `src/lib/guests/**`, `src/components/guests/**` |
+| payments | `src/app/(main)/organiser/settings/payments/**`, `src/app/api/stripe/**`, `src/app/checkout/**`, `src/lib/payments/**`, `src/components/payments/**` |
 | admin | `src/app/admin/**` (except `sources`), `src/lib/admin/**`, `src/components/admin/**` |
 | notifications | `src/lib/notifications/**`, `src/components/notifications/**`, `src/app/api/push/**`, `src/app/api/cron/reminders/**`, `public/sw.js` push handlers |
 | event-sources | `src/app/admin/sources/**`, `src/app/api/cron/refresh-sources/**`, `src/lib/sources/**` |
