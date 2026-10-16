@@ -2,22 +2,20 @@ import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/Button";
-import { ChipGroup } from "@/components/ui/ChipGroup";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { RankedCard } from "@/components/discovery/Cards";
+import { FilterBar } from "@/components/discovery/FilterBar";
 import { DiscoveryHeader, SearchSkeleton, SectionHeading } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
 import {
-  activeFilterChips, activeFilterCount, clearFiltersHref, DATE_PRESETS, isSearching, parseSearchFilters,
-  PRICE_OPTIONS, searchHref, SORT_OPTIONS, type SearchFilters,
+  clearFiltersHref, isSearching, parseSearchFilters, searchHref, SORT_OPTIONS, toSearchParams, type SearchFilters,
 } from "@/lib/discovery/filters";
 import {
   countUpcomingByCategory, getViewer, listHappeningSoon, searchEvents, type RankedEvent, type Viewer,
 } from "@/lib/discovery/queries";
 import { listCategories } from "@/lib/events/queries";
-import { CAREER_INTERESTS, EVENT_FORMATS } from "@/lib/taxonomy";
 
 export const metadata: Metadata = { title: "Explore" };
 
@@ -41,14 +39,15 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
   const categories = (await listCategories()) as Category[];
   const now = new Date();
   const searching = isSearching(filters);
-  const count = activeFilterCount(filters);
-  const names = new Map(categories.map((c) => [c.slug, c.name]));
 
   return (
     <div className="space-y-6">
-      <FilterForm filters={filters} categories={categories} open={count > 0} count={count} />
+      <div className="space-y-3">
+        <SearchBox filters={filters} />
+        <FilterBar filters={filters} categories={categories.map((c) => ({ value: c.slug, label: c.name }))} />
+      </div>
       {searching ? (
-        <Results filters={filters} viewer={viewer} categories={categories} now={now} names={names} />
+        <Results filters={filters} viewer={viewer} categories={categories} now={now} />
       ) : (
         <Browse viewer={viewer} categories={categories} now={now} />
       )}
@@ -56,12 +55,11 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
   );
 }
 
-function FilterForm({ filters, categories, open, count }: {
-  filters: SearchFilters; categories: Category[]; open: boolean; count: number;
-}) {
-  const label = "mb-2.5 block font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-subtle";
+function SearchBox({ filters }: { filters: SearchFilters }) {
+  // Hidden inputs keep the active filters when the search text is submitted.
+  const hidden = [...toSearchParams({ ...filters, q: "" }).entries()];
   return (
-    <form action="/search" method="get" className="space-y-3 px-4" role="search">
+    <form action="/search" method="get" className="px-4" role="search">
       <div className="flex gap-2">
         <Input
           type="search"
@@ -73,81 +71,17 @@ function FilterForm({ filters, categories, open, count }: {
         />
         <SubmitButton size="lg">Search</SubmitButton>
       </div>
-
-      <details open={open} className="glass group overflow-hidden rounded-[22px]">
-        <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3.5 text-sm font-medium transition-colors hover:bg-white/[0.03] [&::-webkit-details-marker]:hidden">
-          <span>
-            Filters
-            {count > 0 && <span className="ml-2 rounded-full bg-gradient px-2 py-0.5 text-[11px] font-semibold text-bg">{count}</span>}
-          </span>
-          <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 text-muted transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-        </summary>
-        <div className="space-y-5 border-t border-white/[0.07] bg-white/[0.02] px-4 py-5">
-          <fieldset>
-            <legend className={label}>When</legend>
-            <ChipGroup name="date" multiple={false} options={DATE_PRESETS} defaultValue={filters.date ? [filters.date] : []} />
-          </fieldset>
-          <fieldset>
-            <legend className={label}>Category</legend>
-            <ChipGroup
-              name="category"
-              options={categories.map((c) => ({ value: c.slug, label: c.name }))}
-              defaultValue={filters.categories}
-            />
-          </fieldset>
-          <fieldset>
-            <legend className={label}>Career interest</legend>
-            <ChipGroup name="interest" options={[...CAREER_INTERESTS]} defaultValue={filters.interests} />
-          </fieldset>
-          <fieldset>
-            <legend className={label}>Format</legend>
-            <ChipGroup name="format" options={[...EVENT_FORMATS]} defaultValue={filters.formats} />
-          </fieldset>
-          <fieldset>
-            <legend className={label}>Price</legend>
-            <ChipGroup name="price" multiple={false} options={[...PRICE_OPTIONS]} defaultValue={filters.price ? [filters.price] : []} />
-          </fieldset>
-          <div>
-            <label htmlFor="location" className={label}>Location</label>
-            <Input id="location" name="location" defaultValue={filters.location} placeholder="e.g. South Kensington" maxLength={60} />
-          </div>
-          <fieldset>
-            <legend className={label}>Sort by</legend>
-            <ChipGroup name="sort" multiple={false} options={[...SORT_OPTIONS]} defaultValue={[filters.sort]} />
-          </fieldset>
-          <div className="flex items-center justify-between gap-3">
-            <Link href={clearFiltersHref(filters)} className="text-sm text-muted hover:text-fg">Clear filters</Link>
-            <SubmitButton>Show results</SubmitButton>
-          </div>
-        </div>
-      </details>
+      {hidden.map(([k, v], i) => <input key={`${k}${i}`} type="hidden" name={k} value={v} />)}
     </form>
   );
 }
 
-async function Results({ filters, viewer, categories, now, names }: {
-  filters: SearchFilters; viewer: Viewer; categories: Category[]; now: Date; names: ReadonlyMap<string, string>;
+async function Results({ filters, viewer, categories, now }: {
+  filters: SearchFilters; viewer: Viewer; categories: Category[]; now: Date;
 }) {
   const { results, truncated } = await searchEvents(filters, viewer, categories, now);
-  const chips = activeFilterChips(filters, names);
   return (
     <>
-      {chips.length > 0 && (
-        <ul className="flex flex-wrap gap-2 px-4" aria-label="Active filters">
-          {chips.map((c) => (
-            <li key={c.key}>
-              <Link
-                href={c.href}
-                aria-label={`Remove filter ${c.label}`}
-                className="glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors hover:bg-white/[0.09]"
-              >
-                {c.label} <span aria-hidden className="text-muted">✕</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-
       <section aria-labelledby="results">
         <SectionHeading
           id="results"
