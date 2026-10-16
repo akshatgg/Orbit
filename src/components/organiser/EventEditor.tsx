@@ -215,32 +215,36 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
         </aside>
       </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-        <div className="glass-strong pointer-events-auto mx-auto max-w-3xl space-y-2 rounded-[24px] p-2.5 lg:max-w-5xl">
-          {notice && (
-            <p role={notice.tone === "error" ? "alert" : "status"} className={`px-2 pt-1 text-xs ${notice.tone === "error" ? "text-red-300" : "text-emerald-300"}`}>
-              {notice.text}
-            </p>
-          )}
-          <div className="flex items-center gap-2">
-            {stepIndex > 0 ? (
-              <Button type="button" variant="ghost" onClick={() => goTo(EDITOR_STEPS[stepIndex - 1].id)}>Back</Button>
-            ) : (
-              <Link href={`/organiser?org=${organiser.id}`} className="rounded-full px-4 py-2 text-sm text-muted transition-colors hover:bg-ink/[0.06] hover:text-fg">Close</Link>
+      {/* Same column as the page (main layout: max-w-3xl / lg:max-w-6xl with px), and from lg up it starts
+          after the 16rem sidebar instead of running under it. */}
+      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-20 pb-[max(env(safe-area-inset-bottom),0.75rem)] lg:left-64">
+        <div className="mx-auto max-w-3xl px-3 md:px-6 lg:max-w-6xl lg:px-10">
+          <div className="glass-strong pointer-events-auto space-y-2 rounded-[24px] p-2.5">
+            {notice && (
+              <p role={notice.tone === "error" ? "alert" : "status"} className={`px-2 pt-1 text-xs ${notice.tone === "error" ? "text-red-300" : "text-emerald-300"}`}>
+                {notice.text}
+              </p>
             )}
-            <div className="ml-auto flex gap-2">
-              {!live && (
-                <Button type="button" variant="secondary" onClick={() => save("draft")} disabled={busy}>
-                  {busy ? "Saving…" : "Save draft"}
-                </Button>
-              )}
-              {lastStep ? (
-                <Button type="button" onClick={() => save("publish")} disabled={busy || publishIssues.length > 0}>
-                  {busy ? "Saving…" : live ? "Save changes" : "Publish"}
-                </Button>
+            <div className="flex items-center gap-2">
+              {stepIndex > 0 ? (
+                <Button type="button" variant="ghost" onClick={() => goTo(EDITOR_STEPS[stepIndex - 1].id)}>Back</Button>
               ) : (
-                <Button type="button" onClick={next}>Next</Button>
+                <Link href={`/organiser?org=${organiser.id}`} className="rounded-full px-4 py-2 text-sm text-muted transition-colors hover:bg-ink/[0.06] hover:text-fg">Close</Link>
               )}
+              <div className="ml-auto flex gap-2">
+                {!live && (
+                  <Button type="button" variant="secondary" onClick={() => save("draft")} disabled={busy}>
+                    {busy ? "Saving…" : "Save draft"}
+                  </Button>
+                )}
+                {lastStep ? (
+                  <Button type="button" onClick={() => save("publish")} disabled={busy || publishIssues.length > 0}>
+                    {busy ? "Saving…" : live ? "Save changes" : "Publish"}
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={next}>Next</Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
