@@ -5,7 +5,7 @@ export const GOALS = [
   { value: "career", emoji: "💼", title: "Find career events", hint: "Employer sessions, fairs, workshops" },
   { value: "network", emoji: "🤝", title: "Grow my network", hint: "Panels, mixers, founders and alumni" },
   { value: "social", emoji: "🎉", title: "Meet people", hint: "Socials, sport and society nights" },
-  { value: "host", emoji: "🚀", title: "Host events", hint: "Tickets, guest lists and check-in" },
+  { value: "host", emoji: "🚀", title: "Host events", hint: "For my society, team or company" },
 ] as const;
 
 export type Goal = (typeof GOALS)[number]["value"];

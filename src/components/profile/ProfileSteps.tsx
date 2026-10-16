@@ -93,7 +93,7 @@ export function GoalsStep({ draft, update, errors }: StepProps) {
           selected={draft.goals.includes(g.value)}
           onClick={() => toggle(g.value)}
           emoji={g.emoji}
-          title={g.value === "host" ? "Host events for my society, team or company" : g.title}
+          title={g.title}
           hint={g.hint}
         />
       ))}
