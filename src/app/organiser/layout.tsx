@@ -1,10 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+
 /** Organiser studio shell: a slim floating glass top bar. Pages check membership themselves. */
 export default function OrganiserLayout({ children }: LayoutProps<"/organiser">) {
   return (
-    <div className="mx-auto min-h-dvh max-w-3xl pb-20">
+    <div className="mx-auto min-h-dvh max-w-3xl pb-20 md:px-2 lg:max-w-6xl lg:px-6">
       <div className="sticky top-0 z-20 px-3 pt-[max(env(safe-area-inset-top),0.5rem)]">
         <header className="glass-strong flex h-12 items-center justify-between rounded-full pl-3 pr-1.5">
           <Link href="/organiser" className="flex items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">

@@ -80,10 +80,16 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
         </p>
       )}
 
-      <StatTiles stats={stats} mode={event.registration_mode} />
-      {stats.capacity && <CapacityBar capacity={stats.capacity} />}
-      <RegistrationsChart days={stats.byDay} />
-      <StatusBreakdown stats={stats} eventId={id} />
+      <div className="space-y-5 lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-6 lg:space-y-0">
+        <div className="space-y-5 lg:space-y-5">
+          <StatTiles stats={stats} mode={event.registration_mode} />
+          {stats.capacity && <CapacityBar capacity={stats.capacity} />}
+        </div>
+        <div className="space-y-5">
+          <RegistrationsChart days={stats.byDay} />
+          <StatusBreakdown stats={stats} eventId={id} />
+        </div>
+      </div>
     </>
   );
 }

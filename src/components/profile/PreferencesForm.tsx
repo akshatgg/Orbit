@@ -71,6 +71,7 @@ export function PreferencesForm({ initial, categories }: { initial: ProfileDraft
       }}
       className="space-y-4 px-4"
     >
+      <div className="space-y-4 lg:columns-2 lg:gap-x-4 lg:space-y-0 lg:[&>*]:mb-4 lg:[&>*]:break-inside-avoid">
       <Section title="How you use ORBIT">
         <GoalsStep {...props} />
         {hasHostGoal(draft.goals) && (
@@ -97,8 +98,9 @@ export function PreferencesForm({ initial, categories }: { initial: ProfileDraft
       <Section title="When you're free">
         <AvailabilityStep {...props} />
       </Section>
+      </div>
 
-      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] z-10 -mx-4 bg-linear-to-t from-bg via-bg/95 to-transparent px-4 pb-2 pt-6">
+      <div className="sticky bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] z-10 lg:bottom-0 -mx-4 bg-linear-to-t from-bg via-bg/95 to-transparent px-4 pb-2 pt-6">
         <div aria-live="polite" className="min-h-5 pb-2 text-center text-sm">
           {status && <span className={status.ok ? "text-emerald-300" : "text-red-300"}>{status.text}</span>}
         </div>

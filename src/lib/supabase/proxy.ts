@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "./env";
 
 // Reachable without signing in. Event and organiser pages are public so they can be shared.
-const PUBLIC_PATHS = ["/login", "/auth", "/offline", "/events/", "/o/", "/go/", "/api/cron/", "/api/stripe/webhook"];
+const PUBLIC_PATHS = ["/welcome", "/robots.txt", "/sitemap.xml", "/opengraph-image", "/twitter-image", "/login", "/auth", "/offline", "/events/", "/o/", "/go/", "/api/cron/", "/api/stripe/webhook"];
 
 /** Refreshes the Supabase session cookie and sends signed-out users to /login. */
 export async function updateSession(request: NextRequest) {
@@ -35,6 +35,13 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  // Signed-out visitors get the public landing page at "/" (served from /welcome, URL unchanged).
+  if (!data?.claims && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/welcome";
+    return NextResponse.rewrite(url, { request });
+  }
 
   if (!data?.claims && !isPublic) {
     const url = request.nextUrl.clone();

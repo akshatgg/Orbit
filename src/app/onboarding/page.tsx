@@ -9,11 +9,11 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { OnboardingWizard } from "@/components/profile/OnboardingWizard";
 import type { CategoryOption } from "@/components/profile/ProfileSteps";
 
-export const metadata: Metadata = { title: "Welcome" };
+export const metadata: Metadata = { title: "Welcome", robots: { index: false, follow: false } };
 
 export default function OnboardingPage({ searchParams }: PageProps<"/onboarding">) {
   return (
-    <div className="mx-auto min-h-dvh max-w-md">
+    <div className="mx-auto min-h-dvh max-w-md md:flex md:max-w-2xl md:items-center md:px-6 md:py-10">
       <Suspense fallback={<WelcomeSkeleton />}>
         <Onboarding searchParams={searchParams} />
       </Suspense>

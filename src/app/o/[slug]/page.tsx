@@ -11,6 +11,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { getMyEventState } from "@/lib/events/queries";
 import { groupOrganiserEvents } from "@/lib/organiser/dashboard";
 import { getFollowerCount, getOrganiserBySlug, isFollowing, listPublicOrganiserEvents } from "@/lib/organiser/queries";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { buildOrganisationJsonLd } from "@/lib/seo/jsonld";
+import { absoluteUrl } from "@/lib/seo/site";
 import { labelFor, ORGANISER_KINDS } from "@/lib/taxonomy";
 
 export async function generateMetadata({ params }: PageProps<"/o/[slug]">): Promise<Metadata> {
@@ -18,11 +21,20 @@ export async function generateMetadata({ params }: PageProps<"/o/[slug]">): Prom
   const { slug } = await params;
   const org = await getOrganiserBySlug(slug);
   if (!org || org.status !== "approved") return { title: "Organiser not found" };
-  const description = org.bio?.slice(0, 160) || `Events from ${org.name} on ORBIT.`;
+  const description = org.bio?.replace(/\s+/g, " ").trim().slice(0, 160) || `Career, networking and social events from ${org.name} on ORBIT.`;
   return {
     title: org.name,
     description,
-    openGraph: { title: `${org.name} on ORBIT`, description, images: org.logo_url ? [org.logo_url] : undefined },
+    alternates: { canonical: absoluteUrl(`/o/${org.slug}`) },
+    openGraph: {
+      type: "profile",
+      siteName: "ORBIT",
+      title: `${org.name} on ORBIT`,
+      description,
+      url: absoluteUrl(`/o/${org.slug}`),
+      images: [org.logo_url ?? "/opengraph-image"],
+    },
+    twitter: { card: org.logo_url ? "summary" : "summary_large_image", images: [org.logo_url ?? "/twitter-image"], title: `${org.name} on ORBIT`, description },
   };
 }
 
@@ -53,6 +65,7 @@ async function Content({ params }: { params: PageProps<"/o/[slug]">["params"] })
 
   return (
     <>
+      <JsonLd data={buildOrganisationJsonLd(org)} />
       <header className="px-4 pb-6 pt-[max(env(safe-area-inset-top),1.5rem)]">
        <div className="border-gradient rounded-[26px] p-5">
         <div className="flex items-start gap-4">

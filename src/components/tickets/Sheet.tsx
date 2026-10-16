@@ -30,9 +30,9 @@ export function Sheet({ open, onClose, title, children, labelledBy }: {
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[90dvh] w-full max-w-md overflow-visible bg-transparent p-0 text-fg backdrop:bg-black/60 backdrop:backdrop-blur-sm open:translate-y-0 open:opacity-100 starting:open:translate-y-8 starting:open:opacity-0 transition-[translate,opacity] duration-300 ease-out"
+      className="fixed inset-x-0 bottom-0 top-auto m-0 mx-auto max-h-[90dvh] w-full max-w-md overflow-visible bg-transparent md:inset-y-0 md:my-auto md:h-fit md:max-w-lg p-0 text-fg backdrop:bg-black/60 backdrop:backdrop-blur-sm open:translate-y-0 open:opacity-100 starting:open:translate-y-8 starting:open:opacity-0 transition-[translate,opacity] duration-300 ease-out"
     >
-      <div className="glass-strong relative flex max-h-[90dvh] flex-col overflow-hidden rounded-t-[28px] border-b-0 bg-[rgb(18_18_26/0.78)]">
+      <div className="glass-strong relative flex max-h-[90dvh] flex-col overflow-hidden rounded-t-[28px] border-b-0 md:rounded-[28px] md:border-b bg-[rgb(18_18_26/0.78)]">
         <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" aria-hidden />
         <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-3">
           <span className="mx-auto h-1 w-10 rounded-full bg-white/20" aria-hidden />

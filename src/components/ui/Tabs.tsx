@@ -8,7 +8,7 @@ export function Tabs({ items }: { items: { href: string; label: string; prefix?:
   const pathname = usePathname();
   const active = items.findIndex(({ href, prefix }) => (prefix ? pathname.startsWith(href) : pathname === href));
   return (
-    <nav className="glass relative mx-4 mb-4 grid rounded-full p-1" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+    <nav className="glass relative mx-4 mb-4 grid rounded-full p-1 md:max-w-sm" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
       {active >= 0 && (
         <span
           aria-hidden

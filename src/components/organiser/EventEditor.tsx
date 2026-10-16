@@ -10,7 +10,7 @@ import { cancelEvent, deleteDraftEvent, saveEvent } from "@/lib/organiser/event-
 import { EDITOR_STEPS, validateEventForm, type EventIssue, type StepId } from "@/lib/organiser/schemas";
 import { BasicsStep, type CategoryOption } from "./editor/BasicsStep";
 import { RegistrationStep } from "./editor/RegistrationStep";
-import { ReviewStep } from "./editor/ReviewStep";
+import { PreviewCard, ReviewStep } from "./editor/ReviewStep";
 import { TicketsStep } from "./editor/TicketsStep";
 import { WhenStep } from "./editor/WhenStep";
 
@@ -173,7 +173,8 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
         })}
       </nav>
 
-      <div className="px-4 pb-40">
+      <div className="px-4 pb-40 lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-10">
+        <div className="min-w-0">
         {step === "basics" && <BasicsStep {...stepProps} categories={categories} />}
         {step === "when" && <WhenStep {...stepProps} />}
         {step === "registration" && <RegistrationStep {...stepProps} />}
@@ -206,10 +207,16 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
             )}
           </>
         )}
+        </div>
+        <aside aria-label="Live preview" className="sticky top-20 hidden lg:block">
+          <p className="mb-3 font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">Live preview</p>
+          <PreviewCard form={form} organiser={organiser} stacked />
+          <p className="mt-3 text-xs text-muted">This is how your event appears in the feed. It updates as you type.</p>
+        </aside>
       </div>
 
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-20 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-        <div className="glass-strong pointer-events-auto mx-auto max-w-3xl space-y-2 rounded-[24px] p-2.5">
+        <div className="glass-strong pointer-events-auto mx-auto max-w-3xl space-y-2 rounded-[24px] p-2.5 lg:max-w-5xl">
           {notice && (
             <p role={notice.tone === "error" ? "alert" : "status"} className={`px-2 pt-1 text-xs ${notice.tone === "error" ? "text-red-300" : "text-emerald-300"}`}>
               {notice.text}

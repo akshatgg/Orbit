@@ -10,7 +10,7 @@ import { londonLocalToUtcIso } from "@/lib/organiser/time";
 import { StepIntro } from "./fields";
 
 /** Same look as the event card guests see (EventCard itself is server-only because of its query helpers). */
-function PreviewCard({ form, organiser }: { form: EventForm; organiser: { name: string; is_verified: boolean } }) {
+export function PreviewCard({ form, organiser, stacked = false }: { form: EventForm; organiser: { name: string; is_verified: boolean }; stacked?: boolean }) {
   const start = londonLocalToUtcIso(form.starts_at);
   const prices = usesTickets(form.registration)
     ? ticketPriceRange(form.tickets.map((t) => Number(t.price || 0)))
@@ -22,8 +22,8 @@ function PreviewCard({ form, organiser }: { form: EventForm; organiser: { name: 
 
   return (
     <article className="glass overflow-hidden rounded-[22px]">
-      <div className="flex gap-3 p-3">
-        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10">
+      <div className={stacked ? "flex flex-col gap-3 p-3" : "flex gap-3 p-3"}>
+        <div className={`shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 ${stacked ? "aspect-[16/10] w-full" : "h-24 w-24"}`}>
           <EventCover src={form.cover_url || null} title={form.title || "Your event"} />
         </div>
         <div className="min-w-0 flex-1">

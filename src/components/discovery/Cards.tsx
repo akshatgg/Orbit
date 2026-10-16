@@ -16,6 +16,8 @@ type CardProps = {
   reason?: string | null;
   /** Show "Not interested" (needs a surrounding <DismissProvider>). */
   dismissible?: boolean;
+  /** Cover-on-top layout from md up, for grids. */
+  tile?: boolean;
 };
 
 /** The ✦ sparkle used in front of every "Recommended because…" line. */
@@ -27,11 +29,11 @@ export function Sparkle({ className = "" }: { className?: string }) {
  * EventCard with a roomier footer: the "Recommended because…" line can wrap to two lines
  * and sits next to the "Not interested" action.
  */
-export function RankedCard({ event, counts, saved, registration, reason, dismissible }: CardProps) {
+export function RankedCard({ event, counts, saved, registration, reason, dismissible, tile }: CardProps) {
   const footer = reason || dismissible;
   return (
-    <div className="glass overflow-hidden rounded-[22px] transition duration-200 ease-out hover:border-white/15 motion-reduce:transition-none [&>article]:rounded-none [&>article]:border-0 [&>article]:bg-transparent [&>article]:shadow-none [&>article]:backdrop-blur-none [&>article]:hover:translate-y-0 [&>article]:hover:bg-white/[0.04]">
-      <EventCard event={event} counts={counts} saved={saved} registration={registration} />
+    <div className={`glass overflow-hidden rounded-[22px] ${tile ? "md:flex md:h-full md:flex-col md:[&>article]:flex-1" : ""} transition duration-200 ease-out hover:border-white/15 motion-reduce:transition-none [&>article]:rounded-none [&>article]:border-0 [&>article]:bg-transparent [&>article]:shadow-none [&>article]:backdrop-blur-none [&>article]:hover:translate-y-0 [&>article]:hover:bg-white/[0.04]`}>
+      <EventCard event={event} counts={counts} saved={saved} registration={registration} tile={tile} />
       {footer && (
         <div className="flex items-center gap-2 border-t border-white/[0.07] py-2 pl-3.5 pr-2">
           <p className="line-clamp-2 min-w-0 flex-1 text-xs leading-relaxed text-muted">
@@ -72,17 +74,17 @@ function MetaBadges({ event, counts }: { event: EventCardData; counts?: EventCou
 export function TopPickCard({ event, counts, saved, reason, dismissible }: CardProps) {
   return (
     <article className="border-gradient glow group relative overflow-hidden rounded-[26px]">
-      <Link href={`/events/${event.id}`} className="block focus-visible:outline-none">
-        <div className="relative aspect-[16/10] overflow-hidden">
+      <Link href={`/events/${event.id}`} className="block focus-visible:outline-none lg:grid lg:grid-cols-[1.25fr_1fr]">
+        <div className="relative aspect-[16/10] overflow-hidden md:aspect-[21/9] lg:aspect-auto lg:min-h-[340px]">
           <EventCover src={event.cover_url} title={event.title} className="transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[rgb(17_17_25)] via-[rgb(17_17_25)]/25 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgb(17_17_25)] via-[rgb(17_17_25)]/25 to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-[rgb(17_17_25)]/90" />
           <span className="glass absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-fg/90">
             <Sparkle /> Top pick
           </span>
         </div>
-        <div className="relative -mt-12 space-y-2 px-4 pb-4">
+        <div className="relative -mt-12 space-y-2 px-4 pb-4 lg:mt-0 lg:flex lg:flex-col lg:justify-center lg:space-y-3 lg:p-10">
           <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}</p>
-          <h2 className="text-[1.35rem] font-semibold leading-snug tracking-tight">{event.title}</h2>
+          <h2 className="text-[1.35rem] font-semibold leading-snug tracking-tight lg:text-3xl">{event.title}</h2>
           {event.organiser && (
             <p className="flex items-center gap-1 text-sm text-muted">
               {event.organiser.name}

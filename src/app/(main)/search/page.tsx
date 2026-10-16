@@ -59,7 +59,7 @@ function SearchBox({ filters }: { filters: SearchFilters }) {
   // Hidden inputs keep the active filters when the search text is submitted.
   const hidden = [...toSearchParams({ ...filters, q: "" }).entries()];
   return (
-    <form action="/search" method="get" className="px-4" role="search">
+    <form action="/search" method="get" className="px-4 md:max-w-2xl" role="search">
       <div className="flex gap-2">
         <Input
           type="search"
@@ -97,7 +97,7 @@ async function Results({ filters, viewer, categories, now }: {
             Try a different word, widen the dates, or remove a filter.
           </EmptyState>
         ) : (
-          <ul className="space-y-3 px-4">
+          <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
             {results.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
           </ul>
         )}
@@ -118,6 +118,7 @@ function ResultItem({ r, viewer }: { r: RankedEvent; viewer: Viewer }) {
         saved={viewer.state.saved.has(r.event.id)}
         registration={viewer.state.registrations.get(r.event.id)}
         reason={r.reason}
+        tile
       />
     </li>
   );
@@ -130,7 +131,7 @@ async function Browse({ viewer, categories, now }: { viewer: Viewer; categories:
     <>
       <section aria-labelledby="by-category">
         <SectionHeading id="by-category" eyebrow="Browse" title="By category" />
-        <ul className="grid grid-cols-2 gap-2 px-4">
+        <ul className="grid grid-cols-2 gap-2 px-4 md:grid-cols-3 md:gap-3 lg:grid-cols-4">
           {categories.map((c) => (
             <li key={c.id}>
               <Link
@@ -150,7 +151,7 @@ async function Browse({ viewer, categories, now }: { viewer: Viewer; categories:
         {soon.length === 0 ? (
           <p className="px-4 text-sm text-muted">Nothing coming up in the next two weeks.</p>
         ) : (
-          <ul className="space-y-3 px-4">
+          <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
             {soon.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
           </ul>
         )}
