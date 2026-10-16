@@ -1,6 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+
 /** Organiser studio shell: a slim floating glass top bar. Pages check membership themselves. */
 export default function OrganiserLayout({ children }: LayoutProps<"/organiser">) {
   return (

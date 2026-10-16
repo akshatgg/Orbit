@@ -6,7 +6,11 @@ import { DevLogin } from "./DevLogin";
 import { HostDoor } from "./HostDoor";
 import { LoginForm } from "./LoginForm";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = {
+  title: "Sign in",
+  description: "Sign in to ORBIT to get career, networking and social events picked for you.",
+  alternates: { canonical: "/login" },
+};
 
 const VALUES = [
   { title: "Picked for you", body: "A feed ranked by your goals, interests and the week you actually have." },

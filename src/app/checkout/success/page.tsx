@@ -12,7 +12,7 @@ import { checkoutOutcome } from "@/lib/payments/logic";
 import { getStripe } from "@/lib/payments/stripe";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Payment" };
+export const metadata: Metadata = { title: "Payment", robots: { index: false, follow: false } };
 
 type SearchParams = PageProps<"/checkout/success">["searchParams"];
 
