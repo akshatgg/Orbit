@@ -8,7 +8,7 @@ import { RegistrationBadge } from "@/components/events/RegistrationBadge";
 import { EventCover } from "@/components/events/EventCover";
 import { TicketsSkeleton } from "@/components/tickets/Skeletons";
 import { Icon } from "@/components/tickets/icons";
-import { requireProfile } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { formatEventDate } from "@/lib/format";
 import { splitTickets } from "@/lib/tickets/logic";
 import { listMyTickets, type TicketRow } from "@/lib/tickets/queries";
@@ -27,9 +27,10 @@ export default function Page({ searchParams }: PageProps<"/tickets">) {
 }
 
 async function Content({ searchParams }: { searchParams: PageProps<"/tickets">["searchParams"] }) {
-  const profile = await requireProfile();
+  // Signed in is enough: someone can register for a first event before finishing setup.
+  const user = await requireUser();
   const { tab } = await searchParams;
-  const { upcoming, past } = splitTickets(await listMyTickets(profile.id));
+  const { upcoming, past } = splitTickets(await listMyTickets(user.id));
   const showPast = tab === "past";
   const rows = showPast ? past : upcoming;
 

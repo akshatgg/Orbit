@@ -17,6 +17,7 @@ import {
   type TicketOption,
 } from "@/lib/tickets/logic";
 import { RegistrationBadge } from "@/components/events/RegistrationBadge";
+import { SetupNudge } from "@/components/profile/SetupNudge";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { inputClass } from "@/components/ui/Field";
 import { CompletePaymentButton } from "./RegistrationButtons";
@@ -30,6 +31,8 @@ type Props = {
   dateLabel: string;
   cta: CtaState;
   signedIn: boolean;
+  /** Finished profile setup. When false, the success screen nudges them to do it. */
+  onboarded: boolean;
   tickets: TicketOption[];
   questions: Question[];
   requiresApproval: boolean;
@@ -172,7 +175,7 @@ export function EventActions(props: Props) {
         }
       >
         {state?.ok ? (
-          <RegisterResult state={state} onDone={() => setOpen(false)} />
+          <RegisterResult state={state} onDone={() => setOpen(false)} onboarded={props.onboarded} />
         ) : (
           <RegisterForm {...props} state={state} pending={pending} onSubmit={submit} />
         )}
@@ -387,7 +390,7 @@ const RESULT_ICON: Record<RegistrationStatus, IconName> = {
   cancelled: "info",
 };
 
-function RegisterResult({ state, onDone }: { state: Extract<RegisterState, { ok: true }>; onDone: () => void }) {
+function RegisterResult({ state, onDone, onboarded }: { state: Extract<RegisterState, { ok: true }>; onDone: () => void; onboarded: boolean }) {
   const copy = STATUS_COPY[state.status];
   const going = state.status === "going";
   const title =
@@ -415,6 +418,8 @@ function RegisterResult({ state, onDone }: { state: Extract<RegisterState, { ok:
           {state.paymentError}
         </p>
       )}
+
+      {!onboarded && <SetupNudge next={`/tickets/${state.registrationId}`} className="mt-5 w-full text-left" />}
 
       <div className="mt-6 grid w-full gap-2">
         {state.status === "awaiting_payment" && !state.paymentError && <CompletePaymentButton registrationId={state.registrationId} />}

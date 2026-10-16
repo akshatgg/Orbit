@@ -43,6 +43,12 @@ export function renderEmail(message: Message, appUrl: string): RenderedEmail {
   const ctaUrl = absoluteUrl(m.cta.url, appUrl);
   const settingsUrl = absoluteUrl("/profile", appUrl);
 
+  const footerHtml = m.footer
+    ? esc(m.footer)
+    : `You're getting this because of an event you saved or registered for on ORBIT.
+          <a href="${esc(settingsUrl)}" style="color:${C.violet};">Manage reminders</a>`;
+  const footerText = m.footer ?? `You're getting this because of an event you saved or registered for on ORBIT. Manage reminders: ${settingsUrl}`;
+
   const paragraphs = m.paragraphs
     .map((p) => `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:${C.muted};">${p}</p>`)
     .join("");
@@ -90,8 +96,7 @@ export function renderEmail(message: Message, appUrl: string): RenderedEmail {
       </td></tr>
       <tr><td style="padding:16px 24px 24px;border-top:1px solid ${C.line};">
         <p style="margin:0;font-size:12px;line-height:1.6;color:${C.muted};">
-          You're getting this because of an event you saved or registered for on ORBIT.
-          <a href="${esc(settingsUrl)}" style="color:${C.violet};">Manage reminders</a>
+          ${footerHtml}
         </p>
       </td></tr>
     </table>
@@ -111,7 +116,7 @@ export function renderEmail(message: Message, appUrl: string): RenderedEmail {
     `${m.cta.label}: ${ctaUrl}`,
     "",
     "--",
-    `You're getting this because of an event you saved or registered for on ORBIT. Manage reminders: ${settingsUrl}`,
+    footerText,
   ].join("\n");
 
   return { subject: m.subject, html, text };

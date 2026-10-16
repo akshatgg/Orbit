@@ -40,8 +40,13 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/organiser
     <div className="space-y-6 px-4">
       {params.applied && (
         <Banner tone="brand">
-          <strong className="font-semibold text-fg">Application sent.</strong> We&apos;ll review it soon — you&apos;ll see the
-          status change here once you&apos;re approved.
+          <strong className="font-semibold text-fg">Application sent.</strong> Your organisation is under review.
+          We&apos;ll email you when it&apos;s approved.
+        </Banner>
+      )}
+      {params.joined && (
+        <Banner tone="success">
+          <strong className="font-semibold text-fg">You&apos;ve joined the team.</strong> You can now create and manage events.
         </Banner>
       )}
       {typeof params.published === "string" && (
@@ -68,9 +73,8 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/organiser
         </>
       ) : (
         others.length > 0 && (
-          <p className="text-center text-sm text-muted">
-            Once an organiser is approved you can create events here.{" "}
-            <Link href="/organiser/apply" className="text-pink hover:text-fg">Apply for another</Link>
+          <p className="text-center text-xs text-subtle">
+            Events can be created once an organisation is approved.
           </p>
         )
       )}
@@ -105,8 +109,8 @@ function NoOrganiser() {
 }
 
 function ApplicationCard({ org }: { org: MyOrganiser }) {
+  if (org.status === "pending") return <ReviewCard org={org} />;
   const copy: Record<string, string> = {
-    pending: "Thanks for applying! The ORBIT team reviews new organisers once — usually within a day or two. You can create events as soon as you're approved.",
     rejected: "Your application wasn't approved this time.",
     suspended: "This organiser is suspended, so its events are hidden. Contact the ORBIT team if you think this is a mistake.",
   };
@@ -126,10 +130,63 @@ function ApplicationCard({ org }: { org: MyOrganiser }) {
           </p>
         )}
         <Link href={`/organiser/settings?org=${org.id}`} className="mt-2.5 inline-block text-sm font-medium text-pink hover:text-fg">
-          {org.status === "pending" ? "Polish your profile while you wait →" : "Edit profile →"}
+          Edit profile →
         </Link>
+        {org.status === "rejected" && (
+          <Link href="/organiser/apply" className="mt-2.5 ml-4 inline-block text-sm font-medium text-pink hover:text-fg">
+            Apply again →
+          </Link>
+        )}
       </div>
     </Card>
+  );
+}
+
+/** Pending organisations: the only thing Studio shows until an admin approves. */
+function ReviewCard({ org }: { org: MyOrganiser }) {
+  const steps = [
+    { label: "Submitted", state: "done" },
+    { label: "In review", state: "now" },
+    { label: "Approved", state: "next" },
+  ] as const;
+  return (
+    <section className="border-gradient glow relative overflow-hidden rounded-3xl p-5" aria-labelledby={`review-${org.id}`}>
+      <div className="bg-gradient pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full opacity-20 blur-3xl" aria-hidden />
+      <div className="relative flex items-center gap-3.5">
+        <OrganiserLogo src={org.logo_url} name={org.name} size={52} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display font-semibold">{org.name}</p>
+          <OrganiserStatusBadge status={org.status} />
+        </div>
+      </div>
+      <h2 id={`review-${org.id}`} className="relative mt-5 text-[1.35rem] font-semibold leading-snug">
+        Your organisation is under review.
+      </h2>
+      <p className="relative mt-1.5 text-sm text-muted">We&apos;ll email you when it&apos;s approved.</p>
+
+      <ol className="relative mt-5 grid grid-cols-3 gap-2" aria-label="Review progress">
+        {steps.map((st) => (
+          <li key={st.label} className="text-center">
+            <span
+              aria-hidden
+              className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+                st.state === "done" ? "bg-gradient text-bg" : st.state === "now" ? "border border-accent/60 text-accent" : "border border-white/10 text-subtle"
+              }`}
+            >
+              {st.state === "done" ? "✓" : st.state === "now" ? <span className="h-2 w-2 animate-pulse rounded-full bg-accent motion-reduce:animate-none" /> : "·"}
+            </span>
+            <span className={`mt-1.5 block text-[11px] ${st.state === "next" ? "text-subtle" : "text-fg/90"}`}>{st.label}</span>
+          </li>
+        ))}
+      </ol>
+
+      <p className="relative mt-5 rounded-2xl border border-line bg-surface px-4 py-3 text-xs leading-relaxed text-muted">
+        Until then you can&apos;t create events, not even drafts. Reviews usually take a day or two.{" "}
+        <Link href={`/organiser/settings?org=${org.id}`} className="font-medium text-pink hover:text-fg">
+          Polish your profile while you wait →
+        </Link>
+      </p>
+    </section>
   );
 }
 

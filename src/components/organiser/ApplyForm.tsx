@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { ORGANISER_KINDS, UNIVERSITIES } from "@/lib/taxonomy";
 import { applyAsOrganiser, checkSlugAvailable, type FormState } from "@/lib/organiser/org-actions";
 import { isValidSlug, slugify } from "@/lib/organiser/slug";
@@ -10,10 +10,12 @@ import { ImageUpload } from "./ImageUpload";
 
 type SlugCheck = "idle" | "checking" | "available" | "taken" | "invalid";
 
-export function ApplyForm({ defaultEmail, defaultUniversity }: { defaultEmail: string; defaultUniversity: string }) {
+export function ApplyForm({ defaultEmail, defaultUniversity, defaultName = "", submitLabel = "Send application", after }: {
+  defaultEmail: string; defaultUniversity: string; defaultName?: string; submitLabel?: string; after?: ReactNode;
+}) {
   const [state, action] = useActionState<FormState, FormData>(applyAsOrganiser, null);
   const [v, setV] = useState({
-    name: "", slug: "", kind: "society", university: defaultUniversity, bio: "", website: "",
+    name: defaultName, slug: defaultName ? slugify(defaultName) : "", kind: "society", university: defaultUniversity, bio: "", website: "",
     contact_email: defaultEmail, logo_url: "",
   });
   const [slugEdited, setSlugEdited] = useState(false);
@@ -102,7 +104,7 @@ export function ApplyForm({ defaultEmail, defaultUniversity }: { defaultEmail: s
         </datalist>
       </Field>
 
-      <Field label="About you" htmlFor="bio" hint="What kind of events do you run, and who are they for?" error={err("bio")}>
+      <Field label="About the organisation" htmlFor="bio" hint="What kind of events do you run, and who are they for?" error={err("bio")}>
         <Textarea id="bio" name="bio" maxLength={1000} rows={4} value={v.bio} onChange={(e) => set("bio")(e.target.value)} />
       </Field>
 
@@ -120,8 +122,9 @@ export function ApplyForm({ defaultEmail, defaultUniversity }: { defaultEmail: s
       <div className="space-y-3 pt-2">
         <FormMessage state={state} />
         <SubmitButton size="lg" full className="glow" pendingText="Sending application…" disabled={check === "taken" || check === "checking"}>
-          Send application
+          {submitLabel}
         </SubmitButton>
+        {after}
       </div>
     </form>
   );

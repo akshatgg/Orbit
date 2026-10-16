@@ -65,6 +65,16 @@ where id in (
   '00000000-0000-4000-8000-000000000008'
 );
 
+-- Sign-up goals and "which describes you" for the demo accounts (Nina stays un-onboarded with none).
+update public.profiles set goals = array['career', 'social'], user_type = 'student'
+where id in ('00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000007', '00000000-0000-4000-8000-000000000008');
+update public.profiles set goals = array['host', 'career'], user_type = 'student', host_role = 'Society president'
+where id = '00000000-0000-4000-8000-000000000005';
+update public.profiles set goals = array['host'], user_type = 'student', host_role = 'Society president'
+where id = '00000000-0000-4000-8000-000000000006';
+update public.profiles set goals = array['career', 'network'], user_type = 'professional', job_title = 'Platform lead'
+where id in ('00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002');
+
 -- ─── Organisers ─────────────────────────────────────────────
 insert into public.organisers (id, slug, name, kind, bio, website, contact_email, university, status, is_verified, created_by, reviewed_at) values
   ('10000000-0000-4000-8000-000000000001', 'imperial-consulting-society', 'Imperial Consulting Society', 'society',

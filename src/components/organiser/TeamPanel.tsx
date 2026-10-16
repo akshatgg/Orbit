@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Field, FormMessage, Input, Select } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { addTeamMember, removeTeamMember, type FormState } from "@/lib/organiser/org-actions";
-import type { TeamMember } from "@/lib/organiser/queries";
+import { addTeamMember, createTeamInvite, removeTeamMember, revokeTeamInvite, type FormState } from "@/lib/organiser/org-actions";
+import { inviteSummary, inviteUrl, isInviteActive } from "@/lib/organiser/invites";
+import type { TeamInvite, TeamMember } from "@/lib/organiser/queries";
 
-export function TeamPanel({ organiserId, members, isOwner, currentUserId }: {
-  organiserId: string; members: TeamMember[]; isOwner: boolean; currentUserId: string;
+export function TeamPanel({ organiserId, members, isOwner, currentUserId, approved, invites }: {
+  organiserId: string; members: TeamMember[]; isOwner: boolean; currentUserId: string; approved: boolean; invites: TeamInvite[];
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -51,6 +52,8 @@ export function TeamPanel({ organiserId, members, isOwner, currentUserId }: {
       </ul>
       {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
 
+      {isOwner && <InviteLinks organiserId={organiserId} approved={approved} invites={invites} />}
+
       {isOwner ? (
         <form ref={formRef} action={action} className="space-y-3 rounded-2xl border border-line bg-surface/50 p-4" noValidate>
           <input type="hidden" name="organiser_id" value={organiserId} />
@@ -73,6 +76,80 @@ export function TeamPanel({ organiserId, members, isOwner, currentUserId }: {
       ) : (
         <p className="text-xs text-muted">Only owners can add or remove team members.</p>
       )}
+    </div>
+  );
+}
+
+/** Owner-only: share a link so teammates can join as editors. Unlocks once the organisation is approved. */
+function InviteLinks({ organiserId, approved, invites }: { organiserId: string; approved: boolean; invites: TeamInvite[] }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const active = invites.filter((i) => isInviteActive({ ...i, org_status: "approved" }));
+
+  async function copy(code: string) {
+    const url = inviteUrl(window.location.origin, code);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(code);
+      setTimeout(() => setCopied((c) => (c === code ? null : c)), 2000);
+    } catch {
+      window.prompt("Copy this invite link", url);
+    }
+  }
+
+  function create() {
+    start(async () => {
+      const r = await createTeamInvite(organiserId);
+      if (!r.ok) return setError(r.error);
+      setError(null);
+      router.refresh();
+      void copy(r.code);
+    });
+  }
+
+  function revoke(id: string) {
+    start(async () => {
+      const r = await revokeTeamInvite(id);
+      if (!r.ok) return setError(r.error);
+      setError(null);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-line bg-surface/50 p-4">
+      <div>
+        <p className="text-sm font-medium">Invite link</p>
+        <p className="mt-0.5 text-xs text-muted">
+          {approved
+            ? "Anyone signed in who opens the link can join your team as an editor. Links last 14 days."
+            : "Invite links unlock once your organisation is approved."}
+        </p>
+      </div>
+
+      {approved && active.length > 0 && (
+        <ul className="divide-y divide-line rounded-xl border border-line" aria-label="Active invite links">
+          {active.map((i) => (
+            <li key={i.id} className="flex items-center gap-2 px-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-mono text-xs text-fg/90">/join/{i.code}</p>
+                <p className="text-[11px] text-muted">{inviteSummary(i)}</p>
+              </div>
+              <Button type="button" variant="secondary" size="sm" onClick={() => copy(i.code)}>
+                {copied === i.code ? "Copied" : "Copy link"}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" disabled={pending} onClick={() => revoke(i.id)}>Turn off</Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
+      <Button type="button" variant="secondary" disabled={!approved || pending} aria-busy={pending} onClick={create}>
+        {pending ? "Working…" : active.length ? "Create another link" : "Create invite link"}
+      </Button>
     </div>
   );
 }

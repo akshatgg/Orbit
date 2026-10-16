@@ -12,6 +12,7 @@ import { Toaster } from "@/components/admin/Toaster";
 import { RemoveAdminButton, VerifyStudentButton } from "@/components/admin/UserActions";
 import { isSuperAdmin, requireAdmin } from "@/lib/auth";
 import { sanitiseSearch } from "@/lib/admin/labels";
+import { USER_TYPE_FILTERS, describeUser, parseTypeFilter, typeFilterClause } from "@/lib/admin/users";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database";
 
@@ -19,8 +20,8 @@ export const metadata: Metadata = { title: "Users · Admin" };
 
 const PAGE_SIZE = 25;
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" });
-const COLS = "id, email, full_name, avatar_url, university, course, role, is_verified_student, onboarded_at, created_at";
-type Row = Pick<Profile, "id" | "email" | "full_name" | "avatar_url" | "university" | "course" | "role" | "is_verified_student" | "onboarded_at" | "created_at">;
+const COLS = "id, email, full_name, avatar_url, university, course, role, is_verified_student, onboarded_at, created_at, user_type, goals";
+type Row = Pick<Profile, "id" | "email" | "full_name" | "avatar_url" | "university" | "course" | "role" | "is_verified_student" | "onboarded_at" | "created_at" | "user_type" | "goals">;
 
 export default function Page({ searchParams }: PageProps<"/admin/users">) {
   return (
@@ -40,12 +41,16 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
   const sp = await searchParams;
   const q = sanitiseSearch(typeof sp.q === "string" ? sp.q : "");
   const only = sp.only === "unverified" ? "unverified" : sp.only === "verified" ? "verified" : "";
+  const type = parseTypeFilter(sp.type);
   const page = Math.max(1, Number.parseInt(typeof sp.page === "string" ? sp.page : "", 10) || 1);
   const supabase = await createClient();
 
   let query = supabase.from("profiles").select(COLS, { count: "exact" });
   if (q) query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%,university.ilike.%${q}%,course.ilike.%${q}%`);
   if (only) query = query.eq("is_verified_student", only === "verified");
+  const typeClause = typeFilterClause(type);
+  if (typeClause) query = query.or(typeClause);
+  if (type === "host") query = query.contains("goals", ["host"]);
   query = query.order("created_at", { ascending: false }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
   const [{ data, count, error }, { data: admins }] = await Promise.all([
@@ -89,15 +94,24 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Form action="/admin/users" className="relative min-w-56 flex-1">
             {only && <input type="hidden" name="only" value={only} />}
+            {type && <input type="hidden" name="type" value={type} />}
             <IconSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <label htmlFor="user-q" className="sr-only">Search users</label>
             <input id="user-q" name="q" defaultValue={q} placeholder="Search name, email, university, course" className={`${inputClass} py-2 pl-9`} />
           </Form>
           <nav aria-label="Filter" className="flex gap-1 rounded-xl border border-line bg-surface p-1 text-sm">
             {([["", "All"], ["verified", "Verified"], ["unverified", "Not verified"]] as const).map(([v, label]) => (
-              <Link key={v} href={hrefWith("/admin/users", { q, only: v })} aria-current={only === v ? "page" : undefined}
+              <Link key={v} href={hrefWith("/admin/users", { q, only: v, type })} aria-current={only === v ? "page" : undefined}
                 className={`rounded-lg px-3 py-1.5 ${only === v ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"}`}>
                 {label}
+              </Link>
+            ))}
+          </nav>
+          <nav aria-label="User type" className="flex flex-wrap gap-1 rounded-xl border border-line bg-surface p-1 text-sm">
+            {USER_TYPE_FILTERS.map((f) => (
+              <Link key={f.value} href={hrefWith("/admin/users", { q, only, type: f.value })} aria-current={type === f.value ? "page" : undefined}
+                className={`rounded-lg px-3 py-1.5 ${type === f.value ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"}`}>
+                {f.label}
               </Link>
             ))}
           </nav>
@@ -112,6 +126,8 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
                 <thead>
                   <tr>
                     <th className={table.th}>User</th>
+                    <th className={table.th}>Type</th>
+                    <th className={table.th}>Goals</th>
                     <th className={table.th}>University / course</th>
                     <th className={table.th}>Role</th>
                     <th className={table.th}>Onboarded</th>
@@ -131,6 +147,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
                           </span>
                         </span>
                       </td>
+                      <TypeCells user={u} />
                       <td className={`${table.td} text-muted`}>
                         {[u.university, u.course].filter(Boolean).join(" · ") || "—"}
                       </td>
@@ -151,10 +168,28 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
               </table>
             </div>
             <Pagination page={page} pageCount={Math.ceil(total / PAGE_SIZE)} total={total} noun="user"
-              hrefFor={(p) => hrefWith("/admin/users", { q, only, page: p })} />
+              hrefFor={(p) => hrefWith("/admin/users", { q, only, type, page: p })} />
           </>
         )}
       </section>
     </div>
+  );
+}
+
+function TypeCells({ user }: { user: Row }) {
+  const d = describeUser(user);
+  return (
+    <>
+      <td className={`${table.td} whitespace-nowrap`}>
+        {user.onboarded_at || user.user_type ? d.typeLabel : <span className="text-muted">—</span>}
+      </td>
+      <td className={table.td}>
+        <span className="flex flex-wrap items-center gap-1">
+          {d.isHost && <Badge tone="brand">Host</Badge>}
+          {d.goalLabels.map((g) => <Badge key={g}>{g}</Badge>)}
+          {!d.goalLabels.length && !d.isHost && <span className="text-muted">—</span>}
+        </span>
+      </td>
+    </>
   );
 }

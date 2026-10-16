@@ -9,6 +9,7 @@
 import type { Profile, RegistrationStatus } from "@/types/database";
 import type { EventCardData, EventCounts } from "@/lib/events/queries";
 import { CAREER_INTERESTS, DAY_PARTS, PERSONAL_INTERESTS } from "@/lib/taxonomy";
+import { effectiveUserType, usesUniversitySignals } from "@/lib/profile/user-type";
 
 // ─── Inputs ─────────────────────────────────────────────────────────────────
 
@@ -16,7 +17,9 @@ export type RankProfile = Pick<
   Profile,
   | "career_interests" | "personal_interests" | "preferred_categories" | "preferred_formats"
   | "availability" | "university" | "department" | "course"
->;
+> &
+  // Optional so older call sites keep working: no goals = no goal boost, no user type = inferred.
+  Partial<Pick<Profile, "goals" | "user_type">>;
 
 /** An event card plus the extras ranking can use (both optional). */
 export type RankableEvent = EventCardData & {
@@ -53,6 +56,7 @@ export const WEIGHTS = {
   deadlineSoon: 10,
   availability: 8,
   sameUniversity: 6,
+  goalFit: 5,
   popularityMax: 6,
   preferredFormat: 5,
   featured: 5,
@@ -76,7 +80,7 @@ export const ACTIVE_REGISTRATION: readonly RegistrationStatus[] = ["going", "pen
 
 export type SignalKey =
   | "careerInterest" | "followedOrganiser" | "personalInterest" | "preferredCategory" | "courseMatch"
-  | "deadlineSoon" | "availability" | "sameUniversity" | "popularity" | "preferredFormat" | "featured"
+  | "deadlineSoon" | "availability" | "sameUniversity" | "goalFit" | "popularity" | "preferredFormat" | "featured"
   | "startingSoon" | "full" | "registrationClosed";
 
 export type Signal = { key: SignalKey; weight: number; reason: string | null };
@@ -185,6 +189,25 @@ export function eventTopics(event: Pick<EventCardData, "tags" | "category">): Se
   const slug = event.category?.slug;
   if (slug) for (const t of CATEGORY_TOPICS[slug] ?? []) topics.add(t);
   return topics;
+}
+
+// ─── Goals ──────────────────────────────────────────────────────────────────
+
+const NETWORKING_TAGS = new Set(["networking", "network", "mixer", "meetup", "meetups"]);
+
+/**
+ * Which of the person's goals an event serves, as a short reason, or null. Networking is checked
+ * first because networking events also sit in the social group. `host` has no events to find.
+ */
+export function goalFit(event: Pick<EventCardData, "tags" | "category">, goals: readonly string[] | null | undefined): string | null {
+  if (!goals?.length) return null;
+  const group = event.category?.group;
+  const slug = event.category?.slug;
+  const networking = slug === "networking" || (event.tags ?? []).some((t) => NETWORKING_TAGS.has(norm(t)));
+  if (goals.includes("network") && networking) return "it's a chance to grow your network";
+  if (goals.includes("career") && group === "career") return "it fits your career goals";
+  if (goals.includes("social") && group === "social") return "it's a good way to meet people";
+  return null;
 }
 
 // ─── UK local time ──────────────────────────────────────────────────────────
@@ -296,8 +319,11 @@ export function scoreSignals(event: RankableEvent, profile: RankProfile, ctx: Ra
     });
   }
 
+  // Only students and graduates have a university and a course. Everyone else never sees either mentioned.
+  const academic = usesUniversitySignals(effectiveUserType(profile));
+
   // Course / department mentioned in the event's tags
-  const courseHit = [profile.course, profile.department]
+  const courseHit = !academic ? undefined : [profile.course, profile.department]
     .filter((v): v is string => !!v && v.trim().length > 2)
     .find((v) => topics.has(norm(v)));
   if (courseHit) {
@@ -329,13 +355,17 @@ export function scoreSignals(event: RankableEvent, profile: RankProfile, ctx: Ra
   }
 
   // Same university
-  if (event.university && profile.university && norm(event.university) === norm(profile.university)) {
+  if (academic && event.university && profile.university && norm(event.university) === norm(profile.university)) {
     signals.push({
       key: "sameUniversity",
       weight: WEIGHTS.sameUniversity,
       reason: `it's for ${event.university} students`,
     });
   }
+
+  // Goals
+  const goalReason = goalFit(event, profile.goals);
+  if (goalReason) signals.push({ key: "goalFit", weight: WEIGHTS.goalFit, reason: goalReason });
 
   // Popularity
   const going = event.counts?.going ?? 0;

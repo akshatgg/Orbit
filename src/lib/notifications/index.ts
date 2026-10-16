@@ -1,9 +1,10 @@
 import "server-only";
 import { after } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { channelsAvailable } from "./channels";
+import { appUrl, channelsAvailable, isEmailConfigured, sendEmails } from "./channels";
 import { deliver, loadRecipients, prefsOf, selectIn } from "./deliver";
-import { eventChangedMessage, registrationMessage, type MessageEvent } from "./messages";
+import { eventChangedMessage, organiserDecisionMessage, registrationMessage, type MessageEvent } from "./messages";
+import { renderEmail } from "./templates";
 import {
   channelsFor,
   classifyRegistration,
@@ -47,6 +48,47 @@ export async function notifyEventChanged(eventId: string, change: "updated" | "c
 /** An organiser approved/declined someone, someone moved off the waitlist, or a payment landed. */
 export async function notifyRegistrationChanged(registrationId: string) {
   return inBackground(`notifyRegistrationChanged(${registrationId})`, () => sendRegistrationChanged(registrationId));
+}
+
+/**
+ * An admin approved or rejected an organisation → email its owners. Runs after the response and
+ * never throws; without an email channel configured (local dev) it only logs.
+ */
+export async function notifyOrganiserDecision(organiserId: string) {
+  return inBackground(`notifyOrganiserDecision(${organiserId})`, () => sendOrganiserDecision(organiserId));
+}
+
+async function sendOrganiserDecision(organiserId: string) {
+  const admin = createAdminClient();
+  const { data: org, error } = await admin
+    .from("organisers")
+    .select("id, name, status, review_note")
+    .eq("id", organiserId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!org || (org.status !== "approved" && org.status !== "rejected")) return;
+
+  const { data: owners, error: ownersError } = await admin
+    .from("organiser_members")
+    .select("user_id")
+    .eq("organiser_id", organiserId)
+    .eq("role", "owner");
+  if (ownersError) throw new Error(ownersError.message);
+  const ids = (owners ?? []).map((o) => o.user_id as string);
+  if (ids.length === 0) return;
+
+  const { data: profiles, error: profilesError } = await admin.from("profiles").select("email").in("id", ids);
+  if (profilesError) throw new Error(profilesError.message);
+  const emails = [...new Set((profiles ?? []).map((p) => p.email as string | null).filter((e): e is string => !!e))];
+  if (emails.length === 0) return;
+
+  if (!isEmailConfigured()) {
+    console.info(`[notifications] organiser ${org.status} email skipped (no email channel): ${emails.length} owner(s)`);
+    return;
+  }
+  const rendered = renderEmail(organiserDecisionMessage(org, org.status), appUrl());
+  const ok = await sendEmails(emails.map((to) => ({ to, email: rendered })));
+  console.info(`[notifications] organiser ${org.status} ${organiserId}:`, `${ok.filter(Boolean).length}/${ok.length} emailed`);
 }
 
 async function sendEventChanged(eventId: string, change: "updated" | "cancelled") {

@@ -3,6 +3,7 @@ import {
   deadlineReminderMessage,
   eventChangedMessage,
   eventReminderMessage,
+  organiserDecisionMessage,
   registrationMessage,
   relativeDay,
   testMessage,
@@ -106,5 +107,36 @@ describe("renderEmail", () => {
     expect(absoluteUrl("/events/1", "http://localhost:3000/")).toBe("http://localhost:3000/events/1");
     expect(absoluteUrl("https://x.test/a", APP)).toBe("https://x.test/a");
     expect(htmlToText("<b>A</b> &amp; &ldquo;B&rdquo;")).toBe("A & “B”");
+  });
+});
+
+describe("organiser decision emails", () => {
+  const org = { name: "Pottery <Society>", review_note: "Please use your society's official email" };
+
+  it("approval links to Studio and uses the application footer", () => {
+    const m = organiserDecisionMessage(org, "approved");
+    expect(m.email.subject).toBe("You're approved — start hosting on ORBIT");
+    expect(m.url).toBe("/organiser");
+    const email = renderEmail(m, APP);
+    expect(email.html).toContain("https://orbit.example.com/organiser");
+    expect(email.html).toContain("Pottery &lt;Society&gt;");
+    expect(email.html).toContain("you applied to host events");
+    expect(email.html).not.toContain("Manage reminders");
+    expect(email.text).not.toContain("saved or registered");
+  });
+
+  it("rejection includes the review note, escaped", () => {
+    const email = renderEmail(organiserDecisionMessage({ name: "X", review_note: "Use <b>official</b> email" }, "rejected"), APP);
+    expect(email.html).toContain("Use &lt;b&gt;official&lt;/b&gt; email");
+    expect(email.text).toContain("Use <b>official</b> email"); // plain text part decodes entities
+  });
+
+  it("rejection without a note still reads well", () => {
+    const m = organiserDecisionMessage({ name: "X", review_note: null }, "rejected");
+    expect(m.email.paragraphs.join(" ")).not.toContain("Note from");
+  });
+
+  it("event emails keep the original footer", () => {
+    expect(renderEmail(eventChangedMessage(event, "cancelled"), APP).html).toContain("Manage reminders");
   });
 });
