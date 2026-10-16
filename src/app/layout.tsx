@@ -52,16 +52,16 @@ const SW_REGISTER = `if ('serviceWorker' in navigator) { navigator.serviceWorker
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning className={`${instrument.variable} h-full antialiased`}>
+      <head>
+        {/* Plain inline scripts in <head> run while the HTML is parsed, before first paint
+            (next/script beforeInteractive only runs once the Next runtime has loaded). */}
+        {/* Sets data-theme from localStorage / the OS. */}
+        <script id="theme-init" dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        {/* Opening animation: decides and covers the page, then plays once per session. */}
+        <script id="orbit-intro" dangerouslySetInnerHTML={{ __html: INTRO_SCRIPT }} />
+      </head>
       <body className="min-h-full">
         <InstallProvider>{children}</InstallProvider>
-        {/* Sets data-theme from localStorage / the OS before first paint. */}
-        {/* Opening animation: decides and covers the page before first paint, then plays once per session. */}
-        <Script id="orbit-intro" strategy="beforeInteractive">
-          {INTRO_SCRIPT}
-        </Script>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {THEME_SCRIPT}
-        </Script>
         {/* Captures beforeinstallprompt before React hydrates; separate from the service worker script. */}
         <Script id="install-capture" strategy="beforeInteractive">
           {INSTALL_CAPTURE_SCRIPT}
