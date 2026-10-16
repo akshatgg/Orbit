@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
-const THEME = "#06060a";
+// Android draws the installed app's launch screen in this colour; it matches the app and the opening animation.
+const THEME = "#0c0d10";
 
 /** Next's Manifest type predates a few newer members; extend it rather than loosen it. */
 type OrbitManifest = Omit<MetadataRoute.Manifest, "share_target"> & {
