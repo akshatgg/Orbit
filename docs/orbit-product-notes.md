@@ -140,7 +140,7 @@ the scaffold already pushed to `github.com/akshatgg/Orbit`.
 
 ### 6.3 Admin dashboard
 
-- **Super admin:** `akshatg9536@gmail.com` — automatically admin on first sign-in.
+- **Super admin:** `akshatg9636@gmail.com` — automatically admin on first sign-in.
 - **The super admin can add multiple admins** (by email) and remove them.
 - Admins can see and approve everything:
   - Approve / reject organiser applications; give or remove verified badge; suspend.

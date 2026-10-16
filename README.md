@@ -140,7 +140,7 @@ npm run dev          # http://localhost:3000
 | Organiser | `organiser@orbit.test` |
 | Pending organiser | `pending@orbit.test` |
 | Admin | `admin@orbit.test` |
-| Super admin | `akshatg9536@gmail.com` |
+| Super admin (local demo account) | `akshatg9536@gmail.com` |
 
 ### Scripts
 

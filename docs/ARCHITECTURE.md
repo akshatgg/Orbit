@@ -117,7 +117,7 @@ Rules enforced in the database (don't re-implement, don't bypass):
 - New organisers are always `pending`; only admins approve / verify / suspend.
 - Only members of an **approved** organiser (or admins) can create events.
 - Organisers can't feature or un-remove events. Only the super admin changes roles.
-- The super admin is `akshatg9536@gmail.com` (auto-promoted on sign-up).
+- The super admin is `akshatg9636@gmail.com` (auto-promoted on sign-up; set by `public.super_admin_email()`).
 
 **Adding schema:** create a NEW migration file `supabase/migrations/2026101600XXXX_<feature>.sql`
 (use the timestamp assigned to your feature). Never edit existing migrations. Grant table access
