@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
+import { markInstallMoment } from "@/components/pwa/install-store";
 import { toggleSaved } from "@/lib/actions/user-events";
 
 export function SaveButton({ eventId, saved, className = "" }: { eventId: string; saved: boolean; className?: string }) {
@@ -17,6 +18,7 @@ export function SaveButton({ eventId, saved, className = "" }: { eventId: string
         e.stopPropagation();
         startTransition(async () => {
           setOptimistic(!optimistic);
+          if (!optimistic) markInstallMoment();
           await toggleSaved(eventId, !optimistic);
         });
       }}

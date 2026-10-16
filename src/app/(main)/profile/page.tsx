@@ -5,6 +5,7 @@ import { getMyOrganisers, isAdmin, requireProfile } from "@/lib/auth";
 import { getCategoryNames, getFollowedOrganisers, getMyEventLists } from "@/lib/profile/queries";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { InstallRow } from "@/components/pwa/InstallRow";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
 import {
   Chevron,
@@ -82,6 +83,7 @@ export default function ProfilePage() {
 
         <section className="space-y-3">
           <SectionHeading title="More" />
+          <InstallRow />
           <Suspense fallback={<div className="px-4"><Skeleton className="h-20 rounded-[22px]" /></div>}>
             <OrganiserAndAdmin />
           </Suspense>
