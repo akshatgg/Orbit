@@ -27,14 +27,14 @@ export function EventCard({ event, counts, saved, registration, reason, actions,
   const cancelled = event.status === "cancelled";
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-line bg-surface transition-colors hover:border-violet/50">
+    <article className="glass group relative overflow-hidden rounded-[22px] transition duration-200 ease-out hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.07] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
       <Link href={href ?? `/events/${event.id}`} className="flex gap-3 p-3">
-        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl">
+        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10">
           <EventCover src={event.cover_url} title={event.title} />
         </div>
         <div className="min-w-0 flex-1 pr-8">
-          <p className="text-xs font-medium text-pink">{formatEventDate(event.starts_at)}</p>
-          <h3 className={`mt-0.5 line-clamp-2 font-semibold leading-snug ${cancelled ? "text-muted line-through" : ""}`}>
+          <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}</p>
+          <h3 className={`mt-0.5 line-clamp-2 font-semibold leading-snug tracking-tight ${cancelled ? "text-muted line-through" : ""}`}>
             {event.title}
           </h3>
           {event.organiser && (
@@ -60,9 +60,9 @@ export function EventCard({ event, counts, saved, registration, reason, actions,
       </div>
 
       {(reason || deadline || actions) && (
-        <div className="flex items-center justify-between gap-2 border-t border-line px-3 py-2 text-xs">
+        <div className="flex items-center justify-between gap-2 border-t border-white/[0.07] px-3 py-2.5 text-xs">
           <span className="min-w-0 truncate text-muted">
-            {reason ? <><span className="text-gradient font-semibold">✦</span> {reason}</> : deadline}
+            {reason ? <><span className="text-accent">✦</span> {reason}</> : deadline}
           </span>
           {actions}
         </div>

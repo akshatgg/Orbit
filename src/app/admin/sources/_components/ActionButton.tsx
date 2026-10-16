@@ -73,7 +73,7 @@ export function ActionButton({
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
-        className="m-auto w-full max-w-md rounded-2xl border border-line bg-surface p-0 text-fg backdrop:bg-bg/80 backdrop:backdrop-blur-sm"
+        className="m-auto w-full max-w-md rounded-2xl border border-line bg-[#101018] p-0 text-fg backdrop:bg-bg/80 backdrop:backdrop-blur-sm"
       >
         <form action={formAction} className="space-y-4 p-6">
           {hidden}

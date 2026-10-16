@@ -20,8 +20,8 @@ export function SaveButton({ eventId, saved, className = "" }: { eventId: string
           await toggleSaved(eventId, !optimistic);
         });
       }}
-      className={`flex h-9 w-9 items-center justify-center rounded-full border border-line bg-bg/70 backdrop-blur transition-colors hover:text-fg ${
-        optimistic ? "text-pink" : "text-muted"
+      className={`flex h-9 w-9 items-center justify-center glass rounded-full transition duration-200 ease-out active:scale-95 hover:text-fg ${
+        optimistic ? "text-accent" : "text-muted"
       } ${className}`}
     >
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill={optimistic ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import { completeOnboarding } from "@/lib/profile/actions";
 import { STEPS, stepErrors, type ProfileDraft } from "@/lib/profile/schema";
-import { OrbitGlowMark } from "./OrbitGlowMark";
+import { OrbitEmblem } from "@/components/brand/OrbitEmblem";
 import {
   AvailabilityStep,
   BasicsStep,
@@ -100,14 +100,15 @@ export function OnboardingWizard({ initial, categories }: { initial: ProfileDraf
       }}
       className="flex min-h-dvh flex-col"
     >
-      <header className="sticky top-0 z-10 bg-bg/80 px-5 pb-3 pt-[max(env(safe-area-inset-top),1rem)] backdrop-blur-xl">
+      <header className="sticky top-0 z-10 px-4 pt-[max(env(safe-area-inset-top),0.75rem)]">
+        <div className="glass-strong rounded-full py-2 pl-2 pr-4">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => go(step - 1)}
             disabled={pending}
             aria-label="Back"
-            className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface hover:text-fg disabled:opacity-40"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-white/[0.08] hover:text-fg disabled:opacity-40"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M15 5l-7 7 7 7" />
@@ -120,20 +121,21 @@ export function OnboardingWizard({ initial, categories }: { initial: ProfileDraf
             aria-valuemax={total}
             aria-valuenow={step}
             aria-valuetext={`Step ${step} of ${total}`}
-            className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2"
+            className="h-1 flex-1 overflow-hidden rounded-full bg-white/10"
           >
             <div
-              className="bg-gradient h-full rounded-full shadow-[0_0_12px_rgb(181_124_246/0.6)] transition-[width] duration-500 ease-out"
+              className="bg-gradient h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
               style={{ width: `${(step / total) * 100}%` }}
             />
           </div>
-          <span className="w-9 text-right text-xs tabular-nums text-muted">{step}/{total}</span>
+          <span className="w-9 text-right text-xs tabular-nums text-subtle">{step}/{total}</span>
+        </div>
         </div>
       </header>
 
       <main key={step} className="flex-1 px-5 pb-8 pt-4 transition duration-300 ease-out starting:translate-y-3 starting:opacity-0">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gradient">Step {step} · {current.title}</p>
-        <h1 ref={headingRef} tabIndex={-1} className="mt-2 font-display text-[1.65rem] font-semibold leading-tight outline-none">
+        <p className="font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-subtle">Step {step} · {current.title}</p>
+        <h1 ref={headingRef} tabIndex={-1} className="mt-2.5 text-[1.7rem] font-semibold leading-tight tracking-tight outline-none">
           {copy.title}
         </h1>
         <p className="mt-2 text-sm text-muted">{copy.subtitle}</p>
@@ -147,11 +149,11 @@ export function OnboardingWizard({ initial, categories }: { initial: ProfileDraf
         </div>
       </main>
 
-      <footer className="sticky bottom-0 bg-linear-to-t from-bg via-bg/95 to-transparent px-5 pb-[max(env(safe-area-inset-bottom),1.25rem)] pt-6">
+      <footer className="sticky bottom-0 px-4 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-6">
         {formError && (
           <p role="alert" className="mb-3 text-center text-sm text-red-300">{formError}</p>
         )}
-        <div className="flex gap-3">
+        <div className="glass-strong flex gap-2 rounded-full p-1.5">
           {isLast && (
             <Button
               type="button"
@@ -166,7 +168,7 @@ export function OnboardingWizard({ initial, categories }: { initial: ProfileDraf
               Skip
             </Button>
           )}
-          <Button type="submit" size="lg" full disabled={pending} aria-busy={pending} className="glow">
+          <Button type="submit" size="lg" full disabled={pending} aria-busy={pending}>
             {pending ? "Building your feed…" : isLast ? "Finish" : "Continue"}
           </Button>
         </div>
@@ -180,9 +182,9 @@ function Welcome({ name, onStart }: { name: string; onStart: () => void }) {
   return (
     <main className="relative flex min-h-dvh flex-col items-center px-6 pb-[max(env(safe-area-inset-bottom),1.5rem)] pt-[max(env(safe-area-inset-top),2rem)] text-center">
       <div className="flex flex-1 flex-col items-center justify-center">
-        <OrbitGlowMark />
-        <p className="mt-2 font-display text-xs font-semibold tracking-[0.45em] text-muted">ORBIT</p>
-        <h1 className="mt-5 font-display text-3xl font-semibold leading-tight">
+        <OrbitEmblem size={124} />
+        <p className="-mt-3 font-display text-xs font-semibold tracking-[0.45em] indent-[0.45em] text-muted">ORBIT</p>
+        <h1 className="mt-5 text-[1.9rem] font-semibold leading-tight tracking-tight">
           Welcome{first ? `, ${first}` : ""}.
           <br />
           <span className="text-gradient">Let&apos;s build your orbit.</span>
@@ -196,18 +198,18 @@ function Welcome({ name, onStart }: { name: string; onStart: () => void }) {
             "Every society and careers event in one place",
             "Reminders before deadlines close",
           ].map((t) => (
-            <li key={t} className="flex items-center gap-3 rounded-xl border border-line bg-surface/70 px-3.5 py-2.5">
-              <span aria-hidden className="text-gradient font-semibold">✦</span>
+            <li key={t} className="glass flex items-center gap-3 rounded-2xl px-4 py-3 text-fg/90">
+              <span aria-hidden className="text-accent">✦</span>
               {t}
             </li>
           ))}
         </ul>
       </div>
       <div className="w-full max-w-xs pt-8">
-        <Button size="lg" full className="glow" onClick={onStart} autoFocus>
+        <Button size="lg" full onClick={onStart} autoFocus>
           Get started
         </Button>
-        <p className="mt-3 text-xs text-muted">5 quick steps · about a minute</p>
+        <p className="mt-3 text-xs text-subtle">5 quick steps · about a minute</p>
       </div>
     </main>
   );

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { buttonClass } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 function callbackUrl() {
@@ -45,25 +47,26 @@ export function LoginForm() {
   }
 
   return (
-    <div className="mt-10 w-full space-y-4">
+    <div className="glass-strong mt-9 w-full space-y-4 rounded-[24px] p-5">
       {linkExpired && (
-        <p className="text-center text-sm text-orange">
+        <p role="alert" className="rounded-2xl border border-orange/25 bg-orange/10 px-4 py-3 text-center text-sm text-orange">
           That login link has expired or was already used. Request a new one.
         </p>
       )}
       <button
         onClick={signInWithGoogle}
-        className="w-full rounded-xl bg-fg py-3 text-sm font-semibold text-bg"
+        className="bg-gradient flex h-12 w-full items-center justify-center gap-3 rounded-full text-[15px] font-semibold text-bg transition duration-200 ease-out hover:brightness-95 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none"
       >
+        <GoogleG />
         Continue with Google
       </button>
 
-      <div className="flex items-center gap-3 text-xs text-muted">
-        <span className="h-px flex-1 bg-line" /> or <span className="h-px flex-1 bg-line" />
+      <div className="flex items-center gap-3 text-xs text-subtle">
+        <span className="h-px flex-1 bg-white/10" /> or <span className="h-px flex-1 bg-white/10" />
       </div>
 
       {status === "sent" ? (
-        <p className="text-center text-sm text-muted">Check your inbox for a login link.</p>
+        <p role="status" className="py-2 text-center text-sm text-muted">Check your inbox for a login link.</p>
       ) : (
         <form onSubmit={sendEmailLink} className="space-y-3">
           <input
@@ -72,23 +75,35 @@ export function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@imperial.ac.uk"
-            className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm outline-none focus:border-violet"
+            aria-label="Email address"
+            className={inputClass}
           />
           <button
             type="submit"
             disabled={status === "sending"}
-            className="bg-gradient w-full rounded-xl py-3 text-sm font-semibold text-bg disabled:opacity-60"
+            className={buttonClass({ variant: "secondary", size: "lg", full: true })}
           >
             {status === "sending" ? "Sending…" : "Email me a login link"}
           </button>
           {status === "error" && (
-            <p className="text-center text-sm text-orange">Couldn&apos;t send the link. Try again.</p>
+            <p role="alert" className="text-center text-sm text-orange">Couldn&apos;t send the link. Try again.</p>
           )}
         </form>
       )}
-      <p className="text-center text-xs text-muted">
-        University emails get a verified student badge.
+      <p className="pt-1 text-center text-xs leading-relaxed text-subtle">
+        University emails get a verified student badge. By continuing you agree to our terms and privacy policy.
       </p>
     </div>
+  );
+}
+
+function GoogleG() {
+  return (
+    <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
+      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.500z" />
+      <path fill="#4285F4" d="M46.5 24.500c0-1.6-.1-3.1-.4-4.500H24v9h12.700c-.6 3-2.2 5.5-4.7 7.200l7.6 5.900c4.4-4.1 6.9-10.1 6.9-17.600z" />
+      <path fill="#FBBC05" d="M10.5 28.700a14.5 14.5 0 0 1 0-9.400l-7.9-6.100a24 24 0 0 0 0 21.600l7.9-6.100z" />
+      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.800l-7.6-5.900c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.800l-7.9 6.100C6.5 42.6 14.6 48 24 48z" />
+    </svg>
   );
 }

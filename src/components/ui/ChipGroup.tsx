@@ -38,10 +38,17 @@ export function ChipGroup({ name, options, defaultValue = [], multiple = true, m
             type="button"
             aria-pressed={on}
             onClick={() => toggle(o.value)}
-            className={`rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
-              on ? "border-transparent bg-gradient font-medium text-bg" : "border-line bg-surface text-muted hover:text-fg"
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition duration-200 ease-out active:scale-[0.97] motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+              on
+                ? "bg-gradient border-transparent font-medium text-bg"
+                : "border-white/10 bg-white/[0.045] text-muted backdrop-blur-xl hover:border-white/20 hover:bg-white/[0.08] hover:text-fg"
             }`}
           >
+            {on && (
+              <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M3.5 8.5l3 3 6-7" />
+              </svg>
+            )}
             {o.label}
           </button>
         );
