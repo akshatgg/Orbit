@@ -23,7 +23,7 @@ export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <>
       {/* No visible title: the search box leads the page. */}
-      <header className="pt-[max(env(safe-area-inset-top),1.25rem)] lg:pt-8">
+      <header className="pt-[var(--page-top,1.25rem)]">
         <h1 className="sr-only">Explore</h1>
       </header>
       <Suspense fallback={<SearchSkeleton />}>

@@ -18,7 +18,7 @@ export default function Page({ searchParams }: PageProps<"/tickets">) {
   return (
     <>
       {/* No visible title: the Upcoming / Past switch leads the page. */}
-      <header className="pt-[max(env(safe-area-inset-top),1.5rem)] lg:pt-8">
+      <header className="pt-[var(--page-top,1.5rem)]">
         <h1 className="sr-only">My Tickets</h1>
       </header>
       <Suspense fallback={<TicketsSkeleton />}>

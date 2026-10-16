@@ -4,7 +4,7 @@ export function PageHeader({ title, subtitle, action, back }: {
   title: string; subtitle?: ReactNode; action?: ReactNode; back?: ReactNode;
 }) {
   return (
-    <header className="px-4 pb-5 pt-[max(env(safe-area-inset-top),1.5rem)]">
+    <header className="px-4 pb-5 pt-[var(--page-top,max(env(safe-area-inset-top),1.5rem))]">
       {back && <div className="mb-3">{back}</div>}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
