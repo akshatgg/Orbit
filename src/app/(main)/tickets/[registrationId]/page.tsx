@@ -52,7 +52,7 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
   const canCancel = !ended && !cancelledEvent && ["going", "pending", "waitlisted", "awaiting_payment"].includes(t.status);
 
   return (
-    <div className="space-y-5 px-4 pb-28 pt-[max(env(safe-area-inset-top),1.25rem)] md:mx-auto md:max-w-xl lg:grid lg:max-w-none lg:grid-cols-[28rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10 lg:pb-8 lg:pt-8">
+    <div className="space-y-5 px-4 pb-28 pt-[var(--page-top,max(env(safe-area-inset-top),1.25rem))] md:mx-auto md:max-w-xl lg:grid lg:max-w-none lg:grid-cols-[28rem_minmax(0,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10 lg:pb-8 lg:pt-8">
       <Link href="/tickets" className="glass inline-flex items-center gap-1.5 rounded-full py-1.5 pl-2.5 pr-3.5 text-sm text-muted transition-colors duration-200 hover:text-fg lg:col-span-2 lg:justify-self-start">
         <Icon name="back" /> My Tickets
       </Link>

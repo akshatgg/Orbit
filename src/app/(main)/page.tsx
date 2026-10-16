@@ -22,6 +22,7 @@ export default function ForYouPage() {
     <>
       <DiscoveryHeader
         brand
+        mobileAction={false}
         title="For You"
         subtitle="Ranked for your goals, interests and week"
         action={<IconLink href="/search" label="Explore all events" path={ICONS.search} />}

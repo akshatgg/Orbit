@@ -1,28 +1,18 @@
-import Image from "next/image";
-import Link from "next/link";
 import type { ReactNode } from "react";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 /**
  * Header for the discovery screens. `brand` (For You, This Week, Calendar): on phones and tablets the
- * ORBIT mark + wordmark sit top-left with the theme toggle and the page action on the right; from lg up
- * the sidebar carries the logo so a normal page heading shows instead. Other screens keep a plain title.
+ * shared TopBar above already shows the logo, theme toggle and search, so only the page action (when
+ * `mobileAction`) shows here; from lg up a normal page heading shows. Other screens keep a plain title.
  */
-export function DiscoveryHeader({ title, subtitle, action, brand = false }: { title: string; subtitle?: ReactNode; action?: ReactNode; brand?: boolean }) {
+export function DiscoveryHeader({ title, subtitle, action, brand = false, mobileAction = true }: {
+  title: string; subtitle?: ReactNode; action?: ReactNode; brand?: boolean; mobileAction?: boolean;
+}) {
   if (brand) {
     return (
-      <header className="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.25rem)] lg:pt-8">
-        <div className="flex items-center justify-between gap-3 lg:hidden">
-          <Link href="/" aria-label="ORBIT home" className="flex items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
-            <Image src="/brand/orbit-mark.png" alt="" width={32} height={32} priority className="h-8 w-8" />
-            <span className="text-[15px] font-semibold tracking-[0.2em]">ORBIT</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <ThemeToggle className="glass" />
-            {action}
-          </div>
-        </div>
+      <header className="px-4 pt-4 lg:pb-4 lg:pt-[var(--page-top,2rem)]">
+        {action && mobileAction && <div className="-mb-1 flex justify-end lg:hidden">{action}</div>}
         <div className="hidden items-start justify-between gap-3 lg:flex">
           <div className="min-w-0">
             <h1 className="text-4xl font-semibold leading-tight tracking-tight">{title}</h1>
@@ -35,7 +25,7 @@ export function DiscoveryHeader({ title, subtitle, action, brand = false }: { ti
     );
   }
   return (
-    <header className="px-4 pb-4 pt-[max(env(safe-area-inset-top),1.25rem)] lg:pt-8">
+    <header className="px-4 pb-4 pt-[var(--page-top,max(env(safe-area-inset-top),1.25rem))]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight lg:text-4xl">{title}</h1>

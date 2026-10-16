@@ -24,9 +24,11 @@ const STUDIO_TAB = {
 /** Tab bar that highlights the current tab. Render inside <Suspense> (it reads the URL). */
 export function BottomNav({ showStudio = false }: { showStudio?: boolean }) {
   const pathname = usePathname();
+  // The event editor has its own fixed Back / Next bar at the bottom of phones and tablets.
+  const editing = /^\/organiser\/events\/(new|[^/]+\/edit)\/?$/.test(pathname);
   return (
     <>
-      <BottomNavView pathname={pathname} showStudio={showStudio} />
+      {!editing && <BottomNavView pathname={pathname} showStudio={showStudio} />}
       <SideNavView pathname={pathname} showStudio={showStudio} />
     </>
   );
@@ -94,16 +96,16 @@ export function BottomNavView({ pathname, showStudio = false }: { pathname: stri
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-3 bottom-[max(env(safe-area-inset-bottom),12px)] z-30 mx-auto max-w-md lg:hidden light:inset-x-0 light:bottom-0 light:max-w-none"
+      className="fixed inset-x-3 bottom-[max(env(safe-area-inset-bottom),12px)] z-30 mx-auto max-w-md lg:hidden"
     >
       <ul
-        className="glass-strong relative grid rounded-[24px] p-1.5 light:rounded-none light:border-x-0 light:border-b-0 light:px-2 light:pb-[max(env(safe-area-inset-bottom),0.5rem)] light:pt-1.5"
+        className="glass-strong relative grid rounded-[24px] p-1.5"
         style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}
       >
         {activeIndex >= 0 && (
           <li
             aria-hidden
-            className="pointer-events-none absolute bottom-1.5 left-1.5 top-1.5 hidden rounded-[18px] bg-ink/[0.1] transition-transform duration-300 ease-out motion-reduce:transition-none dark:block"
+            className="pointer-events-none absolute bottom-1.5 left-1.5 top-1.5 rounded-[18px] bg-ink/[0.1] transition-transform duration-300 ease-out motion-reduce:transition-none light:bg-accent/[0.1]"
             style={{ width: `calc((100% - 0.75rem) / ${count})`, transform: `translateX(${activeIndex * 100}%)` }}
           />
         )}
