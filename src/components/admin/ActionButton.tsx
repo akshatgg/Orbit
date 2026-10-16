@@ -54,7 +54,7 @@ export function ActionButton({
 
   const cls = menuItem
     ? `flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors disabled:opacity-50 ${
-        variant === "danger" ? "text-red-300 hover:bg-red-500/10" : "text-fg hover:bg-white/[0.08]"
+        variant === "danger" ? "text-red-300 hover:bg-red-500/10" : "text-fg hover:bg-ink/[0.08]"
       } ${className}`
     : buttonClass({ variant, size, className });
 

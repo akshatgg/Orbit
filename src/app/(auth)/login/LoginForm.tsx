@@ -62,7 +62,7 @@ export function LoginForm() {
       </button>
 
       <div className="flex items-center gap-3 text-xs text-subtle">
-        <span className="h-px flex-1 bg-white/10" /> or <span className="h-px flex-1 bg-white/10" />
+        <span className="h-px flex-1 bg-ink/10" /> or <span className="h-px flex-1 bg-ink/10" />
       </div>
 
       {status === "sent" ? (

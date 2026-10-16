@@ -43,7 +43,7 @@ type Props = {
   googleCalendarUrl: string;
 };
 
-const ctaClass = buttonClass({ size: "lg", className: "shrink-0 px-6 lg:w-full" });
+const ctaClass = buttonClass({ size: "lg", className: "shrink-0 px-6 lg:w-full light:max-lg:h-12 light:max-lg:px-7" });
 
 /** Sticky bottom action bar + the registration sheet for the event page. */
 export function EventActions(props: Props) {
@@ -74,7 +74,7 @@ export function EventActions(props: Props) {
 
   switch (cta.kind) {
     case "register": {
-      left = <BarText title={props.priceLabel ?? "Tickets"} sub={props.availabilityLine} />;
+      left = <BarText title={props.priceLabel ?? "Tickets"} sub={props.availabilityLine} warn />;
       if (!signedIn) {
         right = <Link href={loginHref} className={ctaClass}>{cta.label}</Link>;
       } else if (cta.needsSheet) {
@@ -150,8 +150,8 @@ export function EventActions(props: Props) {
 
   return (
     <>
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] lg:pointer-events-auto lg:static lg:z-auto lg:p-0">
-        <div className="glass-strong pointer-events-auto mx-auto max-w-md rounded-[26px] p-2 pl-4 lg:max-w-none lg:p-5">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] lg:pointer-events-auto lg:static lg:z-auto lg:p-0 light:max-lg:px-0 light:max-lg:pb-0">
+        <div className="glass-strong pointer-events-auto mx-auto max-w-md rounded-[26px] p-2 pl-4 lg:max-w-none lg:p-5 light:max-lg:max-w-none light:max-lg:rounded-none light:max-lg:border-x-0 light:max-lg:border-b-0 light:max-lg:px-5 light:max-lg:pb-[max(env(safe-area-inset-bottom),1.25rem)] light:max-lg:pt-3.5">
           <div className="flex min-h-12 items-center gap-3 lg:flex-col lg:items-stretch lg:gap-4">
             <div className="min-w-0 flex-1 lg:flex-none">{left}</div>
             {right && <div className="flex shrink-0 lg:w-full">{right}</div>}
@@ -184,17 +184,17 @@ export function EventActions(props: Props) {
   );
 }
 
-function BarText({ title, sub, icon, tone }: { title: string; sub?: string | null; icon?: IconName; tone?: "danger" }) {
+function BarText({ title, sub, icon, tone, warn }: { title: string; sub?: string | null; icon?: IconName; tone?: "danger"; warn?: boolean }) {
   return (
     <div className="flex min-w-0 items-center gap-2.5">
       {icon && (
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] ${tone === "danger" ? "bg-red-500/10 text-red-300" : "bg-white/[0.07] text-muted"}`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] ${tone === "danger" ? "bg-red-500/10 text-red-300" : "bg-ink/[0.07] text-muted"}`}>
           <Icon name={icon} />
         </span>
       )}
       <div className="min-w-0">
         <p className="truncate text-[15px] font-semibold tracking-tight">{title}</p>
-        {sub && <p className="truncate text-xs text-muted">{sub}</p>}
+        {sub && <p className={`truncate text-xs text-muted ${warn ? "light:font-medium light:text-orange" : ""}`}>{sub}</p>}
       </div>
     </div>
   );
@@ -219,7 +219,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
 
       {tickets.length > 0 && (
         <fieldset className="space-y-2">
-          <legend className="mb-2.5 font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-subtle">Ticket</legend>
+          <legend className="mb-2.5 font-display text-xs font-medium text-muted">Ticket</legend>
           {tickets.map((t) => {
             const avail = ticketAvailability(t);
             const on = t.id === ticketId;
@@ -228,7 +228,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
               <label
                 key={t.id}
                 className={`relative flex cursor-pointer items-center gap-3 rounded-[20px] p-4 transition duration-200 motion-reduce:transition-none ${
-                  on ? "border-gradient glow" : "border border-white/10 bg-white/[0.045] hover:bg-white/[0.08]"
+                  on ? "is-selected" : "border border-ink/10 bg-ink/[0.045] hover:bg-ink/[0.08]"
                 } ${disabled ? "cursor-not-allowed opacity-50" : ""}`}
               >
                 <input
@@ -240,7 +240,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
                   onChange={() => setTicketId(t.id)}
                   className="sr-only"
                 />
-                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${on ? "border-accent" : "border-white/20"}`} aria-hidden>
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${on ? "border-accent" : "border-ink/20"}`} aria-hidden>
                   {on && <span className="bg-gradient h-2.5 w-2.5 rounded-full" />}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -257,7 +257,7 @@ function RegisterForm(props: Props & { state: RegisterState; pending: boolean; o
 
       {questions.length > 0 && (
         <fieldset className="space-y-5">
-          <legend className="mb-3 font-display text-[10px] font-semibold uppercase tracking-[0.3em] text-subtle">
+          <legend className="mb-3 font-display text-xs font-medium text-muted">
             {props.requiresApproval ? "Your application" : "A few questions"}
           </legend>
           {questions.map((q) => (
@@ -327,9 +327,9 @@ function QuestionField({ question: q, error }: { question: Question; error?: str
   if (q.kind === "checkbox") {
     return (
       <div>
-        <label className="flex cursor-pointer items-start gap-3 rounded-[16px] border border-white/10 bg-white/[0.045] p-4 transition-colors hover:bg-white/[0.08]">
+        <label className="flex cursor-pointer items-start gap-3 rounded-[16px] border border-ink/10 bg-ink/[0.045] p-4 transition-colors hover:bg-ink/[0.08]">
           <input type="checkbox" name={name} aria-invalid={!!error} aria-describedby={describedBy} aria-required={q.required}
-            className="mt-0.5 h-5 w-5 shrink-0 accent-[#a99bff]" />
+            className="mt-0.5 h-5 w-5 shrink-0 accent-accent" />
           <span className="text-sm">{label}</span>
         </label>
         {errorText}
@@ -349,7 +349,7 @@ function QuestionField({ question: q, error }: { question: Question; error?: str
           {q.options.map((opt) => (
             <label key={opt} className="cursor-pointer">
               <input type={multi ? "checkbox" : "radio"} name={name} value={opt} required={!multi && q.required} className="peer sr-only" />
-              <span className="inline-flex rounded-full border border-white/10 bg-white/[0.045] px-3.5 py-1.5 text-sm text-muted transition duration-200 hover:bg-white/[0.08] peer-checked:border-transparent peer-checked:bg-gradient peer-checked:font-medium peer-checked:text-bg peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
+              <span className="inline-flex rounded-full border border-ink/10 bg-ink/[0.045] px-3.5 py-1.5 text-sm text-muted transition duration-200 hover:bg-ink/[0.08] peer-checked:border-transparent peer-checked:bg-gradient peer-checked:font-medium peer-checked:text-bg peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent">
                 {opt}
               </span>
             </label>
@@ -405,8 +405,7 @@ function RegisterResult({ state, onDone, onboarded }: { state: Extract<RegisterS
   return (
     <div className="flex flex-col items-center pb-6 text-center" role="status" aria-live="polite">
       <div className="relative mb-5 mt-2">
-        <div className="bg-gradient absolute inset-0 rounded-full opacity-25 blur-2xl" aria-hidden />
-        <div className={`relative flex h-20 w-20 items-center justify-center rounded-full ${going ? "bg-gradient text-bg" : "border-gradient text-fg"}`}>
+        <div className={`relative flex h-20 w-20 items-center justify-center rounded-full ${going ? "bg-gradient text-bg" : "is-selected text-fg"}`}>
           <Icon name={RESULT_ICON[state.status]} className="h-9 w-9" strokeWidth={2.2} />
         </div>
       </div>

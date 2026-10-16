@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "brand";
 
 const tones: Record<Tone, string> = {
-  neutral: "border-white/10 bg-white/[0.06] text-muted",
+  neutral: "border-ink/10 bg-ink/[0.06] text-muted",
   success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
   warning: "border-orange/20 bg-orange/10 text-orange",
   danger: "border-red-400/20 bg-red-400/10 text-red-300",
@@ -13,7 +13,7 @@ const tones: Record<Tone, string> = {
 
 export function Badge({ tone = "neutral", children, className = "" }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium backdrop-blur-md ${tones[tone]} ${className}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${tones[tone]} ${className}`}>
       {children}
     </span>
   );

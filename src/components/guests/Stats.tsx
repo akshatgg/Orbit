@@ -8,9 +8,9 @@ const nf = new Intl.NumberFormat("en-GB");
 
 export function StatTile({ label, value, hint, accent = false }: { label: string; value: ReactNode; hint?: ReactNode; accent?: boolean }) {
   return (
-    <div className={`rounded-[22px] p-4 ${accent ? "border-gradient" : "glass"}`}>
+    <div className={`rounded-[22px] p-4 ${"glass"}`}>
       <p className="text-xs font-medium text-muted">{label}</p>
-      <p className={`mt-1.5 text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums ${accent ? "text-gradient" : ""}`}>{value}</p>
+      <p className={`mt-1.5 text-[1.75rem] font-semibold leading-none tracking-tight tabular-nums ${accent ? "text-fg" : ""}`}>{value}</p>
       {hint && <p className="mt-2 text-xs text-subtle">{hint}</p>}
     </div>
   );
@@ -58,7 +58,7 @@ export function StatusBreakdown({ stats, eventId }: { stats: EventStats; eventId
           <li key={s}>
             <Link
               href={`/organiser/events/${eventId}/guests?status=${s}`}
-              className="flex items-center justify-between gap-2 rounded-xl px-2 py-2 text-sm transition-colors hover:bg-white/[0.06]"
+              className="flex items-center justify-between gap-2 rounded-xl px-2 py-2 text-sm transition-colors hover:bg-ink/[0.06]"
             >
               <span className="flex items-center gap-2 text-muted">
                 <span className={`h-2 w-2 rounded-full ${DOT[s]}`} aria-hidden />
@@ -92,7 +92,7 @@ export function CapacityBar({ capacity }: { capacity: NonNullable<EventStats["ca
         aria-valuemax={cap}
         aria-valuenow={going + held}
         aria-valuetext={`${going} going and ${held} holding a spot, of ${cap}`}
-        className="mt-3 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-white/[0.08]"
+        className="mt-3 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-ink/[0.08]"
       >
         {goingPct > 0 && <div className="bg-gradient h-full rounded-full" style={{ width: `${goingPct}%` }} />}
         {heldPct > 0 && <div className="h-full rounded-full bg-orange/70" style={{ width: `${heldPct}%` }} />}
@@ -118,7 +118,7 @@ export function RegistrationsChart({ days }: { days: DayBucket[] }) {
         <span className="text-sm tabular-nums text-muted"><span className="font-semibold text-fg">{total}</span> total</span>
       </figcaption>
       {total === 0 ? (
-        <p className="mt-4 rounded-2xl border border-dashed border-white/12 px-4 py-8 text-center text-sm text-muted">
+        <p className="mt-4 rounded-2xl border border-dashed border-ink/12 px-4 py-8 text-center text-sm text-muted">
           No registrations in the last two weeks yet. Share the link to get things moving.
         </p>
       ) : (
@@ -130,7 +130,7 @@ export function RegistrationsChart({ days }: { days: DayBucket[] }) {
                 <span className="sr-only">{`${d.label}: ${d.count} registration${d.count === 1 ? "" : "s"}`}</span>
                 <span
                   aria-hidden
-                  className={`pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-xl border border-white/10 bg-[rgb(22_22_30/0.92)] px-2.5 py-1 text-[11px] backdrop-blur-xl opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus:opacity-100 ${
+                  className={`pointer-events-none absolute bottom-full z-10 mb-1 whitespace-nowrap rounded-xl border border-ink/10 bg-raised px-2.5 py-1 text-[11px] opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus:opacity-100 ${
                     i < 3 ? "left-0" : i > days.length - 4 ? "right-0" : "left-1/2 -translate-x-1/2"
                   }`}
                 >
@@ -138,7 +138,7 @@ export function RegistrationsChart({ days }: { days: DayBucket[] }) {
                 </span>
                 <span
                   aria-hidden
-                  className={`block w-full rounded-t-[5px] transition-[filter] group-hover:brightness-125 ${d.count ? "bg-gradient" : "bg-white/10"}`}
+                  className={`block w-full rounded-t-[5px] transition-[filter] group-hover:brightness-125 ${d.count ? "bg-gradient" : "bg-ink/10"}`}
                   style={{ height: d.count ? `${Math.max(6, (d.count / max) * 100)}%` : "2px" }}
                 />
               </li>

@@ -58,17 +58,16 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
       </Link>
 
       {cancelledEvent && (
-        <div role="status" className="rounded-[22px] border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-200 backdrop-blur-xl lg:col-start-1 lg:row-start-2">
+        <div role="status" className="rounded-[22px] border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-200 lg:col-start-1 lg:row-start-2">
           <p className="font-semibold">This event has been cancelled</p>
           {event.cancel_reason && <p className="mt-0.5 opacity-80">{event.cancel_reason}</p>}
         </div>
       )}
 
-      <article className={`border-gradient ${live && !ended ? "glow" : ""} overflow-hidden rounded-[28px] lg:col-start-1 lg:row-start-3 lg:self-start`} aria-label="Ticket">
+      <article className={`glass overflow-hidden rounded-[28px] lg:col-start-1 lg:row-start-3 lg:self-start`} aria-label="Ticket">
         <div className="relative p-5">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(70%_100%_at_50%_0%,rgb(169_155_255/0.16),transparent)]" aria-hidden />
           <div className="relative flex items-start justify-between gap-3">
-            <p className="font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-subtle">ORBIT ticket</p>
+            <p className="font-display text-xs font-medium text-muted">ORBIT ticket</p>
             <RegistrationBadge status={t.status} />
           </div>
           <h1 className="relative mt-3 text-2xl font-semibold leading-tight tracking-tight">
@@ -82,7 +81,7 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
           )}
         </div>
 
-        <div className="mx-5 border-t border-dashed border-white/15" aria-hidden />
+        <div className="mx-5 border-t border-dashed border-ink/15" aria-hidden />
 
         <div className="p-5">
           {live ? (
@@ -94,7 +93,7 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
               </p>
             </div>
           ) : (
-            <div className="rounded-[18px] border border-white/10 bg-white/[0.05] p-4 text-center">
+            <div className="rounded-[18px] border border-ink/10 bg-ink/[0.05] p-4 text-center">
               <p className="text-base font-semibold tracking-tight">{cancelledEvent ? "Event cancelled" : copy.title}</p>
               <p className="mt-1 text-sm text-muted">{cancelledEvent ? "This ticket is no longer valid." : copy.body}</p>
             </div>
@@ -105,7 +104,7 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
           )}
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-white/[0.07] bg-white/[0.025] p-5 text-sm">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-ink/[0.07] bg-ink/[0.025] p-5 text-sm">
           <Detail label="Date">{formatLongDate(event.starts_at)}</Detail>
           <Detail label="Time">{formatTimeRange(event.starts_at, event.ends_at)}</Detail>
           <Detail label="Where" wide>
@@ -119,7 +118,7 @@ async function Content({ params }: { params: PageProps<"/tickets/[registrationId
 
       <div className="space-y-5 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:max-w-md lg:self-start">
       {privateInfo && t.status === "going" && !cancelledEvent && (
-        <section className="rounded-[22px] border border-emerald-400/20 bg-emerald-400/[0.06] p-4 backdrop-blur-xl" aria-labelledby="guest-info">
+        <section className="rounded-[22px] border border-emerald-400/20 bg-emerald-400/[0.06] p-4" aria-labelledby="guest-info">
           <h2 id="guest-info" className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Icon name="check" /> For guests</h2>
           {privateInfo.guest_info && <p className="mt-2 whitespace-pre-line text-sm">{privateInfo.guest_info}</p>}
           {joinUrl && (

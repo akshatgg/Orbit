@@ -21,7 +21,7 @@ export function InstallBanner() {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss install suggestion"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-subtle transition duration-200 hover:bg-white/[0.06] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-subtle transition duration-200 hover:bg-ink/[0.06] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:transition-none"
       >
         <CloseIcon />
       </button>

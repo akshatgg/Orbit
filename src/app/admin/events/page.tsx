@@ -40,7 +40,7 @@ export default function Page({ searchParams }: PageProps<"/admin/events">) {
         action={
           <>
             <ButtonLink href="/admin/import" variant="secondary" size="md"><IconUpload size={15} /> CSV import</ButtonLink>
-            <ButtonLink href="/admin/events/new" size="md" className="glow"><IconPlus size={15} /> Add event</ButtonLink>
+            <ButtonLink href="/admin/events/new" size="md" className=""><IconPlus size={15} /> Add event</ButtonLink>
           </>
         }
       />
@@ -134,7 +134,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
           <option value="">Any source</option>
           {sources.map((s) => <option key={s} value={s}>{sourceLabel(s)}</option>)}
         </select>
-        <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-[14px] border border-white/10 bg-white/[0.045] px-3.5 text-sm text-muted backdrop-blur-xl transition-colors hover:border-white/15 has-checked:border-orange/40 has-checked:bg-orange/10 has-checked:text-orange">
+        <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-[14px] border border-ink/10 bg-ink/[0.045] px-3.5 text-sm text-muted transition-colors hover:border-ink/15 has-checked:border-orange/40 has-checked:bg-orange/10 has-checked:text-orange">
           <input type="checkbox" name="review" value="1" defaultChecked={!!f.review} className="accent-orange" />
           Needs review
         </label>

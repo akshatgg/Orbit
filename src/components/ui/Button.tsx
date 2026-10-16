@@ -5,17 +5,17 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "light";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition duration-200 ease-out active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+  "inline-flex items-center justify-center gap-2 rounded-full light:rounded-xl font-semibold transition duration-200 ease-out active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
 const pearl = "bg-gradient text-bg hover:brightness-95";
 const variants: Record<Variant, string> = {
   primary: pearl,
   light: pearl,
   secondary:
-    "glass text-fg hover:bg-white/[0.09] hover:border-white/15",
-  ghost: "text-muted hover:bg-white/[0.06] hover:text-fg",
+    "glass text-fg light:border-line hover:bg-ink/[0.09] hover:border-ink/15",
+  ghost: "text-muted hover:bg-ink/[0.06] hover:text-fg",
   danger:
-    "border border-red-400/25 bg-red-500/10 text-red-200 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)] backdrop-blur-xl hover:bg-red-500/20",
+    "border border-red-400/25 bg-red-500/10 text-red-200 hover:bg-red-500/20",
 };
 
 const sizes: Record<Size, string> = {

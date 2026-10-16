@@ -24,7 +24,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
             ? "Guests register on your own link, so there are no tickets or questions to set up here."
             : "This event is info only, so there are no tickets or questions to set up."}
         </StepIntro>
-        <p className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-4 py-8 text-center text-sm text-muted">Nothing to do here. Head to the next step.</p>
+        <p className="rounded-[22px] border border-dashed border-ink/12 bg-ink/[0.025] px-4 py-8 text-center text-sm text-muted">Nothing to do here. Head to the next step.</p>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         {form.tickets.map((t, i) => (
           <div key={t.key} className="glass space-y-3 rounded-[22px] p-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-subtle">Ticket {i + 1}</p>
+              <p className="font-display text-xs font-medium text-muted">Ticket {i + 1}</p>
               {form.tickets.length > 1 && (
                 <button type="button" className="text-xs text-red-300 hover:text-red-200" onClick={() => update({ tickets: form.tickets.filter((_, j) => j !== i) })}>
                   Remove
@@ -81,7 +81,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         ))}
         {form.tickets.length < 10 && (
           <button type="button" onClick={() => update({ tickets: [...form.tickets, newTicket("")] })}
-            className="w-full rounded-[18px] border border-dashed border-white/15 py-3.5 text-sm font-medium text-accent transition duration-200 hover:border-accent/50 hover:bg-white/[0.05]">
+            className="w-full rounded-[18px] border border-dashed border-ink/15 py-3.5 text-sm font-medium text-accent transition duration-200 hover:border-accent/50 hover:bg-ink/[0.05]">
             + Add ticket type
           </button>
         )}
@@ -100,7 +100,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         {form.questions.map((q, i) => (
           <div key={q.key} className="glass space-y-3 rounded-[22px] p-4">
             <div className="flex items-center justify-between gap-2">
-              <p className="font-display text-[11px] font-semibold uppercase tracking-[0.22em] text-subtle">Question {i + 1}</p>
+              <p className="font-display text-xs font-medium text-muted">Question {i + 1}</p>
               <div className="flex items-center gap-1 text-xs">
                 <button type="button" aria-label={`Move question ${i + 1} up`} disabled={i === 0} className="rounded-lg px-2 py-1 text-muted hover:text-fg disabled:opacity-30"
                   onClick={() => update({ questions: move(form.questions, i, i - 1) })}>↑</button>
@@ -130,7 +130,7 @@ export function TicketsStep({ form, update, errors, chargesEnabled, organiserId 
         ))}
         {form.questions.length < 20 && (
           <button type="button" onClick={() => update({ questions: [...form.questions, newQuestion()] })}
-            className="w-full rounded-[18px] border border-dashed border-white/15 py-3.5 text-sm font-medium text-accent transition duration-200 hover:border-accent/50 hover:bg-white/[0.05]">
+            className="w-full rounded-[18px] border border-dashed border-ink/15 py-3.5 text-sm font-medium text-accent transition duration-200 hover:border-accent/50 hover:bg-ink/[0.05]">
             + Add question
           </button>
         )}

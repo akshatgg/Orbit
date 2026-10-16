@@ -90,7 +90,7 @@ export function CsvImporter({ organiserSlugs, categorySlugs }: { organiserSlugs:
         <h2 className="text-sm font-semibold tracking-tight">2. Upload your CSV</h2>
         <label
           htmlFor="csv-file"
-          className="mt-3 flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-4 py-10 text-center text-sm text-muted transition-colors hover:border-accent/50 hover:bg-white/[0.05] has-[:focus-visible]:border-accent"
+          className="mt-3 flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-ink/15 bg-ink/[0.02] px-4 py-10 text-center text-sm text-muted transition-colors hover:border-accent/50 hover:bg-ink/[0.05] has-[:focus-visible]:border-accent"
         >
           <IconUpload size={22} />
           <span>{fileName ? <span className="text-fg">{fileName}</span> : "Choose a .csv file"}</span>
@@ -156,7 +156,7 @@ export function CsvImporter({ organiserSlugs, categorySlugs }: { organiserSlugs:
               <h2 className="text-lg font-semibold tracking-tight">Import finished</h2>
               <dl className="mt-3 grid max-w-md grid-cols-3 gap-3 text-center">
                 {([["Inserted", report.inserted], ["Updated", report.updated], ["Skipped", report.skipped]] as const).map(([l, n]) => (
-                  <div key={l} className="rounded-2xl border border-line bg-white/[0.03] p-4">
+                  <div key={l} className="rounded-2xl border border-line bg-ink/[0.03] p-4">
                     <dd className="text-2xl font-semibold tracking-tight tabular-nums">{n}</dd>
                     <dt className="text-xs text-muted">{l}</dt>
                   </div>

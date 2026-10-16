@@ -23,7 +23,7 @@ export function PreviewCard({ form, organiser, stacked = false }: { form: EventF
   return (
     <article className="glass overflow-hidden rounded-[22px]">
       <div className={stacked ? "flex flex-col gap-3 p-3" : "flex gap-3 p-3"}>
-        <div className={`shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 ${stacked ? "aspect-[16/10] w-full" : "h-24 w-24"}`}>
+        <div className={`shrink-0 overflow-hidden rounded-2xl ring-1 ring-ink/10 ${stacked ? "aspect-[16/10] w-full" : "h-24 w-24"}`}>
           <EventCover src={form.cover_url || null} title={form.title || "Your event"} />
         </div>
         <div className="min-w-0 flex-1">
@@ -75,7 +75,7 @@ export function ReviewStep({ form, organiser, issues, goTo, status }: {
         </p>
       )}
 
-      <dl className="glass divide-y divide-white/[0.07] rounded-[22px] text-sm">
+      <dl className="glass divide-y divide-ink/[0.07] rounded-[22px] text-sm">
         {[
           ["Registration", { tickets: "Free / paid tickets", application: "Application form", external: "External link", none: "Info only" }[form.registration]],
           ["Tickets", usesTickets(form.registration) ? `${form.tickets.length} type${form.tickets.length === 1 ? "" : "s"}` : "n/a"],

@@ -22,7 +22,7 @@ export function SectionHeading({ title, count, action }: { title: string; count?
       <h2 className="text-lg font-semibold tracking-tight">
         {title}
         {count ? (
-          <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/[0.08] px-1.5 align-middle text-[11px] font-semibold text-muted">
+          <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-ink/[0.08] px-1.5 align-middle text-[11px] font-semibold text-muted">
             <span className="sr-only">(</span>
             {count}
             <span className="sr-only">)</span>
@@ -54,11 +54,10 @@ export function ProfileHero({ profile }: { profile: Profile }) {
   const type = effectiveUserType(profile);
   const line = profileLine(profile);
   return (
-    <section className="relative mx-4 overflow-hidden rounded-[26px] border-gradient p-5">
-      <div aria-hidden className="absolute -right-16 -top-24 h-52 w-52 rounded-full bg-accent/20 blur-3xl" />
+    <section className="relative mx-4 overflow-hidden rounded-[26px] glass p-5">
       <div className="relative flex items-center gap-4">
         <span className="rounded-full bg-gradient-to-br from-pink/60 via-blue/40 to-orange/50 p-[1.5px]">
-          <span className="block rounded-full bg-[rgb(18_18_26)] p-[2px]">
+          <span className="block rounded-full bg-bg p-[2px]">
             <Avatar src={profile.avatar_url} name={profile.full_name ?? profile.email} size={68} />
           </span>
         </span>
@@ -105,7 +104,7 @@ export function InterestsSummary({ profile, categoryNames }: { profile: Profile;
             <ChipRow label="Events" items={categories} />
           </>
         )}
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-white/[0.07] pt-3 text-sm">
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-ink/[0.07] pt-3 text-sm">
           <dt className="text-subtle">Format</dt>
           <dd>{formats.length ? formats.join(", ") : "Any"}</dd>
           <dt className="text-subtle">Location</dt>
@@ -122,12 +121,12 @@ function ChipRow({ label, items, brand }: { label: string; items: string[]; bran
   if (!items.length) return null;
   return (
     <div>
-      <p className="mb-1.5 font-display text-[10px] font-semibold uppercase tracking-[0.28em] text-subtle">{label}</p>
+      <p className="mb-1.5 font-display text-xs font-medium text-muted">{label}</p>
       <ul className="flex flex-wrap gap-1.5">
         {items.map((i) => (
           <li
             key={i}
-            className={`rounded-full border px-2.5 py-1 text-xs ${brand ? "border-accent/25 bg-accent/10 text-accent" : "border-white/10 bg-white/[0.06] text-fg/90"}`}
+            className={`rounded-full border px-2.5 py-1 text-xs ${brand ? "border-accent/25 bg-accent/10 text-accent" : "border-ink/10 bg-ink/[0.06] text-fg/90"}`}
           >
             {i}
           </li>
@@ -195,7 +194,7 @@ export function FollowingList({ organisers }: { organisers: FollowedOrganiser[] 
     );
   }
   return (
-    <ul className="glass mx-4 divide-y divide-white/[0.07] overflow-hidden rounded-[22px]">
+    <ul className="glass mx-4 divide-y divide-ink/[0.07] overflow-hidden rounded-[22px]">
       {organisers.map((o) => (
         <li key={o.id} className="flex items-center gap-3 px-3 py-3">
           <Link href={`/o/${o.slug}`} className="flex min-w-0 flex-1 items-center gap-3">
@@ -227,9 +226,9 @@ export function OrganiserCard({ organisers }: { organisers: MyOrganiser[] }) {
     return (
       <Link
         href="/organiser/apply"
-        className="group glass mx-4 flex items-center gap-4 rounded-[22px] p-4 transition duration-200 hover:bg-white/[0.08] motion-reduce:transition-none"
+        className="group glass mx-4 flex items-center gap-4 rounded-[22px] p-4 transition duration-200 hover:bg-ink/[0.08] motion-reduce:transition-none"
       >
-        <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-lg text-bg">✦</span>
+        <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-xl font-medium text-bg">+</span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold tracking-tight">Host events on ORBIT</span>
           <span className="block text-sm text-muted">Run a society, careers team or company? Apply to post events.</span>
@@ -241,17 +240,17 @@ export function OrganiserCard({ organisers }: { organisers: MyOrganiser[] }) {
   return (
     <Link
       href="/organiser"
-      className="group mx-4 block rounded-[22px] border-gradient p-4 transition duration-200 hover:brightness-110 motion-reduce:transition-none"
+      className="group mx-4 block rounded-[22px] glass p-4 transition duration-200 hover:brightness-110 motion-reduce:transition-none"
     >
       <span className="flex items-center gap-4">
-        <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-lg text-bg">✦</span>
+        <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-lg font-semibold text-bg">S</span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold tracking-tight">Organiser Studio</span>
           <span className="block text-sm text-muted">Create events, manage guests and check people in.</span>
         </span>
         <Chevron />
       </span>
-      <ul className="mt-3 space-y-2 border-t border-white/[0.07] pt-3">
+      <ul className="mt-3 space-y-2 border-t border-ink/[0.07] pt-3">
         {organisers.map((o) => {
           const s = ORG_STATUS[o.status] ?? { label: o.status, tone: "neutral" as const };
           return (

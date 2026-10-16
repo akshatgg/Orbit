@@ -58,11 +58,11 @@ export function PayoutsPanel(props: PayoutsPanelProps) {
 
   if (state === "not_connected") {
     return (
-      <div className="border-gradient space-y-4 rounded-[24px] p-5" data-testid="payouts-not-connected">
+      <div className="glass space-y-4 rounded-[24px] p-5" data-testid="payouts-not-connected">
         <div>
           <Eyebrow>Payouts</Eyebrow>
           <h2 className="mt-1.5 text-xl font-semibold tracking-tight">
-            Sell paid tickets for <span className="text-gradient">{org.name}</span>
+            Sell paid tickets for <span className="text-fg">{org.name}</span>
           </h2>
         </div>
         <ul className="space-y-2 text-sm text-muted">
@@ -111,7 +111,7 @@ export function PayoutsPanel(props: PayoutsPanelProps) {
 
   return (
     <div className="space-y-3" data-testid="payouts-connected">
-      <div className="border-gradient space-y-4 rounded-[24px] p-5">
+      <div className="glass space-y-4 rounded-[24px] p-5">
         <div className="flex items-center gap-3">
           <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient text-base font-semibold text-bg">
             ✓

@@ -91,7 +91,7 @@ function Sheet({ platform, isIPad, onClose }: { platform: InstallPlatform; isIPa
         aria-describedby={descId}
         className="install-sheet-up glass-strong absolute inset-x-0 bottom-0 mx-auto max-w-md rounded-t-[28px] px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3"
       >
-        <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+        <div aria-hidden className="mx-auto mb-4 h-1 w-10 rounded-full bg-ink/20" />
         <h2 id={titleId} className="font-display text-xl font-semibold tracking-tight">Add ORBIT to your Home Screen</h2>
         <p id={descId} className="mt-1 text-sm text-muted">Open it like an app, full screen, with one tap.</p>
 
@@ -104,7 +104,7 @@ function Sheet({ platform, isIPad, onClose }: { platform: InstallPlatform; isIPa
         {position === "bottom" && (
           <div aria-hidden className="mt-4 flex flex-col items-center text-accent">
             <ArrowIcon className="h-7 w-7 animate-bounce motion-reduce:animate-none" />
-            <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-subtle">Share is in the bar below</span>
+            <span className="text-xs font-medium text-muted">Share is in the bar below</span>
           </div>
         )}
 
@@ -123,8 +123,8 @@ function Sheet({ platform, isIPad, onClose }: { platform: InstallPlatform; isIPa
 
 function Step({ n, icon, text }: { n: number; icon: ReactNode; text: ReactNode }) {
   return (
-    <li className="flex items-center gap-3.5 rounded-[18px] border border-white/[0.07] bg-white/[0.04] p-3">
-      <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.06] text-accent">
+    <li className="flex items-center gap-3.5 rounded-[18px] border border-ink/[0.07] bg-ink/[0.04] p-3">
+      <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-ink/10 bg-ink/[0.06] text-accent">
         {icon}
       </span>
       <span className="min-w-0 flex-1 text-sm text-muted">

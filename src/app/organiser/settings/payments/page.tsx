@@ -99,7 +99,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       )}
 
       {notOwner && (
-        <p role="status" className="rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-muted backdrop-blur-xl">
+        <p role="status" className="rounded-2xl border border-ink/10 bg-ink/[0.045] px-4 py-3 text-sm text-muted">
           Only the owner of {notOwner.name} can manage its payouts.
         </p>
       )}

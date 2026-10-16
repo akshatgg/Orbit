@@ -41,7 +41,7 @@ export function ChipGroup({ name, options, defaultValue = [], multiple = true, m
             className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition duration-200 ease-out active:scale-[0.97] motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               on
                 ? "bg-gradient border-transparent font-medium text-bg"
-                : "border-white/10 bg-white/[0.045] text-muted backdrop-blur-xl hover:border-white/20 hover:bg-white/[0.08] hover:text-fg"
+                : "border-ink/10 bg-ink/[0.045] text-muted hover:border-ink/20 hover:bg-ink/[0.08] hover:text-fg"
             }`}
           >
             {on && (

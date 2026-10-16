@@ -33,9 +33,9 @@ export function EventHeader({ event, compact = false }: { event: ManagedEvent; c
     <header className="px-4 pt-5">
       <BackLink href="/organiser" label="Studio" />
       <div className={`mt-3 flex gap-4 ${compact ? "items-center" : "flex-col sm:flex-row sm:items-end"}`}>
-        <div className={`relative shrink-0 overflow-hidden rounded-[20px] ring-1 ring-white/10 ${compact ? "h-14 w-14" : "aspect-[2/1] w-full sm:aspect-auto sm:h-32 sm:w-56"}`}>
+        <div className={`relative shrink-0 overflow-hidden rounded-[20px] ring-1 ring-ink/10 ${compact ? "h-14 w-14" : "aspect-[2/1] w-full sm:aspect-auto sm:h-32 sm:w-56"}`}>
           {compact && !event.cover_url ? (
-            <div className="h-full w-full bg-[linear-gradient(135deg,rgb(222_159_251/0.35),rgb(63_121_253/0.25)_60%,rgb(253_181_112/0.3))]" aria-hidden />
+            <div className="h-full w-full bg-ink/[0.08]" aria-hidden />
           ) : (
             <EventCover src={event.cover_url} title={event.title} />
           )}

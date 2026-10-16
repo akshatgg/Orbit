@@ -15,7 +15,7 @@ export function RegistrationStep({ form, update, errors }: StepProps) {
         {REGISTRATION_CHOICES.map((c) => {
           const on = form.registration === c.value;
           return (
-            <label key={c.value} className={`flex cursor-pointer items-start gap-3 rounded-[20px] border p-4 transition duration-200 ${on ? "border-gradient" : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"}`}>
+            <label key={c.value} className={`flex cursor-pointer items-start gap-3 rounded-[20px] border p-4 transition duration-200 ${on ? "is-selected" : "border-ink/10 bg-ink/[0.03] hover:border-ink/20 hover:bg-ink/[0.06]"}`}>
               <input type="radio" name="registration" value={c.value} checked={on} className="mt-1 accent-accent"
                 onChange={() => update({ registration: c.value })} />
               <span>

@@ -1,18 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Montserrat } from "next/font/google";
+import { Instrument_Sans } from "next/font/google";
 import Script from "next/script";
 import { InstallProvider } from "@/components/pwa/InstallProvider";
 import { INSTALL_CAPTURE_SCRIPT } from "@/components/pwa/install-store";
-import { AmbientBackground } from "@/components/ui/AmbientBackground";
+import { THEME_COLORS, THEME_SCRIPT } from "@/components/theme/theme";
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo/site";
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const montserrat = Montserrat({
-  variable: "--font-montserrat",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
+const instrument = Instrument_Sans({ variable: "--font-instrument", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -39,7 +34,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#06060a",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+  ],
+  colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -51,10 +50,13 @@ const SW_REGISTER = `if ('serviceWorker' in navigator) { navigator.serviceWorker
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${montserrat.variable} h-full antialiased`}>
+    <html lang="en" data-theme="dark" suppressHydrationWarning className={`${instrument.variable} h-full antialiased`}>
       <body className="min-h-full">
-        <AmbientBackground />
         <InstallProvider>{children}</InstallProvider>
+        {/* Sets data-theme from localStorage / the OS before first paint. */}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_SCRIPT}
+        </Script>
         {/* Captures beforeinstallprompt before React hydrates; separate from the service worker script. */}
         <Script id="install-capture" strategy="beforeInteractive">
           {INSTALL_CAPTURE_SCRIPT}

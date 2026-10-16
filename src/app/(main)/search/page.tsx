@@ -136,7 +136,7 @@ async function Browse({ viewer, categories, now }: { viewer: Viewer; categories:
             <li key={c.id}>
               <Link
                 href={searchHref({ ...base, categories: [c.slug] })}
-                className="glass flex items-center justify-between gap-2 rounded-[18px] px-3.5 py-3 text-sm transition duration-200 hover:bg-white/[0.09] active:scale-[0.98] motion-reduce:transition-none"
+                className="glass flex items-center justify-between gap-2 rounded-[18px] px-3.5 py-3 text-sm transition duration-200 hover:bg-ink/[0.09] active:scale-[0.98] motion-reduce:transition-none"
               >
                 <span className="truncate font-medium">{c.name}</span>
                 <span className="text-xs tabular-nums text-subtle">{counts.get(c.id) ?? 0}</span>

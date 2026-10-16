@@ -137,24 +137,20 @@ review status (the database already blocks creating events). The `profiles` colu
 `graduation_year`, `company`, `industry`, `job_title`, `host_role`. Ranking only uses university / course for
 students and graduates (`src/lib/ranking`).
 
-## Design (from the ORBIT logo)
+## Design: two themes
 
-Dark, iridescent, glowing. Use the tokens — never hard-code new colours.
+`html[data-theme="dark"|"light"]`, set before paint by the inline script in `src/components/theme/theme.ts`
+(preference in `localStorage["orbit-theme"]`: system / light / dark). Dark is "Clear glass", light is "Daylight".
+Typeface: Instrument Sans (`font-sans` and `font-display`).
 
-- Background `bg-bg` (#05040c), surfaces `bg-surface` / `bg-surface-2`, borders `border-line`.
-- Text `text-fg` (white) and `text-muted` (lavender-grey, like the tagline).
-- Accents: `text-pink`, `text-violet`, `text-blue`, `text-cream`, `text-orange`.
-- The logo gradient: `bg-gradient` (primary buttons, active states), `text-gradient`,
-  `border-gradient`, `glow` (soft halo for hero cards / key CTAs).
-- Headings: `font-display` (Montserrat), wide tracking for brand moments (`tracking-[0.3em]`).
-- Mobile-first: student screens are `max-w-md`; the tab bar is 4 tabs (For You, Explore, Tickets,
-  Profile), plus a 5th **Studio** tab for hosts (`MainNav`). Leave `pb-28` room at the bottom. Admin is desktop-first (`max-w-6xl`).
-- Components in `src/components/ui`: `Button`/`ButtonLink`/`buttonClass`, `SubmitButton`, `Field`,
-  `Input`, `Textarea`, `Select`, `FormMessage`, `Badge`, `VerifiedMark`, `ChipGroup`, `Card`,
-  `EmptyState`, `Skeleton`/`ListSkeleton`, `Avatar`, `Tabs`, `PageHeader`.
-  Events: `EventCard`, `EventCover`, `SaveButton`, `RegistrationBadge`. Nav: `BottomNav`,
-  `FeedTabs`, `BackLink`.
-- Copy: short, friendly, British English ("organiser", "cancelled").
+- Tokens (`globals.css`): `bg-bg`, `bg-surface`, `border-line`, `text-fg`, `text-muted`, `text-subtle`, `text-accent`
+  (blue), `text-orange` (deadlines), and `ink` for adaptive alpha tints: `bg-ink/[0.06]`, `border-ink/10`.
+  Never hard-code white/black alphas except on top of photos.
+- Primary fill is `bg-gradient text-bg` (kept class name): white in dark, solid blue in light.
+- `glass` = card surface (tinted in dark, white with soft shadow in light, no blur). `glass-strong` = real frosted
+  glass for things that float (tab bar, sticky CTA, sheets). `glass-float` / `round-btn` = round buttons on photos.
+- Use the `light:` / `dark:` variants when the themes differ in structure (For You hero and list, event page).
+- No ambient orbs, gradient text, glows or tracked all-caps eyebrows.
 
 ## Feature ownership
 

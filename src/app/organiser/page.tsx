@@ -85,11 +85,10 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/organiser
 function NoOrganiser() {
   return (
     <div className="px-4">
-      <div className="border-gradient relative overflow-hidden rounded-[24px] p-6 text-center">
-        <div className="bg-gradient absolute -top-24 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full opacity-25 blur-3xl" aria-hidden />
+      <div className="glass relative overflow-hidden rounded-[24px] p-6 text-center">
         <Eyebrow className="relative">For organisers</Eyebrow>
         <h2 className="relative mt-3 text-2xl font-semibold tracking-tight">
-          Put your events in front of the <span className="text-gradient">right students</span>
+          Put your events in front of the <span className="text-fg">right students</span>
         </h2>
         <p className="relative mx-auto mt-3 max-w-sm text-sm text-muted">
           Societies, university teams, employers and communities use ORBIT to sell tickets, take applications and
@@ -98,7 +97,7 @@ function NoOrganiser() {
         <ul className="relative mx-auto mt-5 grid max-w-sm gap-2 text-left text-sm">
           {["Free & paid tickets with QR check-in", "Application forms you approve", "Or link to your own sign-up page"].map((t) => (
             <li key={t} className="flex items-center gap-2 text-fg/90">
-              <span className="text-accent" aria-hidden>✦</span> {t}
+              <span className="text-accent" aria-hidden>✓</span> {t}
             </li>
           ))}
         </ul>
@@ -124,7 +123,7 @@ function ApplicationCard({ org }: { org: MyOrganiser }) {
         </div>
         <p className="mt-1.5 text-sm text-muted">{copy[org.status] ?? ""}</p>
         {org.review_note && (
-          <p className="mt-2 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2 text-sm">
+          <p className="mt-2 rounded-xl border border-ink/10 bg-ink/[0.045] px-3 py-2 text-sm">
             <span className="text-muted">Note from ORBIT: </span>
             {org.review_note}
           </p>
@@ -150,8 +149,7 @@ function ReviewCard({ org }: { org: MyOrganiser }) {
     { label: "Approved", state: "next" },
   ] as const;
   return (
-    <section className="border-gradient relative overflow-hidden rounded-[24px] p-5" aria-labelledby={`review-${org.id}`}>
-      <div className="bg-gradient pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full opacity-20 blur-3xl" aria-hidden />
+    <section className="glass relative overflow-hidden rounded-[24px] p-5" aria-labelledby={`review-${org.id}`}>
       <div className="relative flex items-center gap-3.5">
         <OrganiserLogo src={org.logo_url} name={org.name} size={52} />
         <div className="min-w-0 flex-1">
@@ -170,7 +168,7 @@ function ReviewCard({ org }: { org: MyOrganiser }) {
             <span
               aria-hidden
               className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-                st.state === "done" ? "bg-gradient text-bg" : st.state === "now" ? "border border-accent/60 text-accent" : "border border-white/10 text-subtle"
+                st.state === "done" ? "bg-gradient text-bg" : st.state === "now" ? "border border-accent/60 text-accent" : "border border-ink/10 text-subtle"
               }`}
             >
               {st.state === "done" ? "✓" : st.state === "now" ? <span className="h-2 w-2 animate-pulse rounded-full bg-accent motion-reduce:animate-none" /> : "·"}
@@ -180,7 +178,7 @@ function ReviewCard({ org }: { org: MyOrganiser }) {
         ))}
       </ol>
 
-      <p className="relative mt-5 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 text-xs leading-relaxed text-muted">
+      <p className="relative mt-5 rounded-2xl border border-ink/[0.07] bg-ink/[0.03] px-4 py-3 text-xs leading-relaxed text-muted">
         Until then you can&apos;t create events, not even drafts. Reviews usually take a day or two.{" "}
         <Link href={`/organiser/settings?org=${org.id}`} className="font-medium text-accent transition-colors hover:text-fg">
           Polish your profile while you wait →
@@ -201,7 +199,7 @@ function OrgSwitcher({ orgs, selectedId }: { orgs: MyOrganiser[]; selectedId: st
             href={`/organiser?org=${o.id}`}
             aria-current={active ? "page" : undefined}
             className={`flex shrink-0 items-center gap-2 rounded-full border border-transparent py-1 pl-1 pr-3.5 text-sm transition-colors duration-200 ${
-              active ? "border-gradient text-fg" : "glass text-muted hover:text-fg"
+              active ? "is-selected text-fg" : "glass text-muted hover:text-fg"
             }`}
           >
             <OrganiserLogo src={o.logo_url} name={o.name} size={26} className="rounded-full" />
@@ -250,7 +248,7 @@ async function OrganiserOverview({ org }: { org: MyOrganiser }) {
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-6 py-10 text-center backdrop-blur-xl">
+        <div className="rounded-[22px] border border-dashed border-ink/12 bg-ink/[0.025] px-6 py-10 text-center">
           <p className="font-semibold tracking-tight">No events yet</p>
           <p className="mt-1.5 text-sm text-muted">Create your first event — save it as a draft and publish when you&apos;re ready.</p>
         </div>
@@ -279,8 +277,8 @@ function EventGroup({ title, events, draft = false }: { title: string; events: E
   if (events.length === 0) return null;
   return (
     <section aria-labelledby={`group-${title}`}>
-      <h3 id={`group-${title}`} className="mb-3 flex items-center gap-2 px-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-subtle">
-        {title} <span className="rounded-full bg-white/[0.07] px-2 py-0.5 text-[10px] tracking-normal text-muted">{events.length}</span>
+      <h3 id={`group-${title}`} className="mb-3 flex items-center gap-2 px-1 text-xs font-medium text-muted">
+        {title} <span className="rounded-full bg-ink/[0.07] px-2 py-0.5 text-[10px] tracking-normal text-muted">{events.length}</span>
       </h3>
       <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
         {events.map((e) => {
@@ -315,9 +313,9 @@ function Banner({ tone, children }: { tone: "brand" | "success" | "neutral"; chi
   const tones = {
     brand: "border-accent/25 bg-accent/10 text-muted",
     success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
-    neutral: "border-white/10 bg-white/[0.045] text-muted",
+    neutral: "border-ink/10 bg-ink/[0.045] text-muted",
   };
-  return <p role="status" className={`rounded-2xl border px-4 py-3 text-sm backdrop-blur-xl ${tones[tone]}`}>{children}</p>;
+  return <p role="status" className={`rounded-2xl border px-4 py-3 text-sm ${tones[tone]}`}>{children}</p>;
 }
 
 function DashboardSkeleton() {

@@ -10,16 +10,16 @@ const when = (iso: string) =>
 function Side({ heading, event, label }: { heading: string; event: ReviewEvent | null; label: (s: string) => string }) {
   if (!event) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/12 bg-white/[0.02] p-4 text-sm text-muted">
-        <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-subtle">{heading}</p>
+      <div className="rounded-2xl border border-dashed border-ink/12 bg-ink/[0.02] p-4 text-sm text-muted">
+        <p className="text-xs font-medium text-muted">{heading}</p>
         <p className="mt-2">This event is no longer available.</p>
       </div>
     );
   }
   const url = event.source_url ?? event.external_url;
   return (
-    <div className="space-y-2.5 rounded-2xl border border-line bg-white/[0.03] p-4 text-sm">
-      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-subtle">{heading}</p>
+    <div className="space-y-2.5 rounded-2xl border border-line bg-ink/[0.03] p-4 text-sm">
+      <p className="text-xs font-medium text-muted">{heading}</p>
       <p className="text-base font-semibold tracking-tight">{event.title}</p>
       <dl className="grid grid-cols-[5.5rem_1fr] gap-x-3 gap-y-1 text-xs">
         <dt className="text-subtle">Starts</dt><dd>{when(event.starts_at)}</dd>

@@ -29,9 +29,9 @@ export function EventCard({ event, counts, saved, registration, reason, actions,
   const cancelled = event.status === "cancelled";
 
   return (
-    <article className={`glass group relative overflow-hidden rounded-[22px] ${tile ? "md:flex md:h-full md:flex-col" : ""} transition duration-200 ease-out hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.07] motion-reduce:transition-none motion-reduce:hover:translate-y-0`}>
+    <article className={`glass group relative overflow-hidden rounded-[22px] ${tile ? "md:flex md:h-full md:flex-col" : ""} transition duration-200 ease-out hover:-translate-y-0.5 hover:border-ink/15 motion-reduce:transition-none motion-reduce:hover:translate-y-0`}>
       <Link href={href ?? `/events/${event.id}`} className={`flex gap-3 p-3 ${tile ? "md:flex-1 md:flex-col md:gap-0 md:p-0" : ""}`}>
-        <div className={`h-24 w-24 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10 ${tile ? "md:aspect-[16/10] md:h-auto md:w-full md:rounded-none md:ring-0" : ""}`}>
+        <div className={`h-24 w-24 shrink-0 overflow-hidden rounded-2xl ring-1 ring-ink/10 ${tile ? "md:aspect-[16/10] md:h-auto md:w-full md:rounded-none md:ring-0" : ""}`}>
           <EventCover src={event.cover_url} title={event.title} />
         </div>
         <div className={`min-w-0 flex-1 pr-8 ${tile ? "md:p-4 md:pr-4" : ""}`}>
@@ -62,9 +62,9 @@ export function EventCard({ event, counts, saved, registration, reason, actions,
       </div>
 
       {(reason || deadline || actions) && (
-        <div className="flex items-center justify-between gap-2 border-t border-white/[0.07] px-3 py-2.5 text-xs">
+        <div className="flex items-center justify-between gap-2 border-t border-ink/[0.07] px-3 py-2.5 text-xs">
           <span className="min-w-0 truncate text-muted">
-            {reason ? <><span className="text-accent">✦</span> {reason}</> : deadline}
+            {reason ?? deadline}
           </span>
           {actions}
         </div>

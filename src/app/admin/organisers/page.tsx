@@ -166,7 +166,7 @@ function OrganiserDetails({ org, members, people, applicant, reviewer }: {
 
       {org.review_note && (
         <div className="rounded-2xl border border-orange/25 bg-orange/[0.06] p-4">
-          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-orange">Review note</p>
+          <p className="text-xs font-medium text-orange">Review note</p>
           <p className="mt-1">{org.review_note}</p>
         </div>
       )}
@@ -176,7 +176,7 @@ function OrganiserDetails({ org, members, people, applicant, reviewer }: {
         <p className="whitespace-pre-line text-fg/90">{org.bio || <span className="text-muted">No bio yet.</span>}</p>
       </section>
 
-      <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2.5 rounded-2xl border border-line bg-white/[0.025] p-4">
+      <dl className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2.5 rounded-2xl border border-line bg-ink/[0.025] p-4">
         <dt className="text-subtle">Website</dt>
         <dd className="truncate">{org.website ? <a href={org.website} target="_blank" rel="noreferrer" className="text-accent transition-colors hover:underline">{org.website}</a> : "—"}</dd>
         <dt className="text-subtle">Contact</dt>
@@ -202,7 +202,7 @@ function OrganiserDetails({ org, members, people, applicant, reviewer }: {
         {members.length === 0 ? (
           <p className="text-muted">No members.</p>
         ) : (
-          <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white/[0.025]">
+          <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-ink/[0.025]">
             {members.map((m) => {
               const p = people.get(m.user_id);
               return (

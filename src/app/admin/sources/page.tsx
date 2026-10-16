@@ -32,7 +32,7 @@ export default function SourcesPage() {
         eyebrow="Events"
         title="Sources"
         subtitle="Approved calendar feeds, refreshed nightly. Only feeds we have permission to use."
-        action={<ButtonLink href="/admin/sources/new" size="md" className="glow"><IconPlus size={15} /> Add source</ButtonLink>}
+        action={<ButtonLink href="/admin/sources/new" size="md" className=""><IconPlus size={15} /> Add source</ButtonLink>}
       />
       <Suspense fallback={<TableSkeleton rows={4} />}>
         <SourcesContent />

@@ -39,7 +39,7 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
       <EventNav eventId={id} active="overview" pending={pending} />
 
       {pending > 0 && (
-        <section className="border-gradient mx-4 flex items-center justify-between gap-3 rounded-[22px] p-4" aria-live="polite">
+        <section className="glass mx-4 flex items-center justify-between gap-3 rounded-[22px] p-4" aria-live="polite">
           <div className="min-w-0">
             <p className="font-semibold tracking-tight">
               {pending} {pending === 1 ? "application is" : "applications are"} waiting
@@ -73,7 +73,7 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
       </section>
 
       {event.registration_mode !== "tickets" && (
-        <p className="mx-4 rounded-2xl border border-white/10 bg-white/[0.045] px-4 py-3 text-sm text-muted">
+        <p className="mx-4 rounded-2xl border border-ink/10 bg-ink/[0.045] px-4 py-3 text-sm text-muted">
           {event.registration_mode === "external"
             ? "People register on your own site, so ORBIT counts Apply-now clicks instead of tickets."
             : "This event is information only — there are no ORBIT tickets to track."}
