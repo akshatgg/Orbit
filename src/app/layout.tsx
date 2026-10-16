@@ -4,6 +4,7 @@ import Script from "next/script";
 import { InstallProvider } from "@/components/pwa/InstallProvider";
 import { INSTALL_CAPTURE_SCRIPT } from "@/components/pwa/install-store";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo/site";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -14,10 +15,25 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: { default: "ORBIT", template: "%s · ORBIT" },
-  description:
-    "Explore opportunities — career, networking and social events picked for you.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: "%s · ORBIT" },
+  description: SITE_DESCRIPTION,
+  keywords: [
+    "career events", "student networking", "careers fair", "graduate events", "society events",
+    "university socials", "employer talks", "event tickets", "UK students", "ORBIT",
+  ],
   applicationName: "ORBIT",
+  openGraph: {
+    type: "website",
+    siteName: "ORBIT",
+    locale: "en_GB",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
   appleWebApp: { capable: true, title: "ORBIT", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };

@@ -3,6 +3,11 @@ import { BottomNavView } from "@/components/nav/BottomNav";
 import { MainNav } from "@/components/nav/MainNav";
 import { InstallBanner } from "@/components/pwa/InstallBanner";
 
+import type { Metadata } from "next";
+
+// Signed-in screens: nothing here is for search engines (signed-out "/" is the public landing page).
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+
 /** Student-facing screens with the bottom tab bar. Pages guard themselves with requireProfile(). */
 export default function MainLayout({ children }: LayoutProps<"/">) {
   return (

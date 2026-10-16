@@ -11,7 +11,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { INVITE_PROBLEM_COPY, inviteProblem, isValidInviteCode } from "@/lib/organiser/invites";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Join a team" };
+export const metadata: Metadata = { title: "Join a team", robots: { index: false, follow: false } };
 
 type Peek = {
   organiser_id: string;

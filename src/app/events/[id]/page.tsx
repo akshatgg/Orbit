@@ -6,7 +6,10 @@ import { Suspense, type ReactNode } from "react";
 import { getProfile } from "@/lib/auth";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { FORMAT_LABELS, formatDeadline, formatEventDate, formatLongDate, formatPrice, formatTimeRange, dayKey } from "@/lib/format";
-import { appUrl, toCalendarEvent } from "@/lib/tickets/calendar";
+import { absoluteUrl } from "@/lib/seo/site";
+import { buildEventJsonLd } from "@/lib/seo/jsonld";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { toCalendarEvent } from "@/lib/tickets/calendar";
 import { STATUS_COPY, hasEnded, isActiveStatus, mapsUrl, paragraphs, safeHttpUrl, selectCta } from "@/lib/tickets/logic";
 import { getEvent, getEventPageData, type EventPageData } from "@/lib/tickets/queries";
 import { EventCover } from "@/components/events/EventCover";
@@ -31,8 +34,9 @@ export async function generateMetadata({ params }: PageProps<"/events/[id]">): P
   const where = event.format === "online" ? "Online" : (event.venue_name ?? event.city ?? FORMAT_LABELS.in_person);
   const blurb = event.summary ?? paragraphs(event.description)[0]?.slice(0, 180) ?? "";
   const description = [`${formatEventDate(event.starts_at)} · ${where}`, blurb].filter(Boolean).join(" — ");
-  const url = `${appUrl()}/events/${event.id}`;
-  const image = safeHttpUrl(event.cover_url) ?? `${appUrl()}/brand/orbit-logo-full.png`;
+  const url = absoluteUrl(`/events/${event.id}`);
+  // Without a cover, the generated image (opengraph-image.tsx) is used.
+  const image = safeHttpUrl(event.cover_url);
   const title = event.status === "cancelled" ? `Cancelled: ${event.title}` : event.title;
 
   return {
@@ -45,9 +49,9 @@ export async function generateMetadata({ params }: PageProps<"/events/[id]">): P
       title,
       description,
       url,
-      images: [{ url: image, alt: event.title }],
+      ...(image ? { images: [{ url: image, alt: event.title }] } : {}),
     },
-    twitter: { card: event.cover_url ? "summary_large_image" : "summary", title, description, images: [image] },
+    twitter: { card: "summary_large_image", title, description, ...(image ? { images: [image] } : {}) },
   };
 }
 
@@ -99,8 +103,11 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
         ? formatDeadline(deadline, now)
         : counts.going > 0 ? `${counts.going} going` : null;
 
+  const jsonLd = buildEventJsonLd({ ...event, soldOut: full && !event.waitlist_enabled });
+
   return (
     <>
+      <JsonLd data={jsonLd} />
       {/* Cover */}
       <div className="relative">
         <div className="aspect-[4/3] w-full overflow-hidden [mask-image:linear-gradient(to_bottom,#000_50%,transparent_100%)]">

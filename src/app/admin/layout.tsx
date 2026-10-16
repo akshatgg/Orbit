@@ -5,6 +5,10 @@ import { requireAdmin } from "@/lib/auth";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { TableSkeleton } from "@/components/admin/primitives";
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { robots: { index: false, follow: false } };
+
 const LINKS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/organisers", label: "Organisers" },

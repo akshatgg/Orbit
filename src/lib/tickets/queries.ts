@@ -13,7 +13,7 @@ const EVENT_DETAIL_SELECT = `
   id, title, summary, description, cover_url, starts_at, ends_at, timezone, format, venue_name, address, city,
   tags, university, registration_mode, external_url, external_label, requires_approval, capacity,
   waitlist_enabled, registration_deadline, price_min, price_max, currency, status, cancel_reason,
-  organiser_id, source, source_url,
+  organiser_id, source, source_url, published_at,
   organiser:organisers ( id, slug, name, logo_url, is_verified, kind ),
   category:categories ( id, slug, name, group )
 `;
@@ -23,7 +23,7 @@ export type EventDetail = Pick<
   | "id" | "title" | "summary" | "description" | "cover_url" | "starts_at" | "ends_at" | "timezone" | "format"
   | "venue_name" | "address" | "city" | "tags" | "university" | "registration_mode" | "external_url"
   | "external_label" | "requires_approval" | "capacity" | "waitlist_enabled" | "registration_deadline"
-  | "price_min" | "price_max" | "currency" | "status" | "cancel_reason" | "organiser_id" | "source" | "source_url"
+  | "price_min" | "price_max" | "currency" | "status" | "cancel_reason" | "organiser_id" | "source" | "source_url" | "published_at"
 > & {
   organiser: Pick<Organiser, "id" | "slug" | "name" | "logo_url" | "is_verified" | "kind"> | null;
   category: Pick<Category, "id" | "slug" | "name" | "group"> | null;

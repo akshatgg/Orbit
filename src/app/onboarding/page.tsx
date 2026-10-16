@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { OnboardingWizard } from "@/components/profile/OnboardingWizard";
 import type { CategoryOption } from "@/components/profile/ProfileSteps";
 
-export const metadata: Metadata = { title: "Welcome" };
+export const metadata: Metadata = { title: "Welcome", robots: { index: false, follow: false } };
 
 export default function OnboardingPage({ searchParams }: PageProps<"/onboarding">) {
   return (
