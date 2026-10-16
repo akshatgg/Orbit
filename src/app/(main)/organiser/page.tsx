@@ -33,12 +33,13 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/organiser
   const selected = pickOrganiser(orgs, params.org);
   const others = orgs.filter((o) => o.status !== "approved");
   const approved = orgs.filter((o) => o.status === "approved");
+  const pending = others.some((o) => o.status === "pending");
 
   if (orgs.length === 0) return <NoOrganiser />;
 
   return (
     <div className="space-y-6 px-4">
-      {params.applied && (
+      {params.applied && !pending && (
         <Banner tone="brand">
           <strong className="font-semibold text-fg">Application sent.</strong> Your organisation is under review.
           We&apos;ll email you when it&apos;s approved.
@@ -64,7 +65,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/organiser
       {typeof params.cancelled === "string" && <Banner tone="neutral">Event cancelled. Guests have been told.</Banner>}
       {typeof params.deleted === "string" && <Banner tone="neutral">Draft deleted.</Banner>}
 
-      {others.map((o) => <ApplicationCard key={o.id} org={o} />)}
+      {others.map((o) => <ApplicationCard key={o.id} org={o} justApplied={!!params.applied} />)}
 
       {selected ? (
         <>
@@ -72,7 +73,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/organiser
           <OrganiserOverview org={selected} />
         </>
       ) : (
-        others.length > 0 && (
+        others.length > 0 && !pending && (
           <p className="text-center text-xs text-subtle">
             Events can be created once an organisation is approved.
           </p>
@@ -107,8 +108,8 @@ function NoOrganiser() {
   );
 }
 
-function ApplicationCard({ org }: { org: MyOrganiser }) {
-  if (org.status === "pending") return <ReviewCard org={org} />;
+function ApplicationCard({ org, justApplied }: { org: MyOrganiser; justApplied?: boolean }) {
+  if (org.status === "pending") return <ReviewCard org={org} justApplied={justApplied} />;
   const copy: Record<string, string> = {
     rejected: "Your application wasn't approved this time.",
     suspended: "This organiser is suspended, so its events are hidden. Contact the ORBIT team if you think this is a mistake.",
@@ -142,48 +143,62 @@ function ApplicationCard({ org }: { org: MyOrganiser }) {
 }
 
 /** Pending organisations: the only thing Studio shows until an admin approves. */
-function ReviewCard({ org }: { org: MyOrganiser }) {
+function ReviewCard({ org, justApplied }: { org: MyOrganiser; justApplied?: boolean }) {
   const steps = [
-    { label: "Submitted", state: "done" },
-    { label: "In review", state: "now" },
-    { label: "Approved", state: "next" },
+    { label: justApplied ? "Application sent" : "Application received", hint: "Your organisation details are with the ORBIT team.", state: "done" },
+    { label: "In review", hint: "Usually takes a day or two. We\u2019ll email you as soon as it\u2019s done.", state: "now" },
+    { label: "Approved", hint: "Create events, sell tickets and check guests in.", state: "next" },
   ] as const;
   return (
-    <section className="glass relative overflow-hidden rounded-[24px] p-5" aria-labelledby={`review-${org.id}`}>
-      <div className="relative flex items-center gap-3.5">
+    <section className="glass mx-auto w-full max-w-xl rounded-[24px] p-5 sm:p-7 lg:mx-0" aria-labelledby={`review-${org.id}`}>
+      <div className="flex items-center gap-3.5">
         <OrganiserLogo src={org.logo_url} name={org.name} size={52} />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold tracking-tight">{org.name}</p>
-          <OrganiserStatusBadge status={org.status} />
+          <p className="truncate text-[15px] font-semibold tracking-tight">{org.name}</p>
+          <div className="mt-1"><OrganiserStatusBadge status={org.status} /></div>
         </div>
       </div>
-      <h2 id={`review-${org.id}`} className="relative mt-5 text-[1.35rem] font-semibold leading-snug tracking-tight">
-        Your organisation is under review.
-      </h2>
-      <p className="relative mt-1.5 text-sm text-muted">We&apos;ll email you when it&apos;s approved.</p>
 
-      <ol className="relative mt-5 grid grid-cols-3 gap-2" aria-label="Review progress">
-        {steps.map((st) => (
-          <li key={st.label} className="text-center">
+      <h2 id={`review-${org.id}`} className="mt-6 text-xl font-semibold tracking-tight">
+        {justApplied ? "Thanks, your application is in" : "Your organisation is in review"}
+      </h2>
+
+      <ol className="mt-5" aria-label="Review progress">
+        {steps.map((st, i) => (
+          <li key={st.label} className="relative flex gap-3.5 pb-5 last:pb-0">
+            {i < steps.length - 1 && (
+              <span aria-hidden className={`absolute left-[11px] top-7 bottom-1 w-px ${st.state === "done" ? "bg-accent/60" : "bg-ink/10"}`} />
+            )}
             <span
               aria-hidden
-              className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-                st.state === "done" ? "bg-gradient text-bg" : st.state === "now" ? "border border-accent/60 text-accent" : "border border-ink/10 text-subtle"
+              className={`relative mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                st.state === "done"
+                  ? "bg-accent text-white"
+                  : st.state === "now"
+                    ? "border-2 border-accent bg-accent/10"
+                    : "border-2 border-ink/15"
               }`}
             >
-              {st.state === "done" ? "✓" : st.state === "now" ? <span className="h-2 w-2 animate-pulse rounded-full bg-accent motion-reduce:animate-none" /> : "·"}
+              {st.state === "done" ? "\u2713" : st.state === "now" ? <span className="h-2 w-2 animate-pulse rounded-full bg-accent motion-reduce:animate-none" /> : null}
             </span>
-            <span className={`mt-1.5 block text-[11px] ${st.state === "next" ? "text-subtle" : "text-fg/90"}`}>{st.label}</span>
+            <div className="min-w-0">
+              <p className={`text-sm font-semibold ${st.state === "next" ? "text-muted" : "text-fg"}`}>
+                {st.label}
+                {st.state === "now" && <span className="sr-only"> (current step)</span>}
+              </p>
+              <p className="mt-0.5 text-sm text-muted">{st.hint}</p>
+            </div>
           </li>
         ))}
       </ol>
 
-      <p className="relative mt-5 rounded-2xl border border-ink/[0.07] bg-ink/[0.03] px-4 py-3 text-xs leading-relaxed text-muted">
-        Until then you can&apos;t create events, not even drafts. Reviews usually take a day or two.{" "}
-        <Link href={`/organiser/settings?org=${org.id}`} className="font-medium text-accent transition-colors hover:text-fg">
-          Polish your profile while you wait →
-        </Link>
-      </p>
+      <div className="mt-6 border-t border-ink/[0.07] pt-5">
+        <p className="text-sm text-muted">While you wait, add a logo and description so students know who you are.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <ButtonLink href={`/organiser/settings?org=${org.id}`} variant="secondary" size="sm">Edit organisation profile</ButtonLink>
+          <ButtonLink href="/" variant="ghost" size="sm">Browse events</ButtonLink>
+        </div>
+      </div>
     </section>
   );
 }
