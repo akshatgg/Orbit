@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { EventForm } from "@/lib/organiser/event-form";
+import { Switch } from "@/components/ui/Switch";
 
 export type StepProps = {
   form: EventForm;
@@ -34,21 +35,12 @@ export function Toggle({ id, checked, onChange, label, description }: {
   id: string; checked: boolean; onChange: (on: boolean) => void; label: string; description?: string;
 }) {
   return (
-    <div className="glass flex items-start justify-between gap-4 rounded-[16px] px-4 py-3.5">
+    <div className="glass flex items-center justify-between gap-4 rounded-[16px] px-4 py-3.5">
       <div>
         <label htmlFor={id} className="text-sm font-medium">{label}</label>
         {description && <p className="mt-0.5 text-xs text-muted">{description}</p>}
       </div>
-      <button
-        id={id}
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        onClick={() => onChange(!checked)}
-        className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${checked ? "bg-gradient" : "bg-ink/[0.1] ring-1 ring-inset ring-ink/10"}`}
-      >
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full shadow-md transition-transform duration-200 ease-out motion-reduce:transition-none ${checked ? "translate-x-[1.375rem] bg-bg" : "translate-x-0.5 bg-fg"}`} />
-      </button>
+      <Switch id={id} checked={checked} onClick={() => onChange(!checked)} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { logInteraction, setEventMark } from "@/lib/actions/user-events";
 import { Icon } from "./icons";
 import { Sheet } from "./Sheet";
+import { Switch } from "@/components/ui/Switch";
 
 const logged = new Set<string>();
 
@@ -144,10 +145,9 @@ export function ExternalRegisteredToggle({ eventId, registered, signedIn }: { ev
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={optimistic}
+      <Switch
+        size="lg"
+        checked={optimistic}
         aria-label="Mark as registered"
         disabled={pending}
         onClick={() =>
@@ -158,10 +158,7 @@ export function ExternalRegisteredToggle({ eventId, registered, signedIn }: { ev
             if (!res.ok) setError(res.error);
           })
         }
-        className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors ${optimistic ? "border-transparent bg-gradient" : "border-ink/10 bg-ink/[0.08]"}`}
-      >
-        <span className={`absolute top-0.5 h-5.5 w-5.5 rounded-full shadow transition-[left] motion-reduce:transition-none ${optimistic ? "left-[1.4rem] bg-bg" : "left-0.5 bg-fg/80"}`} />
-      </button>
+      />
       {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
     </div>
   );
