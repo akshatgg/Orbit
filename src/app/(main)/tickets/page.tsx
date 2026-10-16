@@ -36,7 +36,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/tickets">["
 
   return (
     <div className="space-y-4 pb-28">
-      <nav aria-label="Ticket filter" className="mx-4 flex gap-1 rounded-xl border border-line bg-surface p-1">
+      <nav aria-label="Ticket filter" className="glass mx-4 flex gap-1 rounded-full p-1">
         {[
           { href: "/tickets", label: `Upcoming (${upcoming.length})`, active: !showPast },
           { href: "/tickets?tab=past", label: `Past (${past.length})`, active: showPast },
@@ -46,7 +46,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/tickets">["
             href={t.href}
             replace
             aria-current={t.active ? "page" : undefined}
-            className={`flex-1 rounded-lg px-3 py-1.5 text-center text-sm font-medium transition-colors ${t.active ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"}`}
+            className={`flex-1 rounded-full px-3 py-1.5 text-center text-sm font-medium transition duration-200 motion-reduce:transition-none ${t.active ? "bg-white/[0.12] text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.1)]" : "text-muted hover:text-fg"}`}
           >
             {t.label}
           </Link>
@@ -75,14 +75,14 @@ function TicketCard({ row, past }: { row: TicketRow; past: boolean }) {
   return (
     <Link
       href={`/tickets/${row.id}`}
-      className={`flex gap-3 rounded-2xl border bg-surface p-3 transition-colors hover:border-violet/50 ${row.status === "going" && !past ? "border-gradient" : "border-line"} ${past ? "opacity-80" : ""}`}
+      className={`group flex gap-3 rounded-[22px] p-3 transition duration-200 ease-out hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${row.status === "going" && !past ? "border-gradient" : "glass hover:bg-white/[0.07]"} ${past ? "opacity-75" : ""}`}
     >
-      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl">
+      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-1 ring-white/10">
         <EventCover src={event.cover_url} title={event.title} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-pink">{formatEventDate(event.starts_at)}</p>
-        <h2 className={`mt-0.5 line-clamp-2 font-semibold leading-snug ${cancelled ? "text-muted line-through" : ""}`}>{event.title}</h2>
+        <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}</p>
+        <h2 className={`mt-0.5 line-clamp-2 font-semibold leading-snug tracking-tight ${cancelled ? "text-muted line-through" : ""}`}>{event.title}</h2>
         {event.organiser && (
           <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted">
             {event.organiser.name}

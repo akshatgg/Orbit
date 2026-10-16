@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import type Stripe from "stripe";
 import { CheckoutMessage, CheckoutSuccess } from "@/components/payments/CheckoutResult";
-import { ButtonLink } from "@/components/ui/Button";
+import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { requireUser } from "@/lib/auth";
 import { formatEventDate, formatPrice } from "@/lib/format";
@@ -26,7 +26,7 @@ export default function Page({ searchParams }: PageProps<"/checkout/success">) {
         fallback={
           <div className="mt-6 space-y-4" aria-busy="true" aria-label="Confirming your payment">
             <Skeleton className="mx-auto h-24 w-24 rounded-full" />
-            <Skeleton className="h-48" />
+            <Skeleton className="h-48 rounded-[24px]" />
           </div>
         }
       >
@@ -135,7 +135,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
         action={
           <div className="space-y-2">
             {session.url && (
-              <a href={session.url} className="bg-gradient flex h-12 w-full items-center justify-center rounded-xl text-sm font-semibold text-bg">
+              <a href={session.url} className={buttonClass({ size: "lg", full: true })}>
                 Return to checkout
               </a>
             )}

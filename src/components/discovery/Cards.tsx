@@ -20,7 +20,7 @@ type CardProps = {
 
 /** The ✦ sparkle used in front of every "Recommended because…" line. */
 export function Sparkle({ className = "" }: { className?: string }) {
-  return <span aria-hidden className={`text-gradient font-semibold ${className}`}>✦</span>;
+  return <span aria-hidden className={`text-accent ${className}`}>✦</span>;
 }
 
 /**
@@ -30,10 +30,10 @@ export function Sparkle({ className = "" }: { className?: string }) {
 export function RankedCard({ event, counts, saved, registration, reason, dismissible }: CardProps) {
   const footer = reason || dismissible;
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-surface transition-colors hover:border-violet/50 [&>article]:rounded-none [&>article]:border-0">
+    <div className="glass overflow-hidden rounded-[22px] transition duration-200 ease-out hover:border-white/15 motion-reduce:transition-none [&>article]:rounded-none [&>article]:border-0 [&>article]:bg-transparent [&>article]:shadow-none [&>article]:backdrop-blur-none [&>article]:hover:translate-y-0 [&>article]:hover:bg-white/[0.04]">
       <EventCard event={event} counts={counts} saved={saved} registration={registration} />
       {footer && (
-        <div className="flex items-center gap-2 border-t border-line px-3 py-2">
+        <div className="flex items-center gap-2 border-t border-white/[0.07] py-2 pl-3.5 pr-2">
           <p className="line-clamp-2 min-w-0 flex-1 text-xs leading-relaxed text-muted">
             {reason && <><Sparkle /> {reason}</>}
           </p>
@@ -71,18 +71,18 @@ function MetaBadges({ event, counts }: { event: EventCardData; counts?: EventCou
 /** The highlighted first recommendation on For You. */
 export function TopPickCard({ event, counts, saved, reason, dismissible }: CardProps) {
   return (
-    <article className="border-gradient glow group relative overflow-hidden rounded-3xl">
+    <article className="border-gradient glow group relative overflow-hidden rounded-[26px]">
       <Link href={`/events/${event.id}`} className="block focus-visible:outline-none">
-        <div className="relative aspect-[16/9] overflow-hidden">
-          <EventCover src={event.cover_url} title={event.title} className="transition-transform duration-500 group-hover:scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/30 to-transparent" />
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-bg/70 px-2.5 py-1 font-display text-[10px] font-semibold uppercase tracking-[0.25em] backdrop-blur">
+        <div className="relative aspect-[16/10] overflow-hidden">
+          <EventCover src={event.cover_url} title={event.title} className="transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgb(17_17_25)] via-[rgb(17_17_25)]/25 to-transparent" />
+          <span className="glass absolute left-3.5 top-3.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-display text-[10px] font-semibold uppercase tracking-[0.25em] text-fg/90">
             <Sparkle /> Top pick
           </span>
         </div>
-        <div className="relative -mt-8 space-y-2 px-4 pb-4">
-          <p className="text-xs font-semibold text-pink">{formatEventDate(event.starts_at)}</p>
-          <h2 className="font-display text-xl font-semibold leading-snug">{event.title}</h2>
+        <div className="relative -mt-12 space-y-2 px-4 pb-4">
+          <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}</p>
+          <h2 className="text-[1.35rem] font-semibold leading-snug tracking-tight">{event.title}</h2>
           {event.organiser && (
             <p className="flex items-center gap-1 text-sm text-muted">
               {event.organiser.name}
@@ -93,13 +93,13 @@ export function TopPickCard({ event, counts, saved, reason, dismissible }: CardP
         </div>
       </Link>
       {saved !== undefined && (
-        <div className="absolute right-3 top-3">
+        <div className="absolute right-3.5 top-3.5">
           <SaveButton eventId={event.id} saved={saved} />
         </div>
       )}
       {(reason || dismissible) && (
-        <div className="flex items-center gap-2 border-t border-line/80 px-4 py-2.5">
-          <p className="min-w-0 flex-1 text-xs leading-relaxed text-fg/85">
+        <div className="flex items-center gap-2 border-t border-white/[0.07] py-2.5 pl-4 pr-2.5">
+          <p className="min-w-0 flex-1 text-xs leading-relaxed text-fg/80">
             {reason && <><Sparkle /> {reason}</>}
           </p>
           {dismissible && <NotInterestedButton id={event.id} title={event.title} />}
@@ -112,31 +112,31 @@ export function TopPickCard({ event, counts, saved, reason, dismissible }: CardP
 /** Tall card for horizontal carousels (This Week → Top picks). */
 export function PickCard({ event, counts, saved, reason, rank }: CardProps & { rank: number }) {
   return (
-    <article className="relative w-64 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-surface transition-colors hover:border-violet/50">
+    <article className="glass group relative w-64 shrink-0 snap-start overflow-hidden rounded-[22px] transition duration-200 ease-out hover:border-white/15 motion-reduce:transition-none">
       <Link href={`/events/${event.id}`} className="block">
         <div className="relative aspect-[16/10] overflow-hidden">
           <EventCover src={event.cover_url} title={event.title} />
-          <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
-          <span className="bg-gradient absolute bottom-2 left-3 flex h-7 w-7 items-center justify-center rounded-full font-display text-sm font-bold text-bg">
+          <div className="absolute inset-0 bg-gradient-to-t from-[rgb(30_30_38)] via-transparent to-transparent opacity-80" />
+          <span className="glass absolute bottom-2.5 left-3 flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold tabular-nums text-fg">
             {rank}
           </span>
         </div>
-        <div className="space-y-1.5 p-3">
-          <p className="text-xs font-semibold text-pink">{formatEventDate(event.starts_at)}</p>
-          <h3 className="line-clamp-2 min-h-[2.5rem] font-semibold leading-snug">{event.title}</h3>
+        <div className="space-y-1.5 p-3.5">
+          <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}</p>
+          <h3 className="line-clamp-2 min-h-[2.5rem] font-semibold leading-snug tracking-tight">{event.title}</h3>
           <p className="truncate text-xs text-muted">
             {event.organiser?.name ?? venueLabel(event)}
             {counts && counts.going > 0 && ` · ${counts.going} going`}
           </p>
           {reason && (
-            <p className="line-clamp-2 text-[11px] leading-relaxed text-muted">
+            <p className="line-clamp-2 text-[11px] leading-relaxed text-subtle">
               <Sparkle /> {reason.replace(/^Recommended because /, "Because ")}
             </p>
           )}
         </div>
       </Link>
       {saved !== undefined && (
-        <div className="absolute right-2 top-2">
+        <div className="absolute right-2.5 top-2.5">
           <SaveButton eventId={event.id} saved={saved} />
         </div>
       )}

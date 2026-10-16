@@ -30,7 +30,7 @@ export default function ProfilePage() {
           <Link
             href="/profile/preferences"
             aria-label="Edit preferences"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-muted transition-colors hover:text-fg"
+            className="glass flex h-10 w-10 items-center justify-center rounded-full text-muted transition duration-200 hover:bg-white/[0.09] hover:text-fg active:scale-95 motion-reduce:transition-none"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" />
@@ -47,7 +47,7 @@ export default function ProfilePage() {
           fallback={
             <div className="space-y-9">
               <ProfileHeroSkeleton />
-              <div className="px-4"><Skeleton className="h-44" /></div>
+              <div className="px-4"><Skeleton className="h-44 rounded-[22px]" /></div>
             </div>
           }
         >
@@ -82,13 +82,13 @@ export default function ProfilePage() {
 
         <section className="space-y-3">
           <SectionHeading title="More" />
-          <Suspense fallback={<div className="px-4"><Skeleton className="h-20" /></div>}>
+          <Suspense fallback={<div className="px-4"><Skeleton className="h-20 rounded-[22px]" /></div>}>
             <OrganiserAndAdmin />
           </Suspense>
           <form action="/auth/signout" method="post" className="px-4 pt-2">
             <button
               type="submit"
-              className="h-12 w-full rounded-2xl border border-line text-sm font-semibold text-muted transition-colors hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300"
+              className="glass h-12 w-full rounded-full text-sm font-semibold text-muted transition duration-200 hover:border-red-400/30 hover:bg-red-500/10 hover:text-red-300 active:scale-[0.98] motion-reduce:transition-none"
             >
               Sign out
             </button>
@@ -152,11 +152,11 @@ async function OrganiserAndAdmin() {
       {isAdmin(profile) && (
         <Link
           href="/admin"
-          className="group mx-4 flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-violet/50"
+          className="group glass mx-4 flex items-center gap-4 rounded-[22px] p-4 transition duration-200 hover:bg-white/[0.08] motion-reduce:transition-none"
         >
-          <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-line bg-surface-2 text-lg">⌘</span>
+          <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.06] text-lg">⌘</span>
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold">Admin dashboard</span>
+            <span className="block font-semibold tracking-tight">Admin dashboard</span>
             <span className="block text-sm text-muted">
               {profile.role === "super_admin" ? "Super admin" : "Admin"} · organisers, events, users
             </span>

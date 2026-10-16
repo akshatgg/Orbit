@@ -110,9 +110,9 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
               ))}
             </ul>
           ) : (
-            <div className="mx-4 rounded-2xl border border-dashed border-line px-5 py-6 text-center text-sm text-muted">
+            <div className="mx-4 rounded-[22px] border border-dashed border-white/12 bg-white/[0.025] px-5 py-6 text-center text-sm text-muted">
               Nothing saved for this day.{" "}
-              <Link href="/search" className="font-semibold text-gradient">Find something</Link>
+              <Link href="/search" className="font-semibold text-accent">Find something</Link>
             </div>
           )}
         </section>
@@ -121,13 +121,13 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
       {later.length > 0 && (
         <section aria-labelledby="later-heading">
           <SectionHeading id="later-heading" eyebrow={formatMonth(month)} title="Later this month" count={later.length} />
-          <ul className="mx-4 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+          <ul className="glass mx-4 divide-y divide-white/[0.07] overflow-hidden rounded-[22px]">
             {later.map((e) => (
               <li key={e.event.id}>
                 <Link
                   href={`/calendar?month=${month}&day=${dayKey(e.event.starts_at)}`}
                   scroll={false}
-                  className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface-2"
+                  className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/[0.05]"
                 >
                   <DateChip iso={e.event.starts_at} />
                   <div className="min-w-0 flex-1">
@@ -145,7 +145,7 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
       )}
 
       {entries.length === 0 && (
-        <div className="mx-4 flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface px-6 py-6 text-center">
+        <div className="glass mx-4 flex flex-col items-center gap-4 rounded-[22px] px-6 py-6 text-center">
           <p className="text-sm text-muted">
             Nothing in {formatMonth(month)} yet. Save events or grab tickets and they’ll show up here.
           </p>
@@ -162,9 +162,9 @@ const chipWeekday = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZon
 function DateChip({ iso }: { iso: string }) {
   const d = new Date(iso);
   return (
-    <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-xl border border-line bg-surface-2 leading-none">
-      <span className="text-[9px] font-semibold uppercase tracking-widest text-muted">{chipWeekday.format(d)}</span>
-      <span className="mt-0.5 font-display text-base font-semibold">{chipDay.format(d)}</span>
+    <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-[14px] border border-white/10 bg-white/[0.06] leading-none">
+      <span className="text-[9px] font-medium uppercase tracking-widest text-subtle">{chipWeekday.format(d)}</span>
+      <span className="mt-0.5 text-base font-semibold tabular-nums">{chipDay.format(d)}</span>
     </span>
   );
 }

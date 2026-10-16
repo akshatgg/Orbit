@@ -19,10 +19,10 @@ import { AttendedToggle, FollowToggle } from "./ProfileActions";
 export function SectionHeading({ title, count, action }: { title: string; count?: number; action?: ReactNode }) {
   return (
     <div className="mb-3 flex items-end justify-between gap-3 px-4">
-      <h2 className="font-display text-lg font-semibold">
+      <h2 className="text-lg font-semibold tracking-tight">
         {title}
         {count ? (
-          <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-2 px-1.5 align-middle text-[11px] font-semibold text-muted">
+          <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/[0.08] px-1.5 align-middle text-[11px] font-semibold text-muted">
             <span className="sr-only">(</span>
             {count}
             <span className="sr-only">)</span>
@@ -34,7 +34,7 @@ export function SectionHeading({ title, count, action }: { title: string; count?
   );
 }
 
-const linkClass = "text-sm font-medium text-pink transition-colors hover:text-fg";
+const linkClass = "text-sm font-medium text-accent transition-colors hover:text-fg";
 
 /** One line under the name that fits the person: course for students, job for professionals. */
 export function profileLine(profile: Profile): string {
@@ -54,16 +54,16 @@ export function ProfileHero({ profile }: { profile: Profile }) {
   const type = effectiveUserType(profile);
   const line = profileLine(profile);
   return (
-    <section className="relative mx-4 overflow-hidden rounded-3xl border-gradient p-5 glow">
-      <div aria-hidden className="bg-gradient absolute -right-16 -top-20 h-48 w-48 rounded-full opacity-20 blur-3xl" />
+    <section className="relative mx-4 overflow-hidden rounded-[26px] border-gradient p-5">
+      <div aria-hidden className="absolute -right-16 -top-24 h-52 w-52 rounded-full bg-accent/20 blur-3xl" />
       <div className="relative flex items-center gap-4">
-        <span className="bg-gradient rounded-full p-[2px]">
-          <span className="block rounded-full bg-bg p-[2px]">
+        <span className="rounded-full bg-gradient-to-br from-pink/60 via-blue/40 to-orange/50 p-[1.5px]">
+          <span className="block rounded-full bg-[rgb(18_18_26)] p-[2px]">
             <Avatar src={profile.avatar_url} name={profile.full_name ?? profile.email} size={68} />
           </span>
         </span>
         <div className="min-w-0">
-          <h2 className="truncate font-display text-xl font-semibold">{profile.full_name || "Your profile"}</h2>
+          <h2 className="truncate text-xl font-semibold tracking-tight">{profile.full_name || "Your profile"}</h2>
           {profile.email && <p className="truncate text-sm text-muted">{profile.email}</p>}
           <div className="mt-2 flex flex-wrap gap-1.5">
             {profile.is_verified_student && (
@@ -93,7 +93,7 @@ export function InterestsSummary({ profile, categoryNames }: { profile: Profile;
   return (
     <section>
       <SectionHeading title="Your interests" action={<Link href="/profile/preferences" className={linkClass}>Edit</Link>} />
-      <div className="mx-4 space-y-4 rounded-2xl border border-line bg-surface p-4">
+      <div className="glass mx-4 space-y-4 rounded-[22px] p-4">
         {empty ? (
           <p className="text-sm text-muted">
             No interests yet. <Link href="/profile/preferences" className={linkClass}>Add some</Link> to sharpen your feed.
@@ -105,12 +105,12 @@ export function InterestsSummary({ profile, categoryNames }: { profile: Profile;
             <ChipRow label="Events" items={categories} />
           </>
         )}
-        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-line pt-3 text-sm">
-          <dt className="text-muted">Format</dt>
+        <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 border-t border-white/[0.07] pt-3 text-sm">
+          <dt className="text-subtle">Format</dt>
           <dd>{formats.length ? formats.join(", ") : "Any"}</dd>
-          <dt className="text-muted">Location</dt>
+          <dt className="text-subtle">Location</dt>
           <dd>{profile.location_preference || "Anywhere"}</dd>
-          <dt className="text-muted">Free</dt>
+          <dt className="text-subtle">Free</dt>
           <dd>{availability || "Not set"}</dd>
         </dl>
       </div>
@@ -122,12 +122,12 @@ function ChipRow({ label, items, brand }: { label: string; items: string[]; bran
   if (!items.length) return null;
   return (
     <div>
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">{label}</p>
+      <p className="mb-1.5 font-display text-[10px] font-semibold uppercase tracking-[0.28em] text-subtle">{label}</p>
       <ul className="flex flex-wrap gap-1.5">
         {items.map((i) => (
           <li
             key={i}
-            className={`rounded-full border px-2.5 py-1 text-xs ${brand ? "border-violet/40 bg-violet/10 text-pink" : "border-line bg-surface-2 text-fg/90"}`}
+            className={`rounded-full border px-2.5 py-1 text-xs ${brand ? "border-accent/25 bg-accent/10 text-accent" : "border-white/10 bg-white/[0.06] text-fg/90"}`}
           >
             {i}
           </li>
@@ -195,7 +195,7 @@ export function FollowingList({ organisers }: { organisers: FollowedOrganiser[] 
     );
   }
   return (
-    <ul className="mx-4 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+    <ul className="glass mx-4 divide-y divide-white/[0.07] overflow-hidden rounded-[22px]">
       {organisers.map((o) => (
         <li key={o.id} className="flex items-center gap-3 px-3 py-3">
           <Link href={`/o/${o.slug}`} className="flex min-w-0 flex-1 items-center gap-3">
@@ -227,11 +227,11 @@ export function OrganiserCard({ organisers }: { organisers: MyOrganiser[] }) {
     return (
       <Link
         href="/organiser/apply"
-        className="group mx-4 flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-violet/50"
+        className="group glass mx-4 flex items-center gap-4 rounded-[22px] p-4 transition duration-200 hover:bg-white/[0.08] motion-reduce:transition-none"
       >
-        <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg text-bg">✦</span>
+        <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-lg text-bg">✦</span>
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold">Host events on ORBIT</span>
+          <span className="block font-semibold tracking-tight">Host events on ORBIT</span>
           <span className="block text-sm text-muted">Run a society, careers team or company? Apply to post events.</span>
         </span>
         <Chevron />
@@ -241,17 +241,17 @@ export function OrganiserCard({ organisers }: { organisers: MyOrganiser[] }) {
   return (
     <Link
       href="/organiser"
-      className="group mx-4 block rounded-2xl border-gradient p-4 transition-shadow hover:shadow-[0_0_30px_-8px_rgb(181_124_246/0.6)]"
+      className="group mx-4 block rounded-[22px] border-gradient p-4 transition duration-200 hover:brightness-110 motion-reduce:transition-none"
     >
       <span className="flex items-center gap-4">
-        <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg text-bg">✦</span>
+        <span aria-hidden className="bg-gradient flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] text-lg text-bg">✦</span>
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold">Organiser Studio</span>
+          <span className="block font-semibold tracking-tight">Organiser Studio</span>
           <span className="block text-sm text-muted">Create events, manage guests and check people in.</span>
         </span>
         <Chevron />
       </span>
-      <ul className="mt-3 space-y-2 border-t border-line pt-3">
+      <ul className="mt-3 space-y-2 border-t border-white/[0.07] pt-3">
         {organisers.map((o) => {
           const s = ORG_STATUS[o.status] ?? { label: o.status, tone: "neutral" as const };
           return (
@@ -277,7 +277,7 @@ export function Chevron() {
 
 export function ProfileHeroSkeleton() {
   return (
-    <div className="mx-4 rounded-3xl border border-line p-5" aria-busy="true" aria-label="Loading profile">
+    <div className="glass mx-4 rounded-[26px] p-5" aria-busy="true" aria-label="Loading profile">
       <div className="flex items-center gap-4">
         <Skeleton className="h-[72px] w-[72px] rounded-full" />
         <div className="flex-1 space-y-2">

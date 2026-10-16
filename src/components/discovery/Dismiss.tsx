@@ -69,7 +69,7 @@ export function DismissProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto max-w-md px-4" role="status" aria-live="polite">
         {toast && (
-          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-line bg-[#16161f]/95 px-4 py-3 text-sm shadow-2xl shadow-black/60 backdrop-blur">
+          <div className="glass-strong pointer-events-auto flex items-center gap-3 rounded-[20px] py-2.5 pl-4 pr-2.5 text-sm">
             <p className="min-w-0 flex-1 truncate text-muted">
               {toast.error ? (
                 <span className="text-red-300">Couldn’t hide that — {toast.error}</span>
@@ -78,7 +78,7 @@ export function DismissProvider({ children }: { children: ReactNode }) {
               )}
             </p>
             {!toast.error && (
-              <button type="button" onClick={undo} className="shrink-0 rounded-lg px-2 py-1 font-semibold text-gradient">
+              <button type="button" onClick={undo} className="shrink-0 rounded-full bg-white/[0.08] px-3.5 py-1.5 text-xs font-semibold text-fg transition duration-200 hover:bg-white/[0.14] active:scale-95 motion-reduce:transition-none">
                 Undo
               </button>
             )}
@@ -104,7 +104,7 @@ export function NotInterestedButton({ id, title, className = "" }: { id: string;
       type="button"
       onClick={() => ctx.dismiss(id, title)}
       aria-label={`Not interested in ${title}`}
-      className={`shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg ${className}`}
+      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-subtle transition-colors duration-200 hover:bg-white/[0.07] hover:text-fg ${className}`}
     >
       Not interested
     </button>

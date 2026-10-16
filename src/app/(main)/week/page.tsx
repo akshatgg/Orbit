@@ -59,7 +59,7 @@ async function Week() {
 
   return (
     <DismissProvider>
-      <p className="-mt-1 mb-5 px-4 font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-muted">
+      <p className="-mt-1 mb-5 px-4 font-display text-[11px] font-semibold uppercase tracking-[0.3em] text-subtle">
         {formatDayRange(today, addDays(today, 7))} · {ranked.length} event{ranked.length === 1 ? "" : "s"}
       </p>
 

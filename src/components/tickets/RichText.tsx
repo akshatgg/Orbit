@@ -15,7 +15,7 @@ export function RichText({ text, className = "" }: { text: string | null | undef
                 href={part.href}
                 target="_blank"
                 rel="noopener noreferrer nofollow ugc"
-                className="font-medium text-pink underline decoration-pink/40 underline-offset-2 hover:decoration-pink"
+                className="font-medium text-accent underline decoration-accent/40 underline-offset-2 hover:decoration-accent"
               >
                 {part.value}
               </a>
