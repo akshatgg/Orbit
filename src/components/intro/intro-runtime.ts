@@ -188,7 +188,7 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
       `<div style="margin-top:${u * 3}px;font-size:${u * 3.3}px;letter-spacing:.32em;padding-left:.32em;color:#a9a3c9;white-space:nowrap">EXPLORE OPPORTUNITIES</div>`;
     ov.appendChild(wm);
 
-    // ---- Drops: soft blurred circles in the logo's colours, each on its own composited layer; they
+    // ---- Drops: crisp glossy spheres in the logo's colours, each on its own composited layer; they
     // end overlapping, so their soft edges run together (a smooth stand-in for a goo filter).
     const size = B * 0.38;
     const dropsWrap = div(`position:absolute;left:${CX}px;top:${CY}px;width:0;height:0;will-change:opacity;`);
@@ -198,7 +198,9 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
     const drops = fills.map((c, i) => {
       const d = div(
         `position:absolute;left:${-drop / 2}px;top:${-drop / 2}px;width:${drop}px;height:${drop}px;border-radius:50%;` +
-          `background:radial-gradient(circle at 35% 35%,#fff 0 8%,${c} 45%,${c});filter:blur(${Math.max(2, drop * 0.09)}px);will-change:transform;`,
+          // Crisp glossy sphere: a highlight, the colour, a slightly darker rim and a soft glow around it.
+          `background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.95) 0,rgba(255,255,255,.55) 9%,${c} 38%,${c} 72%,color-mix(in srgb,${c} 78%,#000) 100%);` +
+          `box-shadow:0 0 ${Math.round(drop * 0.35)}px color-mix(in srgb,${c} 55%,transparent);will-change:transform;`,
       );
       dropsWrap.appendChild(d);
       const mid = LOGO.petals[i].mid;
@@ -276,7 +278,8 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
       }
 
       // 2) The drops melt away as the real logo forms; glow pulse; wordmark wipes in.
-      dropsWrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, delay: FORM, fill: "forwards" });
+      // Only as they turn into the logo do the drops soften and melt away.
+    dropsWrap.animate([{ opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(6px)" }], { duration: 380, delay: FORM, fill: "forwards" });
       logoWrap.animate(
         [{ opacity: 0, transform: "scale(.88)" }, { opacity: 1, transform: "scale(1)" }],
         { duration: 620, delay: FORM, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" },
