@@ -156,15 +156,9 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
     const logoSvg = svgEl("svg", { viewBox: view, preserveAspectRatio: "none" });
     logoSvg.style.cssText = full;
     const defs = svgEl("defs");
-    const soft = svgEl("filter", { id: "orbit-intro-s", x: "-30%", y: "-30%", width: "160%", height: "160%" });
-    soft.appendChild(svgEl("feGaussianBlur", { stdDeviation: "4", in: "SourceGraphic", result: "b" }));
-    const merge = svgEl("feMerge");
-    merge.appendChild(svgEl("feMergeNode", { in: "b" }));
-    merge.appendChild(svgEl("feMergeNode", { in: "SourceGraphic" }));
-    soft.appendChild(merge);
-    defs.appendChild(soft);
     logoSvg.appendChild(defs);
-    const group = svgEl("g", { filter: "url(#orbit-intro-s)" });
+    // No blur anywhere: the logo pieces are drawn crisp, straight from the PNG.
+    const group = svgEl("g");
     LOGO.petals.forEach((pc, i) => {
       const clip = svgEl("clipPath", { id: `orbit-intro-c${i}` });
       clip.appendChild(svgEl("path", { d: pc.d }));
@@ -278,8 +272,8 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
       }
 
       // 2) The drops melt away as the real logo forms; glow pulse; wordmark wipes in.
-      // Only as they turn into the logo do the drops soften and melt away.
-    dropsWrap.animate([{ opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(6px)" }], { duration: 380, delay: FORM, fill: "forwards" });
+      // The drops fade out as the logo fades in.
+    dropsWrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, delay: FORM, fill: "forwards" });
       logoWrap.animate(
         [{ opacity: 0, transform: "scale(.88)" }, { opacity: 1, transform: "scale(1)" }],
         { duration: 620, delay: FORM, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" },
