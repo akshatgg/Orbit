@@ -90,6 +90,33 @@ to "Add source". It POSTs to the route, is disabled while the refresh runs, then
 summary ("3 sources · 12 new · 4 updated · 20 unchanged · 1 possible duplicate", plus any
 source errors) and calls `router.refresh()`.
 
+## Full event details in ORBIT
+
+Imported events open on ORBIT's normal event page (`/events/[id]`), with a "Register on
+Luma" / "Register on Meetup" button that links to the platform page (`registration_mode =
+external`). `buildInsertRow` currently hard-codes `external_label: "View details"`; it
+takes the source kind and uses "Register on Luma" / "Register on Meetup" for those kinds.
+
+**Risk: Meetup feeds.** On 2026-10-20 a real group's `/events/ical/` returned a valid but
+empty calendar, because that group had no upcoming events. Step 1 of the implementation is
+to confirm against a group with upcoming events. If Meetup no longer fills these feeds,
+stop and decide again before building the Meetup half.
+
+| Detail | Where it comes from |
+|---|---|
+| Title, start/end, time zone, full description, venue + address, online/in-person, event link | The feed, refreshed daily |
+| Cover image, price | Added by an admin (below); otherwise the existing generated cover and "price unknown" |
+| Host | The source's default organiser (e.g. an ORBIT organiser profile for that community) |
+
+**Admin "Details" editor** on `/admin/sources`, in a new "Imported events" list that shows
+upcoming events from Luma/Meetup sources, with the ones missing a cover first:
+- Cover upload through the existing `uploadImage("event-covers", file)` (`src/lib/storage.ts`)
+  and a "Price from / to (£)" pair (empty = unknown, 0 = free).
+- Saved by a `saveImportedDetails` server action (`requireAdmin`, zod) that updates only
+  `cover_url`, `price_min` and `price_max`.
+- The daily sync never overwrites these, because `SyncedFields` doesn't include them. A test
+  in `sync-plan.test.ts` locks that in.
+
 ## Not repeating data (already in place, unchanged)
 
 - Within a source: `unique (source, source_event_id)` on `events`, plus `planSync` diffing,
