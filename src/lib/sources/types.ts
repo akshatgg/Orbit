@@ -66,6 +66,9 @@ export type NormalizedEvent = {
   format: EventFormat;
   venueName: string | null;
   address: string | null;
+  /** Latitude / longitude when the feed provides a GEO point. */
+  latitude: number | null;
+  longitude: number | null;
   /** Public page for the event, when the source gives one (http/https only). */
   url: string | null;
   /** The source says this event was cancelled. ORBIT never auto-cancels — it flags for review. */

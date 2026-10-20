@@ -2,7 +2,7 @@
 
 import ICAL from "ical.js";
 import type { EventFormat } from "@/types/database";
-import { LIMITS, clamp, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
+import { LIMITS, clamp, cleanProse, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
 import { DEFAULT_TIMEZONE, isValidTimezone, zonedTimeToUtc } from "./timezone";
 import type { ConnectorResult, NormalizedEvent, RunError } from "./types";
 
@@ -99,6 +99,24 @@ export function stableHash(input: string) {
   return (h >>> 0).toString(36);
 }
 
+/** GEO is a structured `lat;lon` value in iCal. Missing or nonsensical points are dropped. */
+function geoPoint(component: IcalComponent): { latitude: number | null; longitude: number | null } {
+  const value: unknown = component.getFirstPropertyValue("geo");
+  const pair = Array.isArray(value) ? value : typeof value === "string" ? value.split(/[;,]/) : [];
+  const latitude = Number(pair[0]);
+  const longitude = Number(pair[1]);
+  if (
+    pair.length < 2 ||
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  ) {
+    return { latitude: null, longitude: null };
+  }
+  return { latitude, longitude };
+}
+
 function baseUid(component: IcalComponent) {
   const uid = textProp(component, "uid")?.trim();
   if (uid) return uid.slice(0, 400);
@@ -130,8 +148,9 @@ function normalise(
   if (endsAt && endsAt.getTime() <= startsAt.getTime()) endsAt = allDay ? new Date(startsAt.getTime() + DAY - 60000) : null;
   if (Number.isNaN(startsAt.getTime())) return { event: sourceEventId, message: "Skipped: invalid start date" };
 
-  const description = orNull(clamp(stripHtml(item.description), LIMITS.description));
+  const description = orNull(clamp(cleanProse(stripHtml(item.description)), LIMITS.description));
   const { venueName, address, format } = splitLocation(item.location);
+  const { latitude, longitude } = geoPoint(item.component);
   const status = textProp(item.component, "status")?.toUpperCase();
 
   return {
@@ -146,6 +165,8 @@ function normalise(
     format,
     venueName,
     address,
+    latitude,
+    longitude,
     url: safeHttpUrl(textProp(item.component, "url")),
     cancelled: status === "CANCELLED",
   };

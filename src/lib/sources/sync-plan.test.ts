@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EXTERNAL_LABELS, SKIPPED_FIELDS, buildInsertRow, changedFields, planSync, provenanceUrl, syncedFields, type ExistingSourceEvent } from "./sync-plan";
+
 import type { NormalizedEvent } from "./types";
 
 const NOW = new Date("2026-10-16T12:00:00Z");
@@ -17,6 +18,8 @@ const incoming = (id: string, over: Partial<NormalizedEvent> = {}): NormalizedEv
   format: "in_person",
   venueName: "Room 1",
   address: null,
+  latitude: null,
+  longitude: null,
   url: `https://example.com/${id}`,
   cancelled: false,
   ...over,
@@ -36,6 +39,8 @@ const existingFrom = (n: NormalizedEvent, over: Partial<ExistingSourceEvent> = {
     format: f.format,
     venue_name: f.venue_name,
     address: f.address,
+    latitude: f.latitude,
+    longitude: f.longitude,
     registration_mode: f.registration_mode!,
     external_url: f.external_url ?? null,
     source_url: f.source_url,
@@ -87,6 +92,14 @@ describe("changedFields", () => {
     const current = existingFrom(incoming("a"), { registration_mode: "tickets", external_url: null });
     expect(changedFields(current, syncedFields(n, FEED))).toEqual({ source_url: "https://example.com/new" });
   });
+
+  it("syncs coordinates from the feed and ignores unchanged ones", () => {
+    const withGeo = incoming("a", { latitude: 51.52, longitude: -0.09 });
+    expect(changedFields(existingFrom(incoming("a")), syncedFields(withGeo, FEED))).toEqual({
+      latitude: 51.52, longitude: -0.09,
+    });
+    expect(changedFields(existingFrom(withGeo), syncedFields(withGeo, FEED))).toEqual({});
+  });
 });
 
 describe("planSync", () => {
@@ -124,6 +137,18 @@ describe("planSync", () => {
     expect(plan.flagged).toEqual([{ id: "db-a", reason: "cancelled" }]);
     expect(plan.inserts).toEqual([]);
     expect(plan.updates).toEqual([]);
+  });
+
+  it("never wipes a Meetup location the feed doesn't carry", () => {
+    const located = existingFrom(incoming("a"), {
+      venue_name: "Codurance", address: "3 Sutton Lane", latitude: 51.522907, longitude: -0.101072,
+    });
+    const fromFeed = incoming("a", { venueName: null, address: null, latitude: null, longitude: null });
+    const plan = planSync([located], [fromFeed], {
+      now: NOW, feedUrl: FEED, previousRunStartedAt, skip: SKIPPED_FIELDS.meetup,
+    });
+    expect(plan.updates).toEqual([]);
+    expect(plan.unchanged).toEqual(["db-a"]);
   });
 
   it("ignores duplicate ids within one fetch", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clamp, decodeEntities, oneLine, safeHttpUrl, stripHtml, summarise } from "./text";
+import { clamp, cleanProse, decodeEntities, oneLine, safeHttpUrl, stripHtml, summarise } from "./text";
 import { zonedTimeToUtc } from "./timezone";
 import { checkFeedUrl, checkResolvedAddresses, isPrivateAddress } from "./url-guard";
 
@@ -32,6 +32,40 @@ describe("text normaliser", () => {
     expect(safeHttpUrl("https://example.com/a b")).toBe("https://example.com/a%20b");
     expect(safeHttpUrl("javascript:alert(1)")).toBeNull();
     expect(safeHttpUrl("not a url")).toBeNull();
+  });
+});
+
+describe("cleanProse", () => {
+  it("removes Markdown emphasis, links, bullets and separator lines", () => {
+    const input = [
+      "**The Hottest New Programming Language**",
+      "",
+      "Key Takeaways:",
+      "",
+      "* This talk is a continuation in [September 2025](https://example.com/e).",
+      "",
+      "-\\-\\-\\-\\-\\-",
+      "**Food and Drinks**",
+      "Pizza sponsored by [Codurance](https://www.codurance.com/), with vegan options.",
+    ].join("\n");
+    expect(cleanProse(input)).toBe([
+      "The Hottest New Programming Language",
+      "",
+      "Key Takeaways:",
+      "",
+      "• This talk is a continuation in September 2025 (https://example.com/e).",
+      "",
+      "Food and Drinks",
+      "Pizza sponsored by Codurance (https://www.codurance.com/), with vegan options.",
+    ].join("\n"));
+  });
+
+  it("leaves ordinary prose and arithmetic alone", () => {
+    expect(cleanProse("We meet at 2 * 3 rooms, C++ and snake_case stay.")).toBe("We meet at 2 * 3 rooms, C++ and snake_case stay.");
+  });
+
+  it("unescapes iCal punctuation and collapses long blank runs", () => {
+    expect(cleanProse("Hello\\, world\\!\n\n\n\nNext")).toBe("Hello, world!\n\nNext");
   });
 });
 

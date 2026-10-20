@@ -12,7 +12,14 @@ the feed links an event to its image. This goes against Luma's terms and against
 these risks: Luma may block ORBIT's requests, the page format may change, and the images belong
 to the event organisers. The owner will update the product notes and tell the brief's author.
 To limit the impact, page reads are polite and minimal (below), stop at the first sign of
-blocking, and fall back to admin paste/upload. Meetup stays feed-only.
+blocking, and fall back to admin paste/upload.
+
+**Update (2026-10-20):** Meetup event pages are now read **once** for their public venue block
+(name, street address, city and coordinates). Meetup's iCal feed usually omits `LOCATION` and
+never carries `GEO`, so without this an imported in-person event has no address or map. This is
+the same polite, one-page-per-event model as Luma; no attendee data, organiser pages or discovery
+pages are read. Meetup feed sync no longer owns location columns, so a later nightly run cannot
+wipe an enriched venue.
 
 ## Goal
 
@@ -24,7 +31,8 @@ added, changed events are updated, unchanged events are skipped, and nothing is 
 
 - Crawling Luma/Meetup discovery or listing pages ("every event in London"). Only the pages
   of events already in an approved calendar feed are read, each one once.
-- Reading Meetup event pages.
+- Reading Meetup discovery, listing, attendee or organiser pages. Only the public event page's
+  venue block is read, once, for imported events that still need a location.
 - The official Luma API (needs Luma Plus) and Meetup API (needs Meetup Pro). These can be
   added later as their own source kinds.
 
