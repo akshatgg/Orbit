@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
+import { importRemoteImage } from "@/lib/sources/cloudinary-import";
+import { importedDetailsSchema } from "@/lib/sources/details-schema";
 import { detectDuplicates, runSource } from "@/lib/sources/engine";
-import { sourceKey } from "@/lib/sources/types";
-import { checkFeedUrl } from "@/lib/sources/url-guard";
+import { DEFAULT_ATTRIBUTION, resolveFeedUrl } from "@/lib/sources/platforms";
+import { SOURCE_KINDS, sourceIdFromKey, sourceKey } from "@/lib/sources/types";
 import { createClient } from "@/lib/supabase/server";
 
 export type ActionState = { ok: boolean; error?: string; message?: string } | null;
@@ -23,19 +25,8 @@ const sourceSchema = z
   .object({
     id: optionalId,
     name: z.string().trim().min(2, "Give the source a name").max(80, "Keep the name under 80 characters"),
-    url: z
-      .string()
-      .trim()
-      .min(1, "Add the feed URL")
-      .max(2000, "That URL is too long")
-      .transform((value, ctx) => {
-        const check = checkFeedUrl(value);
-        if (!check.ok) {
-          ctx.addIssue({ code: "custom", message: check.error });
-          return z.NEVER;
-        }
-        return check.url.toString();
-      }),
+    kind: z.enum(SOURCE_KINDS, { message: "Pick a source type" }),
+    url: z.string().trim().min(1, "Add the feed URL").max(2000, "That URL is too long"),
     default_organiser_id: optionalId,
     default_category_id: optionalId,
     default_tags: z
@@ -49,6 +40,14 @@ const sourceSchema = z
     permission_confirmed: z.boolean(),
     permission_note: z.string().trim().max(1000, "Keep the note under 1000 characters").transform((v) => v || null),
     enabled: z.boolean(),
+  })
+  .transform((s, ctx) => {
+    const resolved = resolveFeedUrl(s.kind, s.url);
+    if (!resolved.ok) {
+      ctx.addIssue({ code: "custom", message: resolved.error, path: ["url"] });
+      return z.NEVER;
+    }
+    return { ...s, url: resolved.url, attribution: s.attribution ?? DEFAULT_ATTRIBUTION[s.kind] ?? null };
   })
   .refine((s) => !s.enabled || (s.permission_confirmed && s.permission_note), {
     message: "Confirm you have permission to use this feed, and note who granted it, before enabling it.",
@@ -68,6 +67,7 @@ export async function saveSource(_prev: ActionState, formData: FormData): Promis
   const parsed = sourceSchema.safeParse({
     id: formData.get("id") ?? "",
     name: formData.get("name") ?? "",
+    kind: formData.get("kind") ?? "ical",
     url: formData.get("url") ?? "",
     default_organiser_id: formData.get("default_organiser_id") ?? "",
     default_category_id: formData.get("default_category_id") ?? "",
@@ -195,4 +195,72 @@ export async function resolveReview(_prev: ActionState, formData: FormData): Pro
     ok: true,
     message: { not_duplicate: "Marked as not a duplicate — it's visible again.", keep_hidden: "Kept hidden as a duplicate.", reviewed: "Marked reviewed." }[decision],
   };
+}
+
+const IMPORTED_KINDS = new Set(["luma", "meetup"]);
+
+/** Admin fallback for imported events: cover (pasted link or upload), description, price. */
+export async function saveImportedDetails(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin();
+  const parsed = importedDetailsSchema.safeParse({
+    id: formData.get("id") ?? "",
+    image_url: formData.get("image_url") ?? "",
+    cover_url: formData.get("cover_url") ?? "",
+    description: formData.get("description") ?? "",
+    price_min: formData.get("price_min") ?? "",
+    price_max: formData.get("price_max") ?? "",
+  });
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { id, image_url, cover_url, description, price_min, price_max } = parsed.data;
+
+  const supabase = await createClient();
+  const { data: event } = await supabase.from("events").select("id, source, price_min, price_max, currency").eq("id", id).maybeSingle();
+  if (!event) return { ok: false, error: "That event no longer exists." };
+  const sourceId = sourceIdFromKey(event.source as string);
+  const { data: source } = sourceId
+    ? await supabase.from("event_sources").select("kind").eq("id", sourceId).maybeSingle()
+    : { data: null };
+  if (!source || !IMPORTED_KINDS.has(source.kind as string)) {
+    return { ok: false, error: "Only Luma and Meetup events can be edited here." };
+  }
+
+  let cover = cover_url;
+  if (image_url) {
+    try {
+      cover = await importRemoteImage(image_url, `orbit/event-covers/${admin.id}`);
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Couldn't import that image." };
+    }
+  }
+
+  const patch: Record<string, unknown> = {};
+  // Meetup descriptions belong to the feed, so only Luma events take one from the form.
+  if (source.kind === "luma") patch.description = description;
+  // Only a changed price is (re)stored in £; unrelated saves leave the stored currency alone.
+  const same = (a: unknown, b: number | null) => (a === null || a === undefined ? null : Number(a)) === b;
+  if (!same(event.price_min, price_min) || !same(event.price_max, price_max)) {
+    patch.price_min = price_min;
+    patch.price_max = price_max;
+    if (price_min !== null) patch.currency = "GBP";
+  }
+  if (cover) patch.cover_url = cover;
+  if (Object.keys(patch).length > 0) {
+    const { error } = await supabase.from("events").update(patch).eq("id", id);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  revalidatePath(PATH);
+  return { ok: true, message: "Saved." };
+}
+
+/** Lets the next refresh read this event's page again. */
+export async function retryPageDetails(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Unknown event" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("source_event_details").delete().eq("event_id", id.data);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(PATH);
+  return { ok: true, message: "Will try again on the next refresh." };
 }

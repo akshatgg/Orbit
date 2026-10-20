@@ -2,9 +2,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CONNECTORS } from "./connectors";
+import { enrichLumaEvents } from "./enrich";
+import { ENRICH_BUDGET_MS, RUN_ENRICH_DEADLINE_MS, type EnrichRunState } from "./enrich-plan";
 import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
-import { EXISTING_EVENT_SELECT, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
-import { sourceKey, type EventSource, type RunError, type RunSummary, type RunTrigger } from "./types";
+import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
+import { sourceKey, type EventSource, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
 
 // Trusted server code only: callers must have checked CRON_SECRET or requireAdmin() first.
 
@@ -47,12 +49,15 @@ async function previousOkRunStart(db: SupabaseClient, sourceId: string) {
 /** Fetches one source and applies the diff to its events. Never throws: failures are recorded. */
 export async function runSource(
   sourceId: string,
-  { trigger, now = new Date(), db = createAdminClient() }: { trigger: RunTrigger; now?: Date; db?: SupabaseClient },
+  {
+    trigger, now = new Date(), db = createAdminClient(),
+    run = { deadline: Date.now() + ENRICH_BUDGET_MS, lumaBlocked: false },
+  }: { trigger: RunTrigger; now?: Date; db?: SupabaseClient; run?: EnrichRunState },
 ): Promise<RunSummary> {
   const startedAt = now.toISOString();
   const errors: RunError[] = [];
   const summary: RunSummary = {
-    sourceId, name: "", status: "error", found: 0, inserted: 0, updated: 0, unchanged: 0, flaggedMissing: 0, errors,
+    sourceId, name: "", status: "error", found: 0, inserted: 0, updated: 0, unchanged: 0, flaggedMissing: 0, enriched: 0, errors,
   };
 
   const { data: sourceRow, error: sourceError } = await db.from("event_sources").select("*").eq("id", sourceId).maybeSingle();
@@ -77,7 +82,9 @@ export async function runSource(
     const existing = await selectAll<ExistingSourceEvent>((from, to) =>
       db.from("events").select(EXISTING_EVENT_SELECT).eq("source", key).order("id").range(from, to),
     );
-    const plan = planSync(existing, fetched.events, { now, feedUrl: source.url, previousRunStartedAt });
+    const plan = planSync(existing, fetched.events, {
+      now, feedUrl: source.url, previousRunStartedAt, skip: SKIPPED_FIELDS[source.kind],
+    });
     const verifiedAt = now.toISOString();
 
     // New events — a batch at a time; if a batch fails, retry row by row to isolate bad data.
@@ -117,6 +124,7 @@ export async function runSource(
       else summary.flaggedMissing += ids.length;
     }
 
+    if (source.kind === "luma") summary.enriched = await enrichLumaEvents(source, { db, now, errors, run });
     summary.status = "ok";
   } catch (e) {
     summary.status = "error";
@@ -135,6 +143,7 @@ export async function runSource(
     updated: summary.updated,
     unchanged: summary.unchanged,
     flagged_missing: summary.flaggedMissing,
+    enriched: summary.enriched,
     errors: errors.slice(0, 50),
   });
   await db
@@ -195,29 +204,22 @@ export async function detectDuplicates({ now = new Date(), db = createAdminClien
   return flagged;
 }
 
-export type RefreshSummary = {
-  ok: boolean;
-  startedAt: string;
-  finishedAt: string;
-  sources: RunSummary[];
-  expired: number;
-  duplicatesFlagged: number;
-  errors: string[];
-};
-
 /** The nightly job: every enabled source in turn (one failure never stops the rest), then expiry
  *  and duplicate detection. */
-export async function refreshAllSources({ now = new Date() }: { now?: Date } = {}): Promise<RefreshSummary> {
+export async function refreshAllSources(
+  { now = new Date(), trigger = "cron" }: { now?: Date; trigger?: RunTrigger } = {},
+): Promise<RefreshSummary> {
   const db = createAdminClient();
   const startedAt = now.toISOString();
   const errors: string[] = [];
   const sources: RunSummary[] = [];
+  const run: EnrichRunState = { deadline: Date.now() + RUN_ENRICH_DEADLINE_MS, lumaBlocked: false };
 
   const { data, error } = await db.from("event_sources").select("id").eq("enabled", true).order("created_at");
   if (error) errors.push(`Couldn't list sources: ${error.message}`);
   for (const { id } of (data ?? []) as { id: string }[]) {
     try {
-      sources.push(await runSource(id, { trigger: "cron", db }));
+      sources.push(await runSource(id, { trigger, db, run }));
     } catch (e) {
       errors.push(`Source ${id}: ${message(e)}`);
     }

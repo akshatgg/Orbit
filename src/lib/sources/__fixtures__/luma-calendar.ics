@@ -1,0 +1,68 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Luma//DWeb Vancouver (DWebYVR)//EN
+X-WR-CALNAME:DWeb Vancouver (DWebYVR)
+X-WR-CALDESC:Luma Calendar
+REFRESH-INTERVAL;VALUE=DURATION:PT12H
+X-PUBLISHED-TTL:PT12H
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+DTSTART:20230126T020000Z
+DTEND:20230126T043000Z
+DTSTAMP:20261020T095333Z
+ORGANIZER;CN="Fission":MAILTO:calendar-invite@lu.ma
+UID:evt-lsdsCjjUhiEn3SX@events.lu.ma
+SUMMARY:Vancouver DWeb Social
+DESCRIPTION:Get up-to-date information at: https://luma.com/van-dweb-socia
+ l\n\nAddress:\nThe Permanent Library Limited\nVancouver, British Columbia
+ \nCanada\n\nHosted by Fission & Boris Mann
+LOCATION:The Permanent Library Limited, 330 W Pender St, Vancouver, BC V6B
+  3K2, Canada
+GEO:49.282399;-123.111574
+SEQUENCE:214653213
+STATUS:TENTATIVE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20230211T020000Z
+DTEND:20230211T070000Z
+DTSTAMP:20261020T095333Z
+ORGANIZER;CN="DecentSocial":MAILTO:calendar-invite@lu.ma
+UID:calev-Nf58gy9UbnWjXJF@events.lu.ma
+SUMMARY:DecentSocial Online Unconference
+DESCRIPTION:Find more information on https://luma.com/dwebyvr
+LOCATION:https://decentsocial.net/
+SEQUENCE:214653213
+STATUS:TENTATIVE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART;VALUE=DATE:20230923
+DTEND;VALUE=DATE:20231001
+DTSTAMP:20261020T095333Z
+ORGANIZER;CN="Kenta Otani":MAILTO:calendar-invite@lu.ma
+UID:evt-h2KaQ3yMes8pjKz@events.lu.ma
+SUMMARY:Neighbourhood Food Week by Vancouver Urban Food Forest Foundation
+DESCRIPTION:Get up-to-date information at: https://luma.com/ko0jlg5x\n\nAd
+ dress:\nVancouver\nVancouver, British Columbia\nCanada\n\nHosted by Kenta 
+ Otani
+LOCATION:Vancouver, BC, Canada
+GEO:49.282729;-123.120738
+SEQUENCE:214653213
+STATUS:TENTATIVE
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20261028T003000Z
+DTEND:20261028T033000Z
+DTSTAMP:20261020T095333Z
+ORGANIZER;CN="Andrea Mills":MAILTO:calendar-invite@lu.ma
+UID:evt-q9Djl0hCCeyuDPT@events.lu.ma
+SUMMARY:Open By Design: Tools for Participation - An Evening with Internet
+  Archive Canada
+DESCRIPTION:Get up-to-date information at: https://luma.com/58wdnop2\n\nAd
+ dress:\n330 W Pender St\nVancouver, BC\nCanada\n\nHosted by Andrea Mills
+LOCATION:330 W Pender St, Vancouver, BC V6B 1T1, Canada
+GEO:49.2824015;-123.1115759
+SEQUENCE:214653213
+STATUS:TENTATIVE
+END:VEVENT
+END:VCALENDAR

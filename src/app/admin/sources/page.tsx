@@ -6,11 +6,13 @@ import { ButtonLink } from "@/components/ui/Button";
 import { AdminHeader, Empty, TableSkeleton, table } from "@/components/admin/primitives";
 import { IconPlus } from "@/components/admin/icons";
 import {
-  eventCountsBySource, latestRunBySource, listHiddenDuplicates, listRecentRuns, listReviewQueue, listSources, sourceLabels,
+  eventCountsBySource, latestRunBySource, listHiddenDuplicates, listImportedEvents, listRecentRuns, listReviewQueue, listSources, sourceLabels,
 } from "@/lib/sources/queries";
 import { ActionButton } from "./_components/ActionButton";
+import { ImportedEventRow } from "./_components/ImportedEventRow";
+import { RefreshAllButton } from "./_components/RefreshAllButton";
 import { ReviewCard } from "./_components/ReviewCard";
-import { deleteSource, resolveReview, runSourceNow, setSourceEnabled } from "./actions";
+import { deleteSource, resolveReview, retryPageDetails, runSourceNow, saveImportedDetails, setSourceEnabled } from "./actions";
 
 export const metadata = { title: "Event sources · ORBIT admin" };
 
@@ -32,7 +34,12 @@ export default function SourcesPage() {
         eyebrow="Events"
         title="Sources"
         subtitle="Approved calendar feeds, refreshed nightly. Only feeds we have permission to use."
-        action={<ButtonLink href="/admin/sources/new" size="md" className=""><IconPlus size={15} /> Add source</ButtonLink>}
+        action={
+          <div className="flex items-start gap-2">
+            <RefreshAllButton />
+            <ButtonLink href="/admin/sources/new" size="md" className=""><IconPlus size={15} /> Add source</ButtonLink>
+          </div>
+        }
       />
       <Suspense fallback={<TableSkeleton rows={4} />}>
         <SourcesContent />
@@ -45,9 +52,9 @@ async function SourcesContent() {
   await connection();
   const sources = await listSources();
   const ids = sources.map((s) => s.id);
-  const [latest, counts, runs, queue, hidden, labels] = await Promise.all([
+  const [latest, counts, runs, queue, hidden, labels, imported] = await Promise.all([
     latestRunBySource(ids), eventCountsBySource(ids), listRecentRuns({ limit: 15 }), listReviewQueue(),
-    listHiddenDuplicates(), sourceLabels(),
+    listHiddenDuplicates(), sourceLabels(), listImportedEvents(),
   ]);
 
   return (
@@ -88,7 +95,7 @@ async function SourcesContent() {
                         {s.last_status && <div className="mt-1"><Badge tone={s.last_status === "ok" ? "success" : "danger"}>{s.last_status}</Badge></div>}
                       </td>
                       <td className={`${table.td} text-xs text-muted`}>
-                        {run ? `${run.found} found · ${run.inserted} new · ${run.updated} updated · ${run.unchanged} same${run.flagged_missing ? ` · ${run.flagged_missing} flagged` : ""}` : "—"}
+                        {run ? `${run.found} found · ${run.inserted} new · ${run.updated} updated · ${run.unchanged} same${run.flagged_missing ? ` · ${run.flagged_missing} flagged` : ""}${run.enriched ? ` · ${run.enriched} with details` : ""}` : "—"}
                         {s.last_error && <p className="mt-1 max-w-xs break-words text-red-300">{s.last_error}</p>}
                       </td>
                       <td className={table.td}>{counts.get(s.id) ?? 0}</td>
@@ -130,6 +137,26 @@ async function SourcesContent() {
           </div>
         )}
       </section>
+
+      {imported.length > 0 && (
+        <section aria-labelledby="imported-h" className="mt-10 space-y-4">
+          <h2 id="imported-h" className="text-base font-semibold tracking-tight">
+            Imported events{" "}
+            {imported.some((e) => !e.cover_url) && (
+              <Badge tone="warning" className="ml-1 align-middle">{imported.filter((e) => !e.cover_url).length} without cover</Badge>
+            )}
+          </h2>
+          <p className="text-sm text-muted">
+            Upcoming Luma and Meetup events. Luma covers, descriptions and prices are read automatically; Meetup descriptions come
+            from its feed. Add anything missing here. The nightly refresh never overwrites a cover, price or Luma description you save.
+          </p>
+          <ul className="space-y-3">
+            {imported.map((e) => (
+              <li key={e.id}><ImportedEventRow event={e} action={saveImportedDetails} retry={retryPageDetails} /></li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="review-h" className="mt-10 space-y-4">
         <h2 id="review-h" className="text-base font-semibold tracking-tight">

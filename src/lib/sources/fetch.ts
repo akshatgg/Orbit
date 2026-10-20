@@ -9,6 +9,14 @@ const TIMEOUT_MS = 15_000;
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_REDIRECTS = 3;
 
+/** An HTTP error status from the remote server (lets callers react to 403 / 429 / 503). */
+export class FetchHttpError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "FetchHttpError";
+  }
+}
+
 async function assertSafeUrl(raw: string) {
   const check = checkFeedUrl(raw);
   if (!check.ok) throw new Error(check.error);
@@ -23,7 +31,10 @@ async function assertSafeUrl(raw: string) {
  * Fetches a feed politely and safely: SSRF checks on every hop, a timeout, a size cap,
  * an identifying User-Agent, and HTTP errors surfaced as errors.
  */
-export async function fetchFeedText(rawUrl: string): Promise<string> {
+export async function fetchFeedText(
+  rawUrl: string,
+  { accept = "text/calendar, text/plain;q=0.8, */*;q=0.1" }: { accept?: string } = {},
+): Promise<string> {
   let url = await assertSafeUrl(rawUrl);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -31,7 +42,7 @@ export async function fetchFeedText(rawUrl: string): Promise<string> {
     let response: Response | null = null;
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       response = await fetch(url, {
-        headers: { "User-Agent": USER_AGENT, Accept: "text/calendar, text/plain;q=0.8, */*;q=0.1" },
+        headers: { "User-Agent": USER_AGENT, Accept: accept },
         redirect: "manual",
         signal: controller.signal,
         cache: "no-store",
@@ -45,9 +56,11 @@ export async function fetchFeedText(rawUrl: string): Promise<string> {
     }
     if (!response) throw new Error("No response from the feed.");
     if (response.status === 429 || response.status === 503) {
-      throw new Error(`The feed asked us to slow down (HTTP ${response.status}). We'll try again on the next refresh.`);
+      throw new FetchHttpError(`The feed asked us to slow down (HTTP ${response.status}). We'll try again on the next refresh.`, response.status);
     }
-    if (!response.ok) throw new Error(`The feed returned HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}.`);
+    if (!response.ok) {
+      throw new FetchHttpError(`The feed returned HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}.`, response.status);
+    }
 
     const declared = Number(response.headers.get("content-length") ?? 0);
     if (declared > MAX_BYTES) throw new Error("The feed is larger than 5 MB.");

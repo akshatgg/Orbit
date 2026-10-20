@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { EventSource, SourceRun } from "./types";
-import { sourceIdFromKey } from "./types";
+import type { EventSource, SourceEventDetails, SourceRun } from "./types";
+import { sourceIdFromKey, sourceKey } from "./types";
 
 // Admin screens read through the signed-in admin's client, so RLS still applies.
 
@@ -184,4 +184,53 @@ export async function listHiddenDuplicates({ limit = 50 }: { limit?: number } = 
   const events = (data ?? []) as unknown as ReviewEvent[];
   const originals = await withOriginals(events);
   return events.map((event) => ({ event, original: originals.get(event.duplicate_of!) ?? null }));
+}
+
+// ─── Imported Luma / Meetup events (details editor) ───────────────────────
+
+export type ImportedEvent = {
+  id: string;
+  title: string;
+  starts_at: string;
+  cover_url: string | null;
+  description: string | null;
+  price_min: number | null;
+  price_max: number | null;
+  currency: string;
+  kind: "luma" | "meetup";
+  external_url: string | null;
+  source: string;
+  source_event_id: string | null;
+  details: Pick<SourceEventDetails, "status" | "attempts" | "last_error" | "fetched_at"> | null;
+};
+
+/** Upcoming published events from Luma / Meetup sources; ones without a cover first. */
+export async function listImportedEvents({ limit = 60 }: { limit?: number } = {}) {
+  const supabase = await createClient();
+  const { data: sources } = await supabase.from("event_sources").select("id, kind").in("kind", ["luma", "meetup"]);
+  const kinds = new Map(((sources ?? []) as { id: string; kind: ImportedEvent["kind"] }[]).map((s) => [sourceKey(s.id), s.kind]));
+  if (kinds.size === 0) return [];
+  const upcoming = () =>
+    supabase
+      .from("events")
+      .select(
+        "id, title, starts_at, cover_url, description, price_min, price_max, currency, external_url, source, source_event_id, details:source_event_details ( status, attempts, last_error, fetched_at )",
+      )
+      .in("source", [...kinds.keys()])
+      .eq("status", "published")
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(limit);
+  // Two queries so events without a cover are never cut off by the limit.
+  const [withoutCover, withCover] = await Promise.all([upcoming().is("cover_url", null), upcoming().not("cover_url", "is", null)]);
+  if (withoutCover.error) throw new Error(withoutCover.error.message);
+  if (withCover.error) throw new Error(withCover.error.message);
+  type Row = Omit<ImportedEvent, "details" | "kind"> & { details: ImportedEvent["details"] | ImportedEvent["details"][] };
+  const toEvents = (data: unknown) =>
+    ((data ?? []) as Row[]).map<ImportedEvent>((r) => ({
+      ...r,
+      kind: kinds.get(r.source) ?? "luma",
+      details: Array.isArray(r.details) ? (r.details[0] ?? null) : r.details,
+    }));
+  return [...toEvents(withoutCover.data), ...toEvents(withCover.data)];
 }
