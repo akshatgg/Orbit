@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { EventSource, SourceRun } from "./types";
-import { sourceIdFromKey } from "./types";
+import type { EventSource, SourceEventDetails, SourceRun } from "./types";
+import { sourceIdFromKey, sourceKey } from "./types";
 
 // Admin screens read through the signed-in admin's client, so RLS still applies.
 
@@ -184,4 +184,43 @@ export async function listHiddenDuplicates({ limit = 50 }: { limit?: number } = 
   const events = (data ?? []) as unknown as ReviewEvent[];
   const originals = await withOriginals(events);
   return events.map((event) => ({ event, original: originals.get(event.duplicate_of!) ?? null }));
+}
+
+// ─── Imported Luma / Meetup events (details editor) ───────────────────────
+
+export type ImportedEvent = {
+  id: string;
+  title: string;
+  starts_at: string;
+  cover_url: string | null;
+  description: string | null;
+  price_min: number | null;
+  price_max: number | null;
+  external_url: string | null;
+  source: string;
+  source_event_id: string | null;
+  details: Pick<SourceEventDetails, "status" | "attempts" | "last_error" | "fetched_at"> | null;
+};
+
+/** Upcoming published events from Luma / Meetup sources; ones without a cover first. */
+export async function listImportedEvents({ limit = 60 }: { limit?: number } = {}) {
+  const supabase = await createClient();
+  const { data: sources } = await supabase.from("event_sources").select("id").in("kind", ["luma", "meetup"]);
+  const keys = ((sources ?? []) as { id: string }[]).map((s) => sourceKey(s.id));
+  if (keys.length === 0) return [];
+  const { data, error } = await supabase
+    .from("events")
+    .select(
+      "id, title, starts_at, cover_url, description, price_min, price_max, external_url, source, source_event_id, details:source_event_details ( status, attempts, last_error, fetched_at )",
+    )
+    .in("source", keys)
+    .eq("status", "published")
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as unknown as (Omit<ImportedEvent, "details"> & { details: ImportedEvent["details"] | ImportedEvent["details"][] })[];
+  return rows
+    .map<ImportedEvent>((r) => ({ ...r, details: Array.isArray(r.details) ? (r.details[0] ?? null) : r.details }))
+    .sort((a, b) => Number(Boolean(a.cover_url)) - Number(Boolean(b.cover_url)));
 }
