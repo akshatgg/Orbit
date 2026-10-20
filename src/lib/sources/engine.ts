@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CONNECTORS } from "./connectors";
 import { enrichLumaEvents } from "./enrich";
+import { ENRICH_BUDGET_MS, RUN_ENRICH_DEADLINE_MS, type EnrichRunState } from "./enrich-plan";
 import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
 import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
 import { sourceKey, type EventSource, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
@@ -48,7 +49,10 @@ async function previousOkRunStart(db: SupabaseClient, sourceId: string) {
 /** Fetches one source and applies the diff to its events. Never throws: failures are recorded. */
 export async function runSource(
   sourceId: string,
-  { trigger, now = new Date(), db = createAdminClient() }: { trigger: RunTrigger; now?: Date; db?: SupabaseClient },
+  {
+    trigger, now = new Date(), db = createAdminClient(),
+    run = { deadline: Date.now() + ENRICH_BUDGET_MS, lumaBlocked: false },
+  }: { trigger: RunTrigger; now?: Date; db?: SupabaseClient; run?: EnrichRunState },
 ): Promise<RunSummary> {
   const startedAt = now.toISOString();
   const errors: RunError[] = [];
@@ -120,7 +124,7 @@ export async function runSource(
       else summary.flaggedMissing += ids.length;
     }
 
-    if (source.kind === "luma") summary.enriched = await enrichLumaEvents(source, { db, now, errors });
+    if (source.kind === "luma") summary.enriched = await enrichLumaEvents(source, { db, now, errors, run });
     summary.status = "ok";
   } catch (e) {
     summary.status = "error";
@@ -209,12 +213,13 @@ export async function refreshAllSources(
   const startedAt = now.toISOString();
   const errors: string[] = [];
   const sources: RunSummary[] = [];
+  const run: EnrichRunState = { deadline: Date.now() + RUN_ENRICH_DEADLINE_MS, lumaBlocked: false };
 
   const { data, error } = await db.from("event_sources").select("id").eq("enabled", true).order("created_at");
   if (error) errors.push(`Couldn't list sources: ${error.message}`);
   for (const { id } of (data ?? []) as { id: string }[]) {
     try {
-      sources.push(await runSource(id, { trigger, db }));
+      sources.push(await runSource(id, { trigger, db, run }));
     } catch (e) {
       errors.push(`Source ${id}: ${message(e)}`);
     }

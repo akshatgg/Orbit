@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_ATTEMPTS, detailsPatch, isBlockedStatus, pickEventsToEnrich, type EnrichCandidate } from "./enrich-plan";
+import { MAX_ATTEMPTS, PAGE_WORST_CASE_MS, detailsPatch, hasTimeFor, isBlockedStatus, pickEventsToEnrich, type EnrichCandidate } from "./enrich-plan";
 import type { SourceEventDetails } from "./types";
 
 const NOW = new Date("2026-10-20T03:00:00Z");
@@ -78,5 +78,18 @@ describe("detailsPatch", () => {
 
   it("skips the cover when the import failed", () => {
     expect(detailsPatch(event("a"), page, null)).not.toHaveProperty("cover_url");
+  });
+});
+
+describe("hasTimeFor", () => {
+  const deadline = 1_000_000;
+  it("allows a page that fits just inside the deadline", () => {
+    expect(hasTimeFor(deadline - PAGE_WORST_CASE_MS - 1, deadline)).toBe(true);
+  });
+  it("allows a page that ends exactly at the deadline", () => {
+    expect(hasTimeFor(deadline - PAGE_WORST_CASE_MS, deadline)).toBe(true);
+  });
+  it("refuses a page that could overrun the deadline", () => {
+    expect(hasTimeFor(deadline - PAGE_WORST_CASE_MS + 1, deadline)).toBe(false);
   });
 });

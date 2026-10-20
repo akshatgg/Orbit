@@ -7,8 +7,18 @@ import type { SourceEventDetails } from "./types";
 export const ENRICH_LIMIT = 25; // pages per source per run
 export const MAX_ATTEMPTS = 3;
 export const RETRY_AFTER_MS = 24 * 60 * 60 * 1000;
-export const ENRICH_BUDGET_MS = 120_000; // per source, keeps the cron well under its 300 s limit
+export const ENRICH_BUDGET_MS = 120_000; // per source; the run-wide deadline below is what keeps the cron under its 300 s limit
 export const PAUSE_MS = 1000; // between page reads
+export const PAGE_WORST_CASE_MS = 40_000; // one pause + page fetch + Cloudinary import
+export const RUN_ENRICH_DEADLINE_MS = 200_000; // page reading for a whole refresh stops by then
+
+/** Shared by every source in one refresh: the time limit, and whether Luma has blocked us. */
+export type EnrichRunState = { deadline: number; lumaBlocked: boolean };
+
+/** Is there room for one more page, even in its worst case, before the deadline? */
+export function hasTimeFor(now: number, deadline: number) {
+  return now + PAGE_WORST_CASE_MS <= deadline;
+}
 
 export type EnrichCandidate = {
   id: string;

@@ -1,7 +1,8 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getCloudinaryConfig } from "@/lib/cloudinary";
 import { importRemoteImage } from "./cloudinary-import";
-import { ENRICH_BUDGET_MS, PAUSE_MS, detailsPatch, isBlockedStatus, pickEventsToEnrich, type EnrichCandidate } from "./enrich-plan";
+import { ENRICH_BUDGET_MS, PAUSE_MS, detailsPatch, hasTimeFor, isBlockedStatus, pickEventsToEnrich, type EnrichCandidate, type EnrichRunState } from "./enrich-plan";
 import { FetchHttpError, fetchFeedText } from "./fetch";
 import { parseLumaEventPage } from "./luma-page";
 import { lumaPageUrl } from "./platforms";
@@ -21,8 +22,9 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 export async function enrichLumaEvents(
   source: Pick<EventSource, "id">,
-  { db, now, errors }: { db: SupabaseClient; now: Date; errors: RunError[] },
+  { db, now, errors, run }: { db: SupabaseClient; now: Date; errors: RunError[]; run: EnrichRunState },
 ): Promise<number> {
+  if (run.lumaBlocked) return 0;
   let saved = 0;
   try {
     const key = sourceKey(source.id);
@@ -53,7 +55,11 @@ export async function enrichLumaEvents(
     }
 
     const picked = pickEventsToEnrich(events, details, now);
-    const started = Date.now();
+    const limit = Math.min(Date.now() + ENRICH_BUDGET_MS, run.deadline);
+    const coversPossible = getCloudinaryConfig() !== null;
+    if (!coversPossible && picked.length > 0) {
+      errors.push({ message: "Image import needs Cloudinary (CLOUDINARY_* env vars are missing), so covers were skipped." });
+    }
 
     // Each group only writes where the column is still empty, so an admin save mid-run wins.
     const applyGroup = async (event: EnrichCandidate, column: string, values: Record<string, unknown>) => {
@@ -69,7 +75,7 @@ export async function enrichLumaEvents(
     };
 
     for (const [i, event] of picked.entries()) {
-      if (Date.now() - started > ENRICH_BUDGET_MS) break;
+      if (run.lumaBlocked || !hasTimeFor(Date.now(), limit)) break;
       if (i > 0) await sleep(PAUSE_MS);
       const url = lumaPageUrl(event)!;
       const attempts = (details.get(event.id)?.attempts ?? 0) + 1;
@@ -91,7 +97,7 @@ export async function enrichLumaEvents(
         }
         let cover: string | null = null;
         let coverError: string | null = null;
-        if (!event.cover_url && page.coverUrl) {
+        if (coversPossible && !event.cover_url && page.coverUrl) {
           try {
             cover = await importRemoteImage(page.coverUrl, COVER_FOLDER);
           } catch (e) {
@@ -113,10 +119,11 @@ export async function enrichLumaEvents(
           continue;
         }
         if (wrote) saved++;
-        await record(coverError ? "failed" : "ok", coverError);
+        await record("ok", coverError); // the page was read; the admin fallback handles a missing cover
         if (coverError) errors.push({ event: event.source_event_id ?? event.id, message: `Cover not imported: ${coverError}` });
       } catch (e) {
         if (e instanceof FetchHttpError && isBlockedStatus(e.status)) {
+          run.lumaBlocked = true;
           await record("blocked", e.message);
           errors.push({ message: "Luma is blocking page reads. Paste or upload images for now." });
           break;
