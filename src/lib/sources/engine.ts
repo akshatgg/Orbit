@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CONNECTORS } from "./connectors";
 import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
 import { EXISTING_EVENT_SELECT, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
-import { sourceKey, type EventSource, type RunError, type RunSummary, type RunTrigger } from "./types";
+import { sourceKey, type EventSource, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
 
 // Trusted server code only: callers must have checked CRON_SECRET or requireAdmin() first.
 
@@ -52,7 +52,7 @@ export async function runSource(
   const startedAt = now.toISOString();
   const errors: RunError[] = [];
   const summary: RunSummary = {
-    sourceId, name: "", status: "error", found: 0, inserted: 0, updated: 0, unchanged: 0, flaggedMissing: 0, errors,
+    sourceId, name: "", status: "error", found: 0, inserted: 0, updated: 0, unchanged: 0, flaggedMissing: 0, enriched: 0, errors,
   };
 
   const { data: sourceRow, error: sourceError } = await db.from("event_sources").select("*").eq("id", sourceId).maybeSingle();
@@ -135,6 +135,7 @@ export async function runSource(
     updated: summary.updated,
     unchanged: summary.unchanged,
     flagged_missing: summary.flaggedMissing,
+    enriched: summary.enriched,
     errors: errors.slice(0, 50),
   });
   await db
@@ -194,16 +195,6 @@ export async function detectDuplicates({ now = new Date(), db = createAdminClien
   }
   return flagged;
 }
-
-export type RefreshSummary = {
-  ok: boolean;
-  startedAt: string;
-  finishedAt: string;
-  sources: RunSummary[];
-  expired: number;
-  duplicatesFlagged: number;
-  errors: string[];
-};
 
 /** The nightly job: every enabled source in turn (one failure never stops the rest), then expiry
  *  and duplicate detection. */

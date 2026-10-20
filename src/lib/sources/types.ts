@@ -2,10 +2,14 @@
 
 import type { EventFormat } from "@/types/database";
 
-export const SOURCE_KINDS = ["ical"] as const;
+export const SOURCE_KINDS = ["ical", "luma", "meetup"] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
-export const SOURCE_KIND_LABELS: Record<SourceKind, string> = { ical: "iCal feed" };
+export const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
+  ical: "iCal feed",
+  luma: "Luma calendar",
+  meetup: "Meetup group",
+};
 
 export type RunStatus = "ok" | "error";
 export type RunTrigger = "cron" | "manual";
@@ -44,6 +48,7 @@ export type SourceRun = {
   updated: number;
   unchanged: number;
   flagged_missing: number;
+  enriched: number;
   errors: RunError[];
 };
 
@@ -95,5 +100,28 @@ export type RunSummary = {
   updated: number;
   unchanged: number;
   flaggedMissing: number;
+  /** Events whose page details (cover, description, price) were saved this run. */
+  enriched: number;
   errors: RunError[];
+};
+
+export type DetailsStatus = "ok" | "failed" | "blocked";
+
+/** One row per imported event whose source page ORBIT has tried to read. */
+export type SourceEventDetails = {
+  event_id: string;
+  status: DetailsStatus;
+  attempts: number;
+  last_error: string | null;
+  fetched_at: string;
+};
+
+export type RefreshSummary = {
+  ok: boolean;
+  startedAt: string;
+  finishedAt: string;
+  sources: RunSummary[];
+  expired: number;
+  duplicatesFlagged: number;
+  errors: string[];
 };
