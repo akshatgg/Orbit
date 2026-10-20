@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { detectDuplicates, runSource } from "@/lib/sources/engine";
-import { sourceKey } from "@/lib/sources/types";
-import { checkFeedUrl } from "@/lib/sources/url-guard";
+import { DEFAULT_ATTRIBUTION, resolveFeedUrl } from "@/lib/sources/platforms";
+import { SOURCE_KINDS, sourceKey } from "@/lib/sources/types";
 import { createClient } from "@/lib/supabase/server";
 
 export type ActionState = { ok: boolean; error?: string; message?: string } | null;
@@ -23,19 +23,8 @@ const sourceSchema = z
   .object({
     id: optionalId,
     name: z.string().trim().min(2, "Give the source a name").max(80, "Keep the name under 80 characters"),
-    url: z
-      .string()
-      .trim()
-      .min(1, "Add the feed URL")
-      .max(2000, "That URL is too long")
-      .transform((value, ctx) => {
-        const check = checkFeedUrl(value);
-        if (!check.ok) {
-          ctx.addIssue({ code: "custom", message: check.error });
-          return z.NEVER;
-        }
-        return check.url.toString();
-      }),
+    kind: z.enum(SOURCE_KINDS, { message: "Pick a source type" }),
+    url: z.string().trim().min(1, "Add the feed URL").max(2000, "That URL is too long"),
     default_organiser_id: optionalId,
     default_category_id: optionalId,
     default_tags: z
@@ -49,6 +38,14 @@ const sourceSchema = z
     permission_confirmed: z.boolean(),
     permission_note: z.string().trim().max(1000, "Keep the note under 1000 characters").transform((v) => v || null),
     enabled: z.boolean(),
+  })
+  .transform((s, ctx) => {
+    const resolved = resolveFeedUrl(s.kind, s.url);
+    if (!resolved.ok) {
+      ctx.addIssue({ code: "custom", message: resolved.error, path: ["url"] });
+      return z.NEVER;
+    }
+    return { ...s, url: resolved.url, attribution: s.attribution ?? DEFAULT_ATTRIBUTION[s.kind] ?? null };
   })
   .refine((s) => !s.enabled || (s.permission_confirmed && s.permission_note), {
     message: "Confirm you have permission to use this feed, and note who granted it, before enabling it.",
@@ -68,6 +65,7 @@ export async function saveSource(_prev: ActionState, formData: FormData): Promis
   const parsed = sourceSchema.safeParse({
     id: formData.get("id") ?? "",
     name: formData.get("name") ?? "",
+    kind: formData.get("kind") ?? "ical",
     url: formData.get("url") ?? "",
     default_organiser_id: formData.get("default_organiser_id") ?? "",
     default_category_id: formData.get("default_category_id") ?? "",
