@@ -7,7 +7,7 @@ import { formatRefreshSummary } from "@/lib/sources/refresh-summary";
 import type { RefreshSummary } from "@/lib/sources/types";
 
 /** Runs the same full refresh as the nightly cron, then shows what changed. */
-export function RefreshAllButton() {
+export function RefreshAllButton({ className = "" }: { className?: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
@@ -37,12 +37,12 @@ export function RefreshAllButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <Button type="button" variant="secondary" size="md" onClick={run} disabled={busy} aria-busy={busy}>
+    <div className={`flex flex-col gap-1 ${className}`}>
+      <Button type="button" variant="secondary" size="md" onClick={run} disabled={busy} aria-busy={busy} className="w-full sm:w-auto">
         {busy ? "Refreshing…" : "Refresh all now"}
       </Button>
       {result && (
-        <p role={result.ok ? "status" : "alert"} className={`max-w-sm text-right text-xs ${result.ok ? "text-emerald-300" : "text-red-300"}`}>
+        <p role={result.ok ? "status" : "alert"} className={`max-w-sm text-left text-xs sm:text-right ${result.ok ? "text-emerald-300" : "text-red-300"}`}>
           {result.text}
         </p>
       )}

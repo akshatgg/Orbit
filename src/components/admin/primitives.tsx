@@ -9,13 +9,13 @@ export function AdminHeader({ title, subtitle, action, eyebrow }: {
   title: string; subtitle?: ReactNode; action?: ReactNode; eyebrow?: string;
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4 pb-7 pt-2">
+    <header className="flex flex-col gap-4 pb-7 pt-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
       <div className="min-w-0">
         {eyebrow && <Eyebrow className="mb-2">{eyebrow}</Eyebrow>}
         <h1 className="text-2xl font-semibold tracking-tight sm:text-[1.75rem]">{title}</h1>
         {subtitle && <p className="mt-1.5 max-w-xl text-sm text-muted">{subtitle}</p>}
       </div>
-      {action && <div className="flex shrink-0 flex-wrap gap-2">{action}</div>}
+      {action && <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:shrink-0">{action}</div>}
     </header>
   );
 }
