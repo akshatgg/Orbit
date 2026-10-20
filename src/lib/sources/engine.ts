@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CONNECTORS } from "./connectors";
 import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
-import { EXISTING_EVENT_SELECT, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
+import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
 import { sourceKey, type EventSource, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
 
 // Trusted server code only: callers must have checked CRON_SECRET or requireAdmin() first.
@@ -77,7 +77,9 @@ export async function runSource(
     const existing = await selectAll<ExistingSourceEvent>((from, to) =>
       db.from("events").select(EXISTING_EVENT_SELECT).eq("source", key).order("id").range(from, to),
     );
-    const plan = planSync(existing, fetched.events, { now, feedUrl: source.url, previousRunStartedAt });
+    const plan = planSync(existing, fetched.events, {
+      now, feedUrl: source.url, previousRunStartedAt, skip: SKIPPED_FIELDS[source.kind],
+    });
     const verifiedAt = now.toISOString();
 
     // New events — a batch at a time; if a batch fails, retry row by row to isolate bad data.

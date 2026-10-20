@@ -1,7 +1,7 @@
 // Pure diff between what a source sent and what ORBIT already has for that source.
 
 import type { EventFormat, RegistrationMode } from "@/types/database";
-import type { EventSource, NormalizedEvent } from "./types";
+import type { EventSource, NormalizedEvent, SourceKind } from "./types";
 import { sourceKey } from "./types";
 
 /** Columns of events that a sync reads for one source. */
@@ -44,6 +44,19 @@ export type SyncedFields = {
   source_url: string | null;
 };
 
+/** Label on the "register" button of imported events, by source kind. */
+export const EXTERNAL_LABELS: Record<SourceKind, string> = {
+  ical: "View details",
+  luma: "Register on Luma",
+  meetup: "Register on Meetup",
+};
+
+/** Synced fields a kind's feed doesn't really have, so updates leave them alone
+ *  (Luma's feed only carries a stub description; the real one comes from the page or an admin). */
+export const SKIPPED_FIELDS: Partial<Record<SourceKind, readonly (keyof SyncedFields)[]>> = {
+  luma: ["description"],
+};
+
 /** Public provenance link: the event's own page, else the feed's site (never the full feed URL,
  *  which can contain a private token). */
 export function provenanceUrl(event: Pick<NormalizedEvent, "url">, feedUrl: string) {
@@ -75,14 +88,14 @@ export function syncedFields(event: NormalizedEvent, feedUrl: string): SyncedFie
 /** Row to insert for an event we haven't seen before. */
 export function buildInsertRow(
   event: NormalizedEvent,
-  source: Pick<EventSource, "id" | "url" | "default_organiser_id" | "default_category_id" | "default_tags">,
+  source: Pick<EventSource, "id" | "url" | "default_organiser_id" | "default_category_id" | "default_tags"> & { kind?: SourceKind },
   now: Date,
 ) {
   return {
     ...syncedFields(event, source.url),
     source: sourceKey(source.id),
     source_event_id: event.sourceEventId,
-    external_label: "View details",
+    external_label: EXTERNAL_LABELS[source.kind ?? "ical"],
     organiser_id: source.default_organiser_id,
     category_id: source.default_category_id,
     tags: source.default_tags,
@@ -95,9 +108,14 @@ const sameInstant = (a: string | null, b: string | null) =>
   a === b || (a !== null && b !== null && new Date(a).getTime() === new Date(b).getTime());
 
 /** Only the fields that actually changed (empty object when nothing did). */
-export function changedFields(existing: ExistingSourceEvent, incoming: SyncedFields): Partial<SyncedFields> {
+export function changedFields(
+  existing: ExistingSourceEvent,
+  incoming: SyncedFields,
+  skip: readonly (keyof SyncedFields)[] = [],
+): Partial<SyncedFields> {
   const patch: Partial<SyncedFields> = {};
   const next = { ...incoming };
+  for (const key of skip) delete next[key];
   // An admin switched this event to ORBIT tickets — leave registration alone.
   if (existing.registration_mode === "tickets") {
     delete next.registration_mode;
@@ -131,7 +149,12 @@ const LIVE_STATUSES = new Set(["published", "draft"]);
 export function planSync(
   existing: ExistingSourceEvent[],
   incoming: NormalizedEvent[],
-  { now, feedUrl, previousRunStartedAt }: { now: Date; feedUrl: string; previousRunStartedAt: Date | null },
+  { now, feedUrl, previousRunStartedAt, skip = [] }: {
+    now: Date;
+    feedUrl: string;
+    previousRunStartedAt: Date | null;
+    skip?: readonly (keyof SyncedFields)[];
+  },
 ): SyncPlan {
   const plan: SyncPlan = { inserts: [], updates: [], unchanged: [], flagged: [] };
   const byId = new Map(existing.filter((e) => e.source_event_id).map((e) => [e.source_event_id!, e]));
@@ -155,7 +178,7 @@ export function planSync(
       plan.inserts.push(event);
       continue;
     }
-    const patch = changedFields(current, syncedFields(event, feedUrl));
+    const patch = changedFields(current, syncedFields(event, feedUrl), skip);
     if (Object.keys(patch).length) plan.updates.push({ id: current.id, sourceEventId: event.sourceEventId, patch });
     else plan.unchanged.push(current.id);
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildInsertRow, changedFields, planSync, provenanceUrl, syncedFields, type ExistingSourceEvent } from "./sync-plan";
+import { EXTERNAL_LABELS, SKIPPED_FIELDS, buildInsertRow, changedFields, planSync, provenanceUrl, syncedFields, type ExistingSourceEvent } from "./sync-plan";
 import type { NormalizedEvent } from "./types";
 
 const NOW = new Date("2026-10-16T12:00:00Z");
@@ -129,5 +129,36 @@ describe("planSync", () => {
   it("ignores duplicate ids within one fetch", () => {
     const plan = planSync([], [incoming("a"), incoming("a")], { now: NOW, feedUrl: FEED, previousRunStartedAt: null });
     expect(plan.inserts).toHaveLength(1);
+  });
+});
+
+describe("luma sources", () => {
+  const source = { id: "src-1", url: FEED, default_organiser_id: null, default_category_id: null, default_tags: [] };
+
+  it("labels the register button by kind", () => {
+    expect(buildInsertRow(incoming("a"), { ...source, kind: "luma" }, NOW).external_label).toBe("Register on Luma");
+    expect(buildInsertRow(incoming("a"), { ...source, kind: "meetup" }, NOW).external_label).toBe("Register on Meetup");
+    expect(buildInsertRow(incoming("a"), source, NOW).external_label).toBe("View details");
+    expect(EXTERNAL_LABELS.ical).toBe("View details");
+  });
+
+  it("never overwrites a description the feed doesn't have", () => {
+    const n = incoming("a", { description: null });
+    const existing = existingFrom(n, { description: "Pasted by an admin" });
+    const plan = planSync([existing], [n], { now: NOW, feedUrl: FEED, previousRunStartedAt, skip: SKIPPED_FIELDS.luma });
+    expect(plan.updates).toEqual([]);
+    expect(plan.unchanged).toEqual([existing.id]);
+
+    const withoutSkip = planSync([existing], [n], { now: NOW, feedUrl: FEED, previousRunStartedAt });
+    expect(withoutSkip.updates[0].patch).toEqual({ description: null });
+  });
+
+  it("still updates the fields the feed owns, and never touches cover or price", () => {
+    const n = incoming("a", { description: null, title: "New title" });
+    const existing = existingFrom(incoming("a", { description: null }), { description: "Pasted" });
+    const patch = changedFields(existing, syncedFields(n, FEED), SKIPPED_FIELDS.luma);
+    expect(patch).toEqual({ title: "New title" });
+    expect(Object.keys(patch)).not.toContain("cover_url");
+    expect(Object.keys(patch)).not.toContain("price_min");
   });
 });
