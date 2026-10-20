@@ -3,6 +3,17 @@
 Feature: **event-sources** (owns `src/lib/sources/**`, `src/app/admin/sources/**`,
 `src/app/api/cron/refresh-sources/**`). No shared files change.
 
+## Decision record (2026-10-20)
+
+The product owner chose to have the sync read each new Luma event's public page once, to get
+its cover image, full description and price. Luma's iCal feed has none of these, and nothing in
+the feed links an event to its image. This goes against Luma's terms and against
+`orbit-product-notes.md` §5 ("No scraping of platforms that prohibit it"). The owner accepted
+these risks: Luma may block ORBIT's requests, the page format may change, and the images belong
+to the event organisers. The owner will update the product notes and tell the brief's author.
+To limit the impact, page reads are polite and minimal (below), stop at the first sign of
+blocking, and fall back to admin paste/upload. Meetup stays feed-only.
+
 ## Goal
 
 Admins add specific Luma calendars and Meetup groups as event sources. ORBIT pulls their
@@ -11,8 +22,9 @@ added, changed events are updated, unchanged events are skipped, and nothing is 
 
 ## Non-goals
 
-- Crawling Luma/Meetup discovery pages ("every event in London"). That is HTML scraping,
-  which both platforms' terms and `orbit-product-notes.md` §5 rule out.
+- Crawling Luma/Meetup discovery or listing pages ("every event in London"). Only the pages
+  of events already in an approved calendar feed are read, each one once.
+- Reading Meetup event pages.
 - The official Luma API (needs Luma Plus) and Meetup API (needs Meetup Pro). These can be
   added later as their own source kinds.
 
@@ -89,7 +101,8 @@ Both are registered in `CONNECTORS`. The sync engine is unchanged.
 ### Migration `supabase/migrations/20261020000000_source_platforms.sql`
 
 Re-runnable. Drops `event_sources_kind_check` and re-adds it as `kind in ('ical', 'luma', 'meetup')`.
-No other schema changes.
+Creates `source_event_details` (grants to `authenticated` + `service_role`, RLS
+`public.is_admin()`), and adds `source_runs.enriched int not null default 0`.
 
 ## "Refresh all now": same API as the cron
 
@@ -124,17 +137,55 @@ stop and decide again before building the Meetup half.
 |---|---|
 | Title, start/end, time zone, venue + address, online/in-person, event link | The feed, refreshed daily |
 | "Hosted by …" line (summary) | The feed |
-| Full description | Meetup: the feed. Luma: pasted by an admin (below) |
-| Cover image, price | Added by an admin (below); otherwise the existing generated cover (`EventCover`) and "price unknown" |
+| Full description | Meetup: the feed. Luma: the event page (below), else pasted by an admin |
+| Cover image | Luma: the event page (below). Fallback for both: admin paste/upload; otherwise the generated cover (`EventCover`) |
+| Price | Luma: the event page (below). Fallback: admin; otherwise "price unknown" |
 | Host profile | The source's default organiser (e.g. an ORBIT organiser profile for that community) |
 
-ORBIT never reads Luma/Meetup event pages automatically. The feed doesn't link events to
-their images, and fetching each page by program is the scraping both platforms' terms forbid.
-The organiser owns the images, so the source's permission note should cover images too.
+### Luma page details (automatic)
 
-**Admin "Details" editor** on `/admin/sources`, in a new "Imported events" list that shows
-upcoming events from Luma/Meetup sources, with the ones missing a cover first. Each row links
-to the event's Luma/Meetup page so the admin can copy from it in their own browser.
+Each Luma event page carries a schema.org `Event` block (`<script type="application/ld+json">`),
+the structured data Luma publishes for search engines. Checked 2026-10-20 on
+`luma.com/van-dweb-social`: `image` (list of `cdn.lu.ma/…/event-covers/…` URLs), `description`
+(full text, 1,698 chars), `offers` (`[{name, price, priceCurrency}]`), `organizer`,
+`eventStatus`, `url`. Save a trimmed copy of that page as a test fixture.
+
+- **`src/lib/sources/luma-page.ts`** (pure, tested): `parseLumaEventPage(html)` returns
+  `{ coverUrl, description, priceMin, priceMax, currency } | null`. It reads the first
+  JSON-LD block whose `@type` is `Event`, falls back to `og:image` for the cover, accepts
+  only `https` image URLs on `cdn.lu.ma` / `images.lumacdn.com`, and gives prices only when
+  every offer has a numeric `price` in the same currency. Description stays plain text, capped
+  at 5,000 chars.
+- **Table `source_event_details`** (new migration, owned by this feature): `event_id` (pk, fk
+  `events` on delete cascade), `status` (`ok` / `failed` / `blocked`), `attempts`, `last_error`,
+  `fetched_at`. Admin-only RLS like the other source tables. This records that a page was read,
+  so each event is read once and not daily.
+- **Step in the engine** (`enrichLumaEvents`, after `planSync` for `luma` sources):
+  - Picks this source's upcoming published events that have no `source_event_details` row, or
+    a `failed` row with `attempts < 3` last tried more than 24 h ago. Newest first, at most 25
+    per source per run.
+  - Fetches pages one at a time, 1 s apart, with the ORBIT User-Agent, through the same
+    guarded fetch as feeds (SSRF check, 15 s timeout, 5 MB cap). Only `https` URLs on
+    `luma.com` / `lu.ma` are fetched. `fetch.ts` gains an `accept` option, and the feed
+    function keeps its current behaviour.
+  - On HTTP 403, 429 or 503 it stops all Luma page reads for the rest of the run, marks the
+    event `blocked`, and adds a run error: "Luma is blocking page reads. Paste or upload images
+    for now."
+  - It only fills empty fields: `cover_url` when null, `description` when null, and
+    `price_min`/`price_max`/`currency` when `price_min` is null. Admin edits always win.
+  - Cover: Cloudinary fetches the image URL (signed server-side upload with the remote URL as
+    `file`, folder `orbit/event-covers/sources/`), and `cover_url` stores the Cloudinary copy.
+    Without Cloudinary env vars, the event is marked `failed` with "Image import needs
+    Cloudinary", and the description and price are still saved.
+  - Page details failures never fail the source run. They show as run errors and per-event status.
+- `RunSummary` gains `enriched` (events whose page details were saved), stored in a new
+  `source_runs.enriched` column. The "Refresh all now" summary shows it ("… · 9 images").
+
+**Admin "Details" editor (fallback)** on `/admin/sources`, in a new "Imported events" list
+that shows upcoming events from Luma/Meetup sources, with the ones missing a cover first.
+Each row shows its page-details status (auto / failed / blocked / not tried), with a "Try
+again" action that clears a failed or blocked row. It also links to the event's Luma/Meetup
+page so the admin can copy from it in their own browser.
 - **Cover image**, either way:
   - *Paste image address*: the admin right-clicks the cover on the event page in their browser,
     copies the image address and pastes it. The server action checks it is an `https` URL,
@@ -173,6 +224,11 @@ others. Network or 5xx failures on the button show "Refresh failed: <message>".
   saved Luma and Meetup fixtures (event URL taken from the stub, "Hosted by" summary, stub
   dropped, online detection).
 - `sync-plan.test.ts`: a Luma update leaves an admin-set description, cover and price untouched.
+- `luma-page.test.ts`: the saved page fixture yields cover, full description and price 0/usd;
+  missing JSON-LD falls back to `og:image`; non-Luma image hosts, mixed currencies and
+  malformed JSON give nulls, not throws.
+- Enrichment selection and stop rules as a pure helper (`pickEventsToEnrich`, `shouldStop`):
+  25 limit, attempt/backoff rules, stop on 403/429/503, only-fill-empty-fields.
 - `saveImportedDetails` input schema: non-`https` image URLs, over-long descriptions and
   negative / reversed prices are rejected.
 - Route access: the auth decision lives in a small pure helper (`refresh-auth.ts`) that takes
