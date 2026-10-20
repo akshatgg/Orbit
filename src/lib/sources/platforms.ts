@@ -92,6 +92,21 @@ export function cleanEvent(kind: SourceKind, event: NormalizedEvent): Normalized
   };
 }
 
+const MEETUP_PAGE_HOSTS = new Set(["meetup.com", "www.meetup.com"]);
+const MEETUP_EVENT_PATH = /\/events\/\d+\/?$/;
+
+/** The Meetup event page to read for location details, or null when it isn't one. */
+export function meetupPageUrl(event: { source_event_id: string | null; external_url: string | null }): string | null {
+  if (!event.external_url) return null;
+  try {
+    const url = new URL(event.external_url);
+    if (url.protocol !== "https:" || !MEETUP_PAGE_HOSTS.has(url.hostname.toLowerCase())) return null;
+    return MEETUP_EVENT_PATH.test(url.pathname) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 /** The Luma page to read for an imported event, or null when it isn't a Luma event page. */
 export function lumaPageUrl(event: { source_event_id: string | null; external_url: string | null }): string | null {
   if (!event.source_event_id?.startsWith("evt-") || !event.external_url) return null;

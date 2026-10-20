@@ -67,6 +67,8 @@ describe("cleanEvent — luma feed fixture", () => {
       summary: "Hosted by Andrea Mills",
       description: null,
       venueName: "330 W Pender St",
+      latitude: 49.2824015,
+      longitude: -123.1115759,
       format: "in_person",
     });
   });
@@ -114,6 +116,13 @@ describe("meetup feed fixture", () => {
     const event = cleanEvent("meetup", events.find((e) => e.title === "The Hottest New Programming Language is Ubiquitous")!);
     expect(event).toMatchObject({ timezone: "Europe/London", startsAt: "2026-11-19T18:00:00.000Z" });
     expect(event.description).toContain("Hemal Varambhia");
+    // Feed descriptions carry Markdown; the event page renders plain text, so markers must go.
+    expect(event.description).not.toContain("**");
+    expect(event.description).not.toContain("](");
+    expect(event.description).not.toMatch(/^-{3,}$/m);
+    expect(event.description).toContain("• This talk is a continuation");
+    expect(event.description).toContain("September 2025 (https://www.meetup.com/");
+    expect(event.description).toContain("Codurance (https://www.codurance.com/)");
   });
 });
 

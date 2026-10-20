@@ -29,6 +29,8 @@ export type EventLd = {
   venue_name: string | null;
   address: string | null;
   city: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   status: string;
   price_min: number | null;
   price_max: number | null;
@@ -64,6 +66,10 @@ export function buildEventJsonLd(e: EventLd): JsonLd | null {
           addressLocality: e.city ?? undefined,
           addressCountry: "GB",
         }),
+        geo:
+          typeof e.latitude === "number" && typeof e.longitude === "number"
+            ? { "@type": "GeoCoordinates", latitude: e.latitude, longitude: e.longitude }
+            : undefined,
       })
     : null;
   // The real online link is private; point at the public event page instead.

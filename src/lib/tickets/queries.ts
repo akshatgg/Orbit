@@ -11,6 +11,7 @@ export const isId = (value: string) => z.guid().safeParse(value).success;
 
 const EVENT_DETAIL_SELECT = `
   id, title, summary, description, cover_url, starts_at, ends_at, timezone, format, venue_name, address, city,
+  latitude, longitude,
   tags, university, registration_mode, external_url, external_label, requires_approval, capacity,
   waitlist_enabled, registration_deadline, price_min, price_max, currency, status, cancel_reason,
   organiser_id, source, source_url, published_at,
@@ -21,8 +22,8 @@ const EVENT_DETAIL_SELECT = `
 export type EventDetail = Pick<
   OrbitEvent,
   | "id" | "title" | "summary" | "description" | "cover_url" | "starts_at" | "ends_at" | "timezone" | "format"
-  | "venue_name" | "address" | "city" | "tags" | "university" | "registration_mode" | "external_url"
-  | "external_label" | "requires_approval" | "capacity" | "waitlist_enabled" | "registration_deadline"
+  | "venue_name" | "address" | "city" | "latitude" | "longitude" | "tags" | "university" | "registration_mode"
+  | "external_url" | "external_label" | "requires_approval" | "capacity" | "waitlist_enabled" | "registration_deadline"
   | "price_min" | "price_max" | "currency" | "status" | "cancel_reason" | "organiser_id" | "source" | "source_url" | "published_at"
 > & {
   organiser: Pick<Organiser, "id" | "slug" | "name" | "logo_url" | "is_verified" | "kind"> | null;

@@ -35,6 +35,10 @@ describe("buildEventJsonLd", () => {
     expect(ld.offers.availability).toContain("InStock");
     expect(ld.organizer.url).toMatch(/\/o\/careers$/);
   });
+  it("includes a geo point when the venue has coordinates", () => {
+    const ld = buildEventJsonLd({ ...base, latitude: 51.52, longitude: -0.09 }) as LD;
+    expect(ld.location.geo).toEqual({ "@type": "GeoCoordinates", latitude: 51.52, longitude: -0.09 });
+  });
   it("uses the public page for online events, never a private link", () => {
     const ld = buildEventJsonLd({ ...base, format: "online" }) as LD;
     expect(ld.location["@type"]).toBe("VirtualLocation");

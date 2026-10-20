@@ -13,6 +13,7 @@ import { buildEventJsonLd } from "@/lib/seo/jsonld";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { toCalendarEvent } from "@/lib/tickets/calendar";
 import { STATUS_COPY, hasEnded, isActiveStatus, mapsUrl, paragraphs, safeHttpUrl, selectCta } from "@/lib/tickets/logic";
+import { LocationMap } from "@/components/tickets/LocationMap";
 import { getEvent, getEventPageData, type EventPageData } from "@/lib/tickets/queries";
 import { EventCover } from "@/components/events/EventCover";
 import { RegistrationBadge } from "@/components/events/RegistrationBadge";
@@ -219,16 +220,29 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
             ) : null}
           />
           {event.format !== "online" && (event.venue_name || event.address) && (
-            <InfoRow
-              icon="pin"
-              title={event.venue_name ?? event.address!}
-              sub={[event.venue_name ? event.address : null, event.city].filter(Boolean).join(" · ") || null}
-              action={maps ? (
-                <a href={maps} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-full border border-ink/10 bg-ink/[0.06] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-ink/[0.12]">
-                  Open in Maps
-                </a>
-              ) : null}
-            />
+            <div className="p-3.5 light:px-0 light:py-3.5">
+              <LocationMap
+                place={{ latitude: event.latitude, longitude: event.longitude, venue: event.venue_name, address: event.address, city: event.city }}
+              />
+              <div className="mt-3 flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-transparent bg-ink/[0.07] text-fg light:h-11 light:w-11 light:border-line light:bg-surface light:text-accent">
+                  <Icon name="pin" className="h-[18px] w-[18px]" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-snug light:font-semibold">{event.venue_name ?? event.address}</p>
+                  {[event.address, event.city].filter(Boolean).length > 0 && (
+                    <p className="mt-0.5 text-xs text-muted light:text-[12.5px]">
+                      {[event.address, event.city].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </div>
+                {maps && (
+                  <a href={maps} target="_blank" rel="noopener noreferrer" className="shrink-0 rounded-full border border-ink/10 bg-ink/[0.06] px-3 py-1.5 text-xs font-medium transition-colors hover:bg-ink/[0.12]">
+                    Open in Maps
+                  </a>
+                )}
+              </div>
+            </div>
           )}
           {event.format !== "in_person" && (
             <InfoRow

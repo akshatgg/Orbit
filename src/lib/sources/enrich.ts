@@ -24,7 +24,7 @@ export async function enrichLumaEvents(
   source: Pick<EventSource, "id">,
   { db, now, errors, run }: { db: SupabaseClient; now: Date; errors: RunError[]; run: EnrichRunState },
 ): Promise<number> {
-  if (run.lumaBlocked) return 0;
+  if (run.blocked) return 0;
   let saved = 0;
   try {
     const key = sourceKey(source.id);
@@ -75,7 +75,7 @@ export async function enrichLumaEvents(
     };
 
     for (const [i, event] of picked.entries()) {
-      if (run.lumaBlocked || !hasTimeFor(Date.now(), limit)) break;
+      if (run.blocked || !hasTimeFor(Date.now(), limit)) break;
       if (i > 0) await sleep(PAUSE_MS);
       const url = lumaPageUrl(event)!;
       const attempts = (details.get(event.id)?.attempts ?? 0) + 1;
@@ -123,7 +123,7 @@ export async function enrichLumaEvents(
         if (coverError) errors.push({ event: event.source_event_id ?? event.id, message: `Cover not imported: ${coverError}` });
       } catch (e) {
         if (e instanceof FetchHttpError && isBlockedStatus(e.status)) {
-          run.lumaBlocked = true;
+          run.blocked = true;
           await record("blocked", e.message);
           errors.push({ message: "Luma is blocking page reads. Paste or upload images for now." });
           break;

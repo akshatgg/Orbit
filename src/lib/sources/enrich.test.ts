@@ -56,7 +56,7 @@ const event = (id: string) => ({
 });
 
 const NOW = new Date("2026-10-20T03:00:00Z");
-const run = (over: Partial<EnrichRunState> = {}): EnrichRunState => ({ deadline: Date.now() + 200_000, lumaBlocked: false, ...over });
+const run = (over: Partial<EnrichRunState> = {}): EnrichRunState => ({ deadline: Date.now() + 200_000, blocked: false, ...over });
 const page = { description: "A great night", coverUrl: "https://cdn.lu.ma/cover.jpg", priceMin: null, priceMax: null, currency: null };
 const statuses = (upserts: Call[]) => upserts.map((c) => (c.args[0] as { status: string }).status);
 
@@ -83,7 +83,7 @@ describe("enrichLumaEvents", () => {
     const saved = await enrichLumaEvents({ id: "s1" }, { db, now: NOW, errors, run: state });
 
     expect(saved).toBe(0);
-    expect(state.lumaBlocked).toBe(true);
+    expect(state.blocked).toBe(true);
     expect(fetchFeedText).toHaveBeenCalledTimes(1);
     expect(statuses(recorded("source_event_details", "upsert"))).toEqual(["blocked"]);
     expect(errors).toEqual([{ message: "Luma is blocking page reads. Paste or upload images for now." }]);
@@ -92,7 +92,7 @@ describe("enrichLumaEvents", () => {
   it("reads nothing when Luma is already blocking this run", async () => {
     const { db, calls } = fakeDb([event("a")]);
 
-    const saved = await enrichLumaEvents({ id: "s1" }, { db, now: NOW, errors: [], run: run({ lumaBlocked: true }) });
+    const saved = await enrichLumaEvents({ id: "s1" }, { db, now: NOW, errors: [], run: run({ blocked: true }) });
 
     expect(saved).toBe(0);
     expect(fetchFeedText).not.toHaveBeenCalled();

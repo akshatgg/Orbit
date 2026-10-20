@@ -1,6 +1,6 @@
 // Reads a Luma event page's schema.org Event data (the JSON-LD Luma publishes for search engines).
 
-import { LIMITS, clamp, decodeEntities, orNull, stripHtml } from "./text";
+import { LIMITS, clamp, cleanProse, decodeEntities, orNull, stripHtml } from "./text";
 
 export type LumaPageDetails = {
   coverUrl: string | null;
@@ -68,7 +68,7 @@ export function parseLumaEventPage(html: string): LumaPageDetails | null {
   const event = firstEvent(html);
   const images = event ? (Array.isArray(event.image) ? event.image : [event.image]) : [];
   const coverUrl = images.map(safeImage).find((u): u is string => u !== null) ?? ogImage(html);
-  const description = orNull(clamp(stripHtml(typeof event?.description === "string" ? event.description : ""), LIMITS.description));
+  const description = orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : "")), LIMITS.description));
   const price = event ? prices(event.offers) : null;
   if (!coverUrl && !description && !price) return null;
   return {

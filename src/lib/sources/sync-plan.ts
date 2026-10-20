@@ -6,7 +6,7 @@ import { sourceKey } from "./types";
 
 /** Columns of events that a sync reads for one source. */
 export const EXISTING_EVENT_SELECT =
-  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, registration_mode, external_url, source_url, status, needs_review, last_verified_at";
+  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, latitude, longitude, registration_mode, external_url, source_url, status, needs_review, last_verified_at";
 
 export type ExistingSourceEvent = {
   id: string;
@@ -20,6 +20,8 @@ export type ExistingSourceEvent = {
   format: EventFormat;
   venue_name: string | null;
   address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   registration_mode: RegistrationMode;
   external_url: string | null;
   source_url: string | null;
@@ -39,6 +41,8 @@ export type SyncedFields = {
   format: EventFormat;
   venue_name: string | null;
   address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   registration_mode?: RegistrationMode;
   external_url?: string | null;
   source_url: string | null;
@@ -51,10 +55,13 @@ export const EXTERNAL_LABELS: Record<SourceKind, string> = {
   meetup: "Register on Meetup",
 };
 
-/** Synced fields a kind's feed doesn't really have, so updates leave them alone
- *  (Luma's feed only carries a stub description; the real one comes from the page or an admin). */
+/** Synced fields a kind's feed doesn't really have, so updates leave them alone.
+ *  - Luma's feed only carries a stub description; the real one comes from the page or an admin.
+ *  - Meetup's feed usually has no LOCATION/GEO; venue and coordinates come from its event page,
+ *    so a later feed sync must not wipe them back to null. */
 export const SKIPPED_FIELDS: Partial<Record<SourceKind, readonly (keyof SyncedFields)[]>> = {
   luma: ["description"],
+  meetup: ["venue_name", "address", "latitude", "longitude"],
 };
 
 /** Public provenance link: the event's own page, else the feed's site (never the full feed URL,
@@ -79,6 +86,8 @@ export function syncedFields(event: NormalizedEvent, feedUrl: string): SyncedFie
     format: event.format,
     venue_name: event.venueName,
     address: event.address,
+    latitude: event.latitude,
+    longitude: event.longitude,
     registration_mode: event.url ? "external" : "none",
     external_url: event.url,
     source_url: provenanceUrl(event, feedUrl),
@@ -107,6 +116,10 @@ export function buildInsertRow(
 const sameInstant = (a: string | null, b: string | null) =>
   a === b || (a !== null && b !== null && new Date(a).getTime() === new Date(b).getTime());
 
+/** Coordinates may come back from PostgREST as a number or a numeric string. */
+const sameCoordinate = (a: unknown, b: unknown) =>
+  a == null || b == null ? a == null && b == null : Number(a) === Number(b);
+
 /** Only the fields that actually changed (empty object when nothing did). */
 export function changedFields(
   existing: ExistingSourceEvent,
@@ -124,7 +137,10 @@ export function changedFields(
   for (const key of Object.keys(next) as (keyof SyncedFields)[]) {
     const a = existing[key] ?? null;
     const b = next[key] ?? null;
-    const same = key === "starts_at" || key === "ends_at" ? sameInstant(a as string | null, b as string | null) : a === b;
+    const same =
+      key === "starts_at" || key === "ends_at" ? sameInstant(a as string | null, b as string | null)
+      : key === "latitude" || key === "longitude" ? sameCoordinate(a, b)
+      : a === b;
     if (!same) (patch as Record<string, unknown>)[key] = b;
   }
   return patch;

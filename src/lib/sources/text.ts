@@ -43,6 +43,58 @@ export function stripHtml(input: string | null | undefined) {
     .trim();
 }
 
+/** Decorative lines made only of Markdown / iCal separator characters. */
+const SEPARATOR_LINE = /^[ \t]*[\\|*_=~+\-–—]{3,}[ \t]*$/gm;
+
+/**
+ * Turns lightweight Markdown / iCal prose into readable plain text. Event pages render plain
+ * text, so markers would otherwise show up literally: `**bold**`, `[label](url)`,
+ * `-\|\-\|…` divider lines, escaped punctuation and bullet asterisks.
+ *
+ * Deliberately conservative: it only removes markers that pair up, so ordinary prose (including
+ * `2 * 3` or `C++`) is left alone.
+ */
+export function cleanProse(input: string | null | undefined) {
+  if (!input) return "";
+  let text = input
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\u00A0/g, " ");
+
+  // Escaped punctuation from Markdown / iCal: \- \| \* \[ \] \( \) \,
+  text = text.replace(/\\([\\`*_{}\[\]()#+\-.!|>~,])/g, "$1");
+
+  // Markdown images and links become normal prose; the page linkifies URLs itself.
+  text = text.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)(?:\s+"[^"]*")?\)/g, "$1");
+  text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)(?:\s+"[^"]*")?\)/g, (_, label: string, url: string) =>
+    label.trim() === url ? url : `${label.trim()} (${url})`,
+  );
+
+  // Bullets first, so a leading `*` can't pair with an emphasis marker later in the line.
+  text = text.replace(/^[ \t]*[*+-][ \t]+/gm, "• ");
+
+  // Emphasis, strikethrough and inline code.
+  text = text.replace(/(\*\*|__)(?=\S)([\s\S]*?\S)\1/g, "$2");
+  text = text.replace(/~~(?=\S)([^~\n]*?\S)~~/g, "$1");
+  text = text.replace(/\*(?=\S)([^*\n]*?\S)\*/g, "$1");
+  text = text.replace(/(^|[\s(])_(?=\S)([^_\n]*?\S)_(?=$|[\s).,!?:;])/gm, "$1$2");
+  text = text.replace(/`([^`\n]+)`/g, "$1");
+
+  // Headings and block quotes.
+  text = text.replace(/^[ \t]*#{1,6}[ \t]+/gm, "");
+  text = text.replace(/^[ \t]*>[ \t]?/gm, "");
+
+  // Divider lines and any remaining standalone marker runs.
+  text = text.replace(SEPARATOR_LINE, "");
+  text = text.replace(/(^|\s)[*_~]{2,}(?=\s|$)/g, "$1");
+
+  return text
+    .replace(/[ \t]+$/gm, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** Single-line version: all whitespace collapsed. */
 export function oneLine(input: string | null | undefined) {
   return stripHtml(input).replace(/\s+/g, " ").trim();
