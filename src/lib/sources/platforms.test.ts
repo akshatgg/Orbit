@@ -94,6 +94,29 @@ describe("cleanEvent — luma feed fixture", () => {
   });
 });
 
+describe("meetup feed fixture", () => {
+  const parse = () => parseIcal(fixture("meetup-group.ics"), { now: new Date("2026-10-20T00:00:00Z") });
+
+  it("parses real group feeds into events with Meetup event links", () => {
+    const { events, errors } = parse();
+    expect(errors).toEqual([]);
+    expect(events).toHaveLength(2);
+    for (const e of events) {
+      const event = cleanEvent("meetup", e);
+      expect(event).toBe(e);
+      expect(event.url).toMatch(/^https:\/\/www\.meetup\.com\/[A-Za-z0-9-]+\/events\/\d+\/?$/);
+      expect(event.sourceEventId).toMatch(/^event_\d+@meetup\.com$/);
+    }
+  });
+
+  it("keeps the London time zone and details of the Software Craftsmanship event", () => {
+    const { events } = parse();
+    const event = cleanEvent("meetup", events.find((e) => e.title === "The Hottest New Programming Language is Ubiquitous")!);
+    expect(event).toMatchObject({ timezone: "Europe/London", startsAt: "2026-11-19T18:00:00.000Z" });
+    expect(event.description).toContain("Hemal Varambhia");
+  });
+});
+
 describe("lumaPageUrl", () => {
   it("only gives a page for evt- events on luma hosts", () => {
     expect(lumaPageUrl({ source_event_id: "evt-q9Djl0hCCeyuDPT@events.lu.ma", external_url: "https://luma.com/58wdnop2" })).toBe("https://luma.com/58wdnop2");
