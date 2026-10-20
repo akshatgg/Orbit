@@ -202,7 +202,9 @@ export async function detectDuplicates({ now = new Date(), db = createAdminClien
 
 /** The nightly job: every enabled source in turn (one failure never stops the rest), then expiry
  *  and duplicate detection. */
-export async function refreshAllSources({ now = new Date() }: { now?: Date } = {}): Promise<RefreshSummary> {
+export async function refreshAllSources(
+  { now = new Date(), trigger = "cron" }: { now?: Date; trigger?: RunTrigger } = {},
+): Promise<RefreshSummary> {
   const db = createAdminClient();
   const startedAt = now.toISOString();
   const errors: string[] = [];
@@ -212,7 +214,7 @@ export async function refreshAllSources({ now = new Date() }: { now?: Date } = {
   if (error) errors.push(`Couldn't list sources: ${error.message}`);
   for (const { id } of (data ?? []) as { id: string }[]) {
     try {
-      sources.push(await runSource(id, { trigger: "cron", db }));
+      sources.push(await runSource(id, { trigger, db }));
     } catch (e) {
       errors.push(`Source ${id}: ${message(e)}`);
     }

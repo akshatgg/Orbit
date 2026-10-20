@@ -9,6 +9,7 @@ import {
   eventCountsBySource, latestRunBySource, listHiddenDuplicates, listRecentRuns, listReviewQueue, listSources, sourceLabels,
 } from "@/lib/sources/queries";
 import { ActionButton } from "./_components/ActionButton";
+import { RefreshAllButton } from "./_components/RefreshAllButton";
 import { ReviewCard } from "./_components/ReviewCard";
 import { deleteSource, resolveReview, runSourceNow, setSourceEnabled } from "./actions";
 
@@ -32,7 +33,12 @@ export default function SourcesPage() {
         eyebrow="Events"
         title="Sources"
         subtitle="Approved calendar feeds, refreshed nightly. Only feeds we have permission to use."
-        action={<ButtonLink href="/admin/sources/new" size="md" className=""><IconPlus size={15} /> Add source</ButtonLink>}
+        action={
+          <div className="flex items-start gap-2">
+            <RefreshAllButton />
+            <ButtonLink href="/admin/sources/new" size="md" className=""><IconPlus size={15} /> Add source</ButtonLink>
+          </div>
+        }
       />
       <Suspense fallback={<TableSkeleton rows={4} />}>
         <SourcesContent />
@@ -88,7 +94,7 @@ async function SourcesContent() {
                         {s.last_status && <div className="mt-1"><Badge tone={s.last_status === "ok" ? "success" : "danger"}>{s.last_status}</Badge></div>}
                       </td>
                       <td className={`${table.td} text-xs text-muted`}>
-                        {run ? `${run.found} found · ${run.inserted} new · ${run.updated} updated · ${run.unchanged} same${run.flagged_missing ? ` · ${run.flagged_missing} flagged` : ""}` : "—"}
+                        {run ? `${run.found} found · ${run.inserted} new · ${run.updated} updated · ${run.unchanged} same${run.flagged_missing ? ` · ${run.flagged_missing} flagged` : ""}${run.enriched ? ` · ${run.enriched} with details` : ""}` : "—"}
                         {s.last_error && <p className="mt-1 max-w-xs break-words text-red-300">{s.last_error}</p>}
                       </td>
                       <td className={table.td}>{counts.get(s.id) ?? 0}</td>
