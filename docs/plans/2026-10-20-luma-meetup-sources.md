@@ -1,7 +1,5 @@
 # Luma & Meetup Sources Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Admins add Luma calendars and Meetup groups as event sources; the daily cron (and a "Refresh all now" button that hits the same route) imports their events without duplicates, and reads each new Luma event's page once for cover image, full description and price, with admin paste/upload as fallback.
 
 **Architecture:** Extends the existing `event-sources` feature (`src/lib/sources/**`). Two new source kinds reuse the iCal parser with per-platform URL resolving and cleanup. A new enrichment step reads Luma event pages' schema.org JSON-LD, records attempts in `source_event_details`, and copies covers into Cloudinary. The cron route accepts either `CRON_SECRET` (GET) or a signed-in admin (same-origin POST).
