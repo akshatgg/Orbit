@@ -42,7 +42,7 @@ export function SourceForm({ source, organisers, categories }: {
   const canEnable = permission && note.trim().length > 0;
 
   return (
-    <form action={formAction} className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+    <form action={formAction} onReset={() => setKind(source?.kind ?? "ical")} className="grid gap-5 lg:grid-cols-[1fr_22rem]">
       <input type="hidden" name="id" value={source?.id ?? ""} />
 
       <section className="glass space-y-5 rounded-[20px] p-6">
