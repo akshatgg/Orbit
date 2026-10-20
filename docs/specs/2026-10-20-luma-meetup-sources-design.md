@@ -30,8 +30,20 @@ Luma needs the subscribe link because a calendar page URL (`lu.ma/<slug>`) doesn
 the calendar ID the feed needs, and finding it would mean scraping the page. The form shows
 a one-line hint on where to find the link.
 
-During implementation, check both feed formats against a real public feed and save a
-trimmed copy as a test fixture before writing the per-platform cleanup.
+**What a real Luma calendar feed contains** (checked 2026-10-20, `cal-7iVMZ4JmmJwQtYl`, 188 events):
+`SUMMARY`, `DTSTART`/`DTEND`, `LOCATION` (full address), `GEO`, `ORGANIZER;CN="<host>"`,
+`STATUS`, `UID` (`evt-…@events.lu.ma`), and a `DESCRIPTION` that is only a stub:
+
+```
+Get up-to-date information at: https://luma.com/<slug>\n\nAddress:\n…\n\nHosted by <host>
+```
+
+There is **no `URL` property, no cover image, no price and no full description**. Save a
+trimmed copy of this feed as a test fixture. Do the same for Meetup once step 1 has confirmed a
+non-empty feed.
+
+Luma also offers city-wide feeds (`entity=discover&id=discplace-…`). These are out of scope
+here, but a London one would fit the `luma` kind unchanged if it is confirmed later.
 
 ## Components
 
@@ -44,11 +56,17 @@ trimmed copy as a test fixture before writing the per-platform cleanup.
   - `luma`: accepts only the hosts above, turns `webcal:` into `https:`, and rejects a bare
     `lu.ma/<slug>` page with "Paste the calendar's Subscribe → iCal link instead."
 - `cleanEvent(kind, event): NormalizedEvent`. Platform-specific tidy-up after parsing:
-  - `url`: the platform's own event page (`lu.ma/…` / `meetup.com/<group>/events/<id>/`).
-    If the feed has no `URL` property, take it from the description.
-  - `description`: strip the platform's boilerplate footer lines (e.g. "Get up-to-date
-    information at: …"), based on the saved fixtures.
+  - `url`: the platform's own event page (`luma.com/…` / `meetup.com/<group>/events/<id>/`).
+    Luma feeds have no `URL` property, so it is taken from the "Get up-to-date information
+    at:" line. Only `https` links on the platform's own hosts are accepted.
+  - Luma `description`: the stub is dropped (`description = null`), and `summary` becomes
+    "Hosted by <host>" (from the stub, else `ORGANIZER;CN`, capped at 200 chars).
+  - Meetup `description`: kept, with platform boilerplate stripped according to its fixture.
   - `format`: a location that is only a platform URL means online.
+- `OWNED_FIELDS[kind]`: the event columns a kind's feed is allowed to overwrite. For `luma` this
+  excludes `description`, because the feed has none, so a description an admin pastes survives
+  every sync. `planSync` gets the list from the engine and leaves other columns out of updates.
+  `ical` and `meetup` keep today's behaviour (all synced fields).
 
 ### `src/lib/sources/connectors.ts`
 
@@ -104,18 +122,34 @@ stop and decide again before building the Meetup half.
 
 | Detail | Where it comes from |
 |---|---|
-| Title, start/end, time zone, full description, venue + address, online/in-person, event link | The feed, refreshed daily |
-| Cover image, price | Added by an admin (below); otherwise the existing generated cover and "price unknown" |
-| Host | The source's default organiser (e.g. an ORBIT organiser profile for that community) |
+| Title, start/end, time zone, venue + address, online/in-person, event link | The feed, refreshed daily |
+| "Hosted by …" line (summary) | The feed |
+| Full description | Meetup: the feed. Luma: pasted by an admin (below) |
+| Cover image, price | Added by an admin (below); otherwise the existing generated cover (`EventCover`) and "price unknown" |
+| Host profile | The source's default organiser (e.g. an ORBIT organiser profile for that community) |
+
+ORBIT never reads Luma/Meetup event pages automatically. The feed doesn't link events to
+their images, and fetching each page by program is the scraping both platforms' terms forbid.
+The organiser owns the images, so the source's permission note should cover images too.
 
 **Admin "Details" editor** on `/admin/sources`, in a new "Imported events" list that shows
-upcoming events from Luma/Meetup sources, with the ones missing a cover first:
-- Cover upload through the existing `uploadImage("event-covers", file)` (`src/lib/storage.ts`)
-  and a "Price from / to (£)" pair (empty = unknown, 0 = free).
+upcoming events from Luma/Meetup sources, with the ones missing a cover first. Each row links
+to the event's Luma/Meetup page so the admin can copy from it in their own browser.
+- **Cover image**, either way:
+  - *Paste image address*: the admin right-clicks the cover on the event page in their browser,
+    copies the image address and pastes it. The server action checks it is an `https` URL,
+    then has **Cloudinary fetch it** (signed server-side upload with the remote URL as `file`,
+    folder `orbit/event-covers/<admin id>/`). ORBIT's own server never downloads it, and the
+    stored `cover_url` is ORBIT's Cloudinary copy, not a hotlink to Luma. Without Cloudinary
+    env vars this fails with "Image import needs Cloudinary".
+  - *Upload a file*: the existing `uploadImage("event-covers", file)` (`src/lib/storage.ts`).
+- **Description** (textarea, plain text, ≤ 5,000 chars). Most useful for Luma.
+- **Price from / to (£)** (empty = unknown, 0 = free).
 - Saved by a `saveImportedDetails` server action (`requireAdmin`, zod) that updates only
-  `cover_url`, `price_min` and `price_max`.
-- The daily sync never overwrites these, because `SyncedFields` doesn't include them. A test
-  in `sync-plan.test.ts` locks that in.
+  `cover_url`, `description`, `price_min` and `price_max`, and only on events whose `source`
+  is a Luma/Meetup source.
+- The daily sync never overwrites the cover or price (they aren't in `SyncedFields`), or a Luma
+  description (excluded by `OWNED_FIELDS.luma`). Tests in `sync-plan.test.ts` lock both in.
 
 ## Not repeating data (already in place, unchanged)
 
@@ -136,7 +170,11 @@ others. Network or 5xx failures on the button show "Refresh failed: <message>".
 
 - `platforms.test.ts`: Meetup URL forms → feed URL; non-Meetup/reserved paths rejected; Luma
   `webcal`→`https`, foreign hosts and bare calendar pages rejected; `cleanEvent` against the
-  saved Luma and Meetup fixtures (URL, description footer, online detection).
+  saved Luma and Meetup fixtures (event URL taken from the stub, "Hosted by" summary, stub
+  dropped, online detection).
+- `sync-plan.test.ts`: a Luma update leaves an admin-set description, cover and price untouched.
+- `saveImportedDetails` input schema: non-`https` image URLs, over-long descriptions and
+  negative / reversed prices are rejected.
 - Route access: the auth decision lives in a small pure helper (`refresh-auth.ts`) that takes
   the header, origin and profile and is tested for cron secret OK, admin same-origin OK,
   admin cross-origin refused, non-admin refused, and anonymous refused.
