@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { CONNECTORS } from "./connectors";
+import { enrichLumaEvents } from "./enrich";
 import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
 import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
 import { sourceKey, type EventSource, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
@@ -119,6 +120,7 @@ export async function runSource(
       else summary.flaggedMissing += ids.length;
     }
 
+    if (source.kind === "luma") summary.enriched = await enrichLumaEvents(source, { db, now, errors });
     summary.status = "ok";
   } catch (e) {
     summary.status = "error";
