@@ -197,7 +197,7 @@ export type ImportedEvent = {
   price_min: number | null;
   price_max: number | null;
   currency: string;
-  kind: "luma" | "meetup";
+  kind: "luma" | "luma-discover" | "meetup" | "meetup-search";
   external_url: string | null;
   source: string;
   source_event_id: string | null;
@@ -207,7 +207,10 @@ export type ImportedEvent = {
 /** Upcoming published events from Luma / Meetup sources; ones without a cover first. */
 export async function listImportedEvents({ limit = 60 }: { limit?: number } = {}) {
   const supabase = await createClient();
-  const { data: sources } = await supabase.from("event_sources").select("id, kind").in("kind", ["luma", "meetup"]);
+  const { data: sources } = await supabase
+    .from("event_sources")
+    .select("id, kind")
+    .in("kind", ["luma", "luma-discover", "meetup", "meetup-search"]);
   const kinds = new Map(((sources ?? []) as { id: string; kind: ImportedEvent["kind"] }[]).map((s) => [sourceKey(s.id), s.kind]));
   if (kinds.size === 0) return [];
   const upcoming = () =>

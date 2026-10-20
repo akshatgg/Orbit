@@ -57,7 +57,10 @@ const event = (id: string) => ({
 
 const NOW = new Date("2026-10-20T03:00:00Z");
 const run = (over: Partial<EnrichRunState> = {}): EnrichRunState => ({ deadline: Date.now() + 200_000, blocked: false, ...over });
-const page = { description: "A great night", coverUrl: "https://cdn.lu.ma/cover.jpg", priceMin: null, priceMax: null, currency: null };
+const page = {
+  description: "A great night", coverUrl: "https://cdn.lu.ma/cover.jpg", priceMin: null, priceMax: null, currency: null,
+  venueName: null, address: null, city: null, latitude: null, longitude: null,
+};
 const statuses = (upserts: Call[]) => upserts.map((c) => (c.args[0] as { status: string }).status);
 
 beforeEach(() => {

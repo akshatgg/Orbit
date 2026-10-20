@@ -165,6 +165,7 @@ function normalise(
     format,
     venueName,
     address,
+    city: null,
     latitude,
     longitude,
     url: safeHttpUrl(textProp(item.component, "url")),

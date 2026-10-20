@@ -1,0 +1,40 @@
+{
+  "data": {
+    "result": {
+      "pageInfo": { "hasNextPage": false, "endCursor": "MzE2NTkyMjU2" },
+      "totalCount": 2,
+      "edges": [
+        {
+          "node": {
+            "id": "316719692",
+            "title": "Software Architects Meetup",
+            "dateTime": "2026-10-24T10:00:00+05:30",
+            "description": "**Agenda** for the day:\n\n* Welcome\n* Talks",
+            "eventType": "PHYSICAL",
+            "eventUrl": "https://www.meetup.com/softwarearchitectsbangalore/events/316719692/",
+            "group": { "name": "Software Architects Bangalore", "urlname": "softwarearchitectsbangalore", "timezone": "Asia/Kolkata" },
+            "venue": {
+              "name": "DevOn Software Services",
+              "address": "Embassy Tech Village, Outer Ring Road",
+              "city": "Bangalore",
+              "state": "KA",
+              "country": "in"
+            }
+          }
+        },
+        {
+          "node": {
+            "id": "316775136",
+            "title": "Online Earning Session",
+            "dateTime": "2026-10-25T18:00:00+05:30",
+            "description": "",
+            "eventType": "ONLINE",
+            "eventUrl": "https://www.meetup.com/creative-writing-meet-up/events/316775136/",
+            "group": { "name": "Creative Writing", "urlname": "creative-writing-meet-up", "timezone": "Asia/Kolkata" },
+            "venue": null
+          }
+        }
+      ]
+    }
+  }
+}

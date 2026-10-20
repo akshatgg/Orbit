@@ -197,7 +197,7 @@ export async function resolveReview(_prev: ActionState, formData: FormData): Pro
   };
 }
 
-const IMPORTED_KINDS = new Set(["luma", "meetup"]);
+const IMPORTED_KINDS = new Set(["luma", "luma-discover", "meetup", "meetup-search"]);
 
 /** Admin fallback for imported events: cover (pasted link or upload), description, price. */
 export async function saveImportedDetails(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -235,7 +235,7 @@ export async function saveImportedDetails(_prev: ActionState, formData: FormData
 
   const patch: Record<string, unknown> = {};
   // Meetup descriptions belong to the feed, so only Luma events take one from the form.
-  if (source.kind === "luma") patch.description = description;
+  if (source.kind === "luma" || source.kind === "luma-discover") patch.description = description;
   // Only a changed price is (re)stored in £; unrelated saves leave the stored currency alone.
   const same = (a: unknown, b: number | null) => (a === null || a === undefined ? null : Number(a)) === b;
   if (!same(event.price_min, price_min) || !same(event.price_max, price_max)) {

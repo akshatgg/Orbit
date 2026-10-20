@@ -77,7 +77,7 @@ export function ImportedEventRow({ event, action, retry }: { event: ImportedEven
           <Field label="…or upload an image" htmlFor={`file-${event.id}`} hint={uploading ? "Uploading…" : uploadError ?? "JPG, PNG or WebP, up to 5 MB."}>
             <Input id={`file-${event.id}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => onFile(e.target.files?.[0])} />
           </Field>
-          {event.kind === "luma" && (
+          {(event.kind === "luma" || event.kind === "luma-discover") && (
             <Field label="Description" htmlFor={`desc-${event.id}`}>
               <Textarea id={`desc-${event.id}`} name="description" rows={5} maxLength={5000} defaultValue={event.description ?? ""} />
             </Field>

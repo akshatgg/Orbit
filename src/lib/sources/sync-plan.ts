@@ -6,7 +6,7 @@ import { sourceKey } from "./types";
 
 /** Columns of events that a sync reads for one source. */
 export const EXISTING_EVENT_SELECT =
-  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, latitude, longitude, registration_mode, external_url, source_url, status, needs_review, last_verified_at";
+  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, city, latitude, longitude, registration_mode, external_url, source_url, status, needs_review, last_verified_at";
 
 export type ExistingSourceEvent = {
   id: string;
@@ -20,6 +20,7 @@ export type ExistingSourceEvent = {
   format: EventFormat;
   venue_name: string | null;
   address: string | null;
+  city: string | null;
   latitude: number | null;
   longitude: number | null;
   registration_mode: RegistrationMode;
@@ -41,6 +42,7 @@ export type SyncedFields = {
   format: EventFormat;
   venue_name: string | null;
   address: string | null;
+  city: string | null;
   latitude: number | null;
   longitude: number | null;
   registration_mode?: RegistrationMode;
@@ -52,7 +54,9 @@ export type SyncedFields = {
 export const EXTERNAL_LABELS: Record<SourceKind, string> = {
   ical: "View details",
   luma: "Register on Luma",
+  "luma-discover": "Register on Luma",
   meetup: "Register on Meetup",
+  "meetup-search": "Register on Meetup",
 };
 
 /** Synced fields a kind's feed doesn't really have, so updates leave them alone.
@@ -60,8 +64,10 @@ export const EXTERNAL_LABELS: Record<SourceKind, string> = {
  *  - Meetup's feed usually has no LOCATION/GEO; venue and coordinates come from its event page,
  *    so a later feed sync must not wipe them back to null. */
 export const SKIPPED_FIELDS: Partial<Record<SourceKind, readonly (keyof SyncedFields)[]>> = {
-  luma: ["description"],
-  meetup: ["venue_name", "address", "latitude", "longitude"],
+  luma: ["description", "city"],
+  "luma-discover": ["description", "city"],
+  meetup: ["venue_name", "address", "city", "latitude", "longitude"],
+  "meetup-search": ["venue_name", "address", "city", "latitude", "longitude"],
 };
 
 /** Public provenance link: the event's own page, else the feed's site (never the full feed URL,
@@ -86,6 +92,7 @@ export function syncedFields(event: NormalizedEvent, feedUrl: string): SyncedFie
     format: event.format,
     venue_name: event.venueName,
     address: event.address,
+    city: event.city,
     latitude: event.latitude,
     longitude: event.longitude,
     registration_mode: event.url ? "external" : "none",

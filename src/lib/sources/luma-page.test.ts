@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseLumaEventPage } from "./luma-page";
+import { parseLumaEventPage, parseLumaLinkedEvent } from "./luma-page";
 
 const page = readFileSync(fileURLToPath(new URL("./__fixtures__/luma-event.html", import.meta.url)), "utf8");
 
@@ -50,5 +50,32 @@ describe("parseLumaEventPage", () => {
   it("returns null for pages with nothing useful", () => {
     expect(parseLumaEventPage("<html><body>Not found</body></html>")).toBeNull();
     expect(parseLumaEventPage("")).toBeNull();
+  });
+});
+
+describe("parseLumaLinkedEvent", () => {
+  it("turns a single event page into an ORBIT event", () => {
+    expect(parseLumaLinkedEvent(page, "https://luma.com/van-dweb-social")).toMatchObject({
+      sourceEventId: "link-van-dweb-social",
+      title: "Vancouver DWeb Social",
+      startsAt: "2023-01-26T02:00:00.000Z",
+      endsAt: "2023-01-26T04:30:00.000Z",
+      timezone: "Europe/London",
+      format: "in_person",
+      venueName: "The Permanent Library Limited",
+      latitude: 49.282399,
+      longitude: -123.111574,
+      url: "https://luma.com/van-dweb-social",
+      cancelled: false,
+    });
+  });
+
+  it("uses the event api id when the page exposes it", () => {
+    const html = page.replace("</head>", '<script>{"api_id":"evt-abc123"}</script></head>');
+    expect(parseLumaLinkedEvent(html, "https://luma.com/van-dweb-social")?.sourceEventId).toBe("evt-abc123");
+  });
+
+  it("returns null without event JSON-LD", () => {
+    expect(parseLumaLinkedEvent("<html></html>", "https://luma.com/van-dweb-social")).toBeNull();
   });
 });

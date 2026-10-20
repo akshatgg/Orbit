@@ -59,7 +59,10 @@ describe("isBlockedStatus", () => {
 });
 
 describe("detailsPatch", () => {
-  const page = { coverUrl: "https://cdn.lu.ma/x", description: "Full text", priceMin: 0, priceMax: 10, currency: "GBP" };
+  const page = {
+    coverUrl: "https://cdn.lu.ma/x", description: "Full text", priceMin: 0, priceMax: 10, currency: "GBP",
+    venueName: null, address: null, city: null, latitude: null, longitude: null,
+  };
 
   it("fills empty fields", () => {
     expect(detailsPatch(event("a"), page, "https://res.cloudinary.com/demo/image/upload/x.jpg")).toEqual({

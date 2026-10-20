@@ -2,13 +2,15 @@
 
 import type { EventFormat } from "@/types/database";
 
-export const SOURCE_KINDS = ["ical", "luma", "meetup"] as const;
+export const SOURCE_KINDS = ["ical", "luma", "luma-discover", "meetup", "meetup-search"] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
 export const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   ical: "iCal feed",
   luma: "Luma calendar",
+  "luma-discover": "Luma link",
   meetup: "Meetup group",
+  "meetup-search": "Meetup link",
 };
 
 export type RunStatus = "ok" | "error";
@@ -66,6 +68,7 @@ export type NormalizedEvent = {
   format: EventFormat;
   venueName: string | null;
   address: string | null;
+  city: string | null;
   /** Latitude / longitude when the feed provides a GEO point. */
   latitude: number | null;
   longitude: number | null;
