@@ -196,6 +196,8 @@ export type ImportedEvent = {
   description: string | null;
   price_min: number | null;
   price_max: number | null;
+  currency: string;
+  kind: "luma" | "meetup";
   external_url: string | null;
   source: string;
   source_event_id: string | null;
@@ -205,22 +207,30 @@ export type ImportedEvent = {
 /** Upcoming published events from Luma / Meetup sources; ones without a cover first. */
 export async function listImportedEvents({ limit = 60 }: { limit?: number } = {}) {
   const supabase = await createClient();
-  const { data: sources } = await supabase.from("event_sources").select("id").in("kind", ["luma", "meetup"]);
-  const keys = ((sources ?? []) as { id: string }[]).map((s) => sourceKey(s.id));
-  if (keys.length === 0) return [];
-  const { data, error } = await supabase
-    .from("events")
-    .select(
-      "id, title, starts_at, cover_url, description, price_min, price_max, external_url, source, source_event_id, details:source_event_details ( status, attempts, last_error, fetched_at )",
-    )
-    .in("source", keys)
-    .eq("status", "published")
-    .gte("starts_at", new Date().toISOString())
-    .order("starts_at", { ascending: true })
-    .limit(limit);
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []) as unknown as (Omit<ImportedEvent, "details"> & { details: ImportedEvent["details"] | ImportedEvent["details"][] })[];
-  return rows
-    .map<ImportedEvent>((r) => ({ ...r, details: Array.isArray(r.details) ? (r.details[0] ?? null) : r.details }))
-    .sort((a, b) => Number(Boolean(a.cover_url)) - Number(Boolean(b.cover_url)));
+  const { data: sources } = await supabase.from("event_sources").select("id, kind").in("kind", ["luma", "meetup"]);
+  const kinds = new Map(((sources ?? []) as { id: string; kind: ImportedEvent["kind"] }[]).map((s) => [sourceKey(s.id), s.kind]));
+  if (kinds.size === 0) return [];
+  const upcoming = () =>
+    supabase
+      .from("events")
+      .select(
+        "id, title, starts_at, cover_url, description, price_min, price_max, currency, external_url, source, source_event_id, details:source_event_details ( status, attempts, last_error, fetched_at )",
+      )
+      .in("source", [...kinds.keys()])
+      .eq("status", "published")
+      .gte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(limit);
+  // Two queries so events without a cover are never cut off by the limit.
+  const [withoutCover, withCover] = await Promise.all([upcoming().is("cover_url", null), upcoming().not("cover_url", "is", null)]);
+  if (withoutCover.error) throw new Error(withoutCover.error.message);
+  if (withCover.error) throw new Error(withCover.error.message);
+  type Row = Omit<ImportedEvent, "details" | "kind"> & { details: ImportedEvent["details"] | ImportedEvent["details"][] };
+  const toEvents = (data: unknown) =>
+    ((data ?? []) as Row[]).map<ImportedEvent>((r) => ({
+      ...r,
+      kind: kinds.get(r.source) ?? "luma",
+      details: Array.isArray(r.details) ? (r.details[0] ?? null) : r.details,
+    }));
+  return [...toEvents(withoutCover.data), ...toEvents(withCover.data)];
 }

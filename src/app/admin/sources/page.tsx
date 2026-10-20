@@ -147,8 +147,8 @@ async function SourcesContent() {
             )}
           </h2>
           <p className="text-sm text-muted">
-            Upcoming Luma and Meetup events. Luma covers and descriptions are read automatically; fill in anything missing here.
-            The nightly refresh never overwrites what you save.
+            Upcoming Luma and Meetup events. Luma covers, descriptions and prices are read automatically; Meetup descriptions come
+            from its feed. Add anything missing here. The nightly refresh never overwrites a cover, price or Luma description you save.
           </p>
           <ul className="space-y-3">
             {imported.map((e) => (

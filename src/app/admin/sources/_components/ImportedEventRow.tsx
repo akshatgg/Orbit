@@ -27,6 +27,7 @@ export function ImportedEventRow({ event, action, retry }: { event: ImportedEven
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const preview = uploaded ?? event.cover_url;
+  const foreignCurrency = event.price_min !== null && event.currency !== "GBP";
   const status = event.details ? STATUS[event.details.status] : null;
 
   async function onFile(file: File | undefined) {
@@ -76,11 +77,13 @@ export function ImportedEventRow({ event, action, retry }: { event: ImportedEven
           <Field label="…or upload an image" htmlFor={`file-${event.id}`} hint={uploading ? "Uploading…" : uploadError ?? "JPG, PNG or WebP, up to 5 MB."}>
             <Input id={`file-${event.id}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => onFile(e.target.files?.[0])} />
           </Field>
-          <Field label="Description" htmlFor={`desc-${event.id}`}>
-            <Textarea id={`desc-${event.id}`} name="description" rows={5} maxLength={5000} defaultValue={event.description ?? ""} />
-          </Field>
+          {event.kind === "luma" && (
+            <Field label="Description" htmlFor={`desc-${event.id}`}>
+              <Textarea id={`desc-${event.id}`} name="description" rows={5} maxLength={5000} defaultValue={event.description ?? ""} />
+            </Field>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Price from (£)" htmlFor={`pmin-${event.id}`} hint="0 = free. Empty = unknown.">
+            <Field label="Price from (£)" htmlFor={`pmin-${event.id}`} hint={foreignCurrency ? `Currently ${event.currency} — saving a new price stores it in £.` : "0 = free. Empty = unknown."}>
               <Input id={`pmin-${event.id}`} name="price_min" type="number" min={0} step="0.01" defaultValue={event.price_min ?? ""} />
             </Field>
             <Field label="Price to (£)" htmlFor={`pmax-${event.id}`}>

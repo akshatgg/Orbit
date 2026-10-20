@@ -214,7 +214,7 @@ export async function saveImportedDetails(_prev: ActionState, formData: FormData
   const { id, image_url, cover_url, description, price_min, price_max } = parsed.data;
 
   const supabase = await createClient();
-  const { data: event } = await supabase.from("events").select("id, source").eq("id", id).maybeSingle();
+  const { data: event } = await supabase.from("events").select("id, source, price_min, price_max, currency").eq("id", id).maybeSingle();
   if (!event) return { ok: false, error: "That event no longer exists." };
   const sourceId = sourceIdFromKey(event.source as string);
   const { data: source } = sourceId
@@ -233,11 +233,21 @@ export async function saveImportedDetails(_prev: ActionState, formData: FormData
     }
   }
 
-  const patch: Record<string, unknown> = { description, price_min, price_max };
-  if (price_min !== null) patch.currency = "GBP";
+  const patch: Record<string, unknown> = {};
+  // Meetup descriptions belong to the feed, so only Luma events take one from the form.
+  if (source.kind === "luma") patch.description = description;
+  // Only a changed price is (re)stored in £; unrelated saves leave the stored currency alone.
+  const same = (a: unknown, b: number | null) => (a === null || a === undefined ? null : Number(a)) === b;
+  if (!same(event.price_min, price_min) || !same(event.price_max, price_max)) {
+    patch.price_min = price_min;
+    patch.price_max = price_max;
+    if (price_min !== null) patch.currency = "GBP";
+  }
   if (cover) patch.cover_url = cover;
-  const { error } = await supabase.from("events").update(patch).eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (Object.keys(patch).length > 0) {
+    const { error } = await supabase.from("events").update(patch).eq("id", id);
+    if (error) return { ok: false, error: error.message };
+  }
 
   revalidatePath(PATH);
   return { ok: true, message: "Saved." };
