@@ -167,15 +167,20 @@ the structured data Luma publishes for search engines. Checked 2026-10-20 on
     guarded fetch as feeds (SSRF check, 15 s timeout, 5 MB cap). Only `https` URLs on
     `luma.com` / `lu.ma` are fetched. `fetch.ts` gains an `accept` option, and the feed
     function keeps its current behaviour.
-  - On HTTP 403, 429 or 503 it stops all Luma page reads for the rest of the run, marks the
-    event `blocked`, and adds a run error: "Luma is blocking page reads. Paste or upload images
-    for now."
+  - Time limits: each source gets at most 120 s of page reads, and the whole refresh shares one
+    200 s page-read deadline, so the route stays under its 300 s `maxDuration`. A page is only
+    started when a worst case (pause, fetch and Cloudinary import, 40 s) still fits.
+  - On HTTP 403, 429 or 503 it stops all Luma page reads for the rest of the refresh, across
+    every Luma source (a shared flag), marks the event `blocked`, and adds a run error: "Luma is
+    blocking page reads. Paste or upload images for now."
   - It only fills empty fields: `cover_url` when null, `description` when null, and
     `price_min`/`price_max`/`currency` when `price_min` is null. Admin edits always win.
   - Cover: Cloudinary fetches the image URL (signed server-side upload with the remote URL as
     `file`, folder `orbit/event-covers/sources/`), and `cover_url` stores the Cloudinary copy.
-    Without Cloudinary env vars, the event is marked `failed` with "Image import needs
-    Cloudinary", and the description and price are still saved.
+    Once a page has been parsed it counts as read (`ok`) even if its cover couldn't be copied:
+    the cover error is kept in `last_error`, and the admin fallback handles the cover, so the
+    page is never fetched again for that. Without Cloudinary env vars, covers are skipped for
+    the whole run with one run error, and descriptions and prices are still saved.
   - Page details failures never fail the source run. They show as run errors and per-event status.
 - `RunSummary` gains `enriched` (events whose page details were saved), stored in a new
   `source_runs.enriched` column. The "Refresh all now" summary shows it ("… · 9 images").
@@ -193,8 +198,10 @@ page so the admin can copy from it in their own browser.
     stored `cover_url` is ORBIT's Cloudinary copy, not a hotlink to Luma. Without Cloudinary
     env vars this fails with "Image import needs Cloudinary".
   - *Upload a file*: the existing `uploadImage("event-covers", file)` (`src/lib/storage.ts`).
-- **Description** (textarea, plain text, ≤ 5,000 chars). Most useful for Luma.
-- **Price from / to (£)** (empty = unknown, 0 = free).
+- **Description** (textarea, plain text, ≤ 5,000 chars). Luma events only, because Meetup's
+  feed owns the description and would overwrite an edit on the next sync.
+- **Price from / to (£)** (empty = unknown, 0 = free). The price and currency are only written
+  when the numbers change, so saving just a cover never relabels a USD price as £.
 - Saved by a `saveImportedDetails` server action (`requireAdmin`, zod) that updates only
   `cover_url`, `description`, `price_min` and `price_max`, and only on events whose `source`
   is a Luma/Meetup source.
