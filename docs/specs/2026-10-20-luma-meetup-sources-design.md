@@ -72,13 +72,12 @@ here, but a London one would fit the `luma` kind unchanged if it is confirmed la
     Luma feeds have no `URL` property, so it is taken from the "Get up-to-date information
     at:" line. Only `https` links on the platform's own hosts are accepted.
   - Luma `description`: the stub is dropped (`description = null`), and `summary` becomes
-    "Hosted by <host>" (from the stub, else `ORGANIZER;CN`, capped at 200 chars).
-  - Meetup `description`: kept, with platform boilerplate stripped according to its fixture.
-  - `format`: a location that is only a platform URL means online.
-- `OWNED_FIELDS[kind]`: the event columns a kind's feed is allowed to overwrite. For `luma` this
-  excludes `description`, because the feed has none, so a description an admin pastes survives
-  every sync. `planSync` gets the list from the engine and leaves other columns out of updates.
-  `ical` and `meetup` keep today's behaviour (all synced fields).
+    "Hosted by <host>" (from the stub's "Hosted by" line, capped at 200 chars).
+  - Meetup events pass through unchanged until a real Meetup fixture shows boilerplate to strip.
+  - Online detection needs nothing new: the iCal parser already treats a URL-only location as online.
+- `SKIPPED_FIELDS[kind]` (in `sync-plan.ts`): synced fields a kind's feed doesn't really have,
+  which updates leave alone. For `luma` that is `description`, so a description read from the
+  page or pasted by an admin survives every sync. `ical` and `meetup` skip nothing.
 
 ### `src/lib/sources/connectors.ts`
 
@@ -200,7 +199,7 @@ page so the admin can copy from it in their own browser.
   `cover_url`, `description`, `price_min` and `price_max`, and only on events whose `source`
   is a Luma/Meetup source.
 - The daily sync never overwrites the cover or price (they aren't in `SyncedFields`), or a Luma
-  description (excluded by `OWNED_FIELDS.luma`). Tests in `sync-plan.test.ts` lock both in.
+  description (excluded by `SKIPPED_FIELDS.luma`). Tests in `sync-plan.test.ts` lock both in.
 
 ## Not repeating data (already in place, unchanged)
 
