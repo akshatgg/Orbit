@@ -11,6 +11,8 @@ type Props = {
   size?: "sm" | "md" | "lg";
   className?: string;
   label?: string;
+  /** Show only the download icon (the label becomes the accessible name). For icon rails. */
+  iconOnly?: boolean;
 };
 
 /** Everything the platform can offer, or null when there's nothing to offer. */
@@ -23,7 +25,7 @@ export function useInstallAction() {
   return null;
 }
 
-export function InstallButton({ variant = "pill", size = "md", className = "", label = "Install ORBIT" }: Props) {
+export function InstallButton({ variant = "pill", size = "md", className = "", label = "Install ORBIT", iconOnly = false }: Props) {
   const action = useInstallAction();
   const [tip, setTip] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
@@ -57,10 +59,12 @@ export function InstallButton({ variant = "pill", size = "md", className = "", l
         className={cls}
         aria-haspopup={isTip ? "true" : action.kind === "guide" ? "dialog" : undefined}
         aria-expanded={isTip ? tip : undefined}
+        aria-label={iconOnly ? label : undefined}
+        title={iconOnly ? label : undefined}
         onClick={() => (isTip ? setTip((v) => !v) : action.run())}
       >
         <DownloadIcon className="h-4 w-4" />
-        {label}
+        {iconOnly ? <span className="sr-only">{label}</span> : label}
       </button>
       {isTip && tip && (
         <span

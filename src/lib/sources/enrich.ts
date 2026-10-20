@@ -10,7 +10,8 @@ import { sourceKey, type DetailsStatus, type EventSource, type RunError, type So
 
 // Trusted server code only (called from the sync engine with the service-role client).
 
-const CANDIDATE_SELECT = "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min";
+const CANDIDATE_SELECT =
+  "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude";
 const COVER_FOLDER = "orbit/event-covers/sources";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -112,6 +113,13 @@ export async function enrichLumaEvents(
           if (patch.price_min !== undefined) {
             const price = { price_min: patch.price_min, price_max: patch.price_max, currency: patch.currency };
             wrote = (await applyGroup(event, "price_min", price)) || wrote;
+          }
+          if (patch.venue_name) wrote = (await applyGroup(event, "venue_name", { venue_name: patch.venue_name })) || wrote;
+          if (patch.address) wrote = (await applyGroup(event, "address", { address: patch.address })) || wrote;
+          if (patch.city) wrote = (await applyGroup(event, "city", { city: patch.city })) || wrote;
+          if (patch.latitude !== undefined) {
+            const point = { latitude: patch.latitude, longitude: patch.longitude };
+            wrote = (await applyGroup(event, "latitude", point)) || wrote;
           }
         } catch (e) {
           if (wrote) saved++;

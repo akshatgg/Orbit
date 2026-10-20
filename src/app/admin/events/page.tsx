@@ -1,13 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Badge, VerifiedMark } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { inputClass } from "@/components/ui/Field";
 import { AutoSubmitForm } from "@/components/admin/AutoSubmitForm";
-import { EventMenu } from "@/components/admin/EventActions";
-import { IconFlag, IconPlus, IconSearch, IconStar, IconUpload } from "@/components/admin/icons";
-import { AdminHeader, Empty, Pagination, TableSkeleton, hrefWith, table } from "@/components/admin/primitives";
+import { EventsTable, type EventTableRow } from "@/components/admin/EventsTable";
+import { IconPlus, IconSearch, IconUpload } from "@/components/admin/icons";
+import { AdminHeader, Empty, Pagination, TableSkeleton, hrefWith } from "@/components/admin/primitives";
 import { Toaster } from "@/components/admin/Toaster";
 import { requireAdmin } from "@/lib/auth";
 import { EVENT_STATUS, sanitiseSearch, sourceLabel } from "@/lib/admin/labels";
@@ -104,6 +103,29 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
 
   const filtered = Boolean(f.q || f.status || f.organiser || f.source || f.review || f.when !== "upcoming");
 
+  const tableRows: EventTableRow[] = rows.map((e) => {
+    const c = going.get(e.id);
+    return {
+      id: e.id,
+      title: e.title,
+      category: e.category?.name ?? null,
+      featured: e.is_featured,
+      needsReview: e.needs_review,
+      when: formatEventDate(e.starts_at),
+      organiser: e.organiser
+        ? { name: e.organiser.name, verified: e.organiser.is_verified, status: e.organiser.status }
+        : null,
+      source: e.source,
+      status: e.status as EventStatus,
+      cancelReason: e.cancel_reason,
+      registrationMode: e.registration_mode as EventTableRow["registrationMode"],
+      going: c?.going ?? 0,
+      pending: c?.pending ?? 0,
+      organiserId: e.organiser_id,
+      sourceUrl: e.source_url,
+    };
+  });
+
   return (
     <>
       <AutoSubmitForm action="/admin/events" className="mb-4 flex flex-wrap items-center gap-2">
@@ -151,66 +173,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
         </Empty>
       ) : (
         <>
-          <div className={table.wrap}>
-            <table className={table.table}>
-              <thead>
-                <tr>
-                  <th className={table.th}>Event</th>
-                  <th className={table.th}>When</th>
-                  <th className={table.th}>Organiser</th>
-                  <th className={table.th}>Source</th>
-                  <th className={table.th}>Status</th>
-                  <th className={`${table.th} text-right`}>Going</th>
-                  <th className={table.th}><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((e) => {
-                  const st = EVENT_STATUS[e.status as EventStatus];
-                  const c = going.get(e.id);
-                  return (
-                    <tr key={e.id} className={`${table.tr} ${e.status === "removed" ? "opacity-60" : ""}`}>
-                      <td className={`${table.td} min-w-52 max-w-80`}>
-                        <Link href={`/events/${e.id}`} target="_blank" className="line-clamp-1 font-medium transition-colors hover:text-accent">{e.title}</Link>
-                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-subtle">
-                          {e.category?.name ?? "No category"}
-                          {e.is_featured && <Badge tone="brand"><IconStar size={11} /> Featured</Badge>}
-                          {e.needs_review && <Badge tone="warning"><IconFlag size={11} /> Needs review</Badge>}
-                        </span>
-                      </td>
-                      <td className={`${table.td} whitespace-nowrap text-muted tabular-nums`}>{formatEventDate(e.starts_at)}</td>
-                      <td className={table.td}>
-                        {e.organiser ? (
-                          <span className="flex items-center gap-1.5">
-                            <span className="line-clamp-1">{e.organiser.name}</span>
-                            {e.organiser.is_verified && <VerifiedMark />}
-                            {e.organiser.status !== "approved" && <Badge tone="warning">{e.organiser.status}</Badge>}
-                          </span>
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
-                      </td>
-                      <td className={`${table.td} text-muted`}>{sourceLabel(e.source)}</td>
-                      <td className={table.td}>
-                        <span title={e.cancel_reason ?? undefined}><Badge tone={st.tone}>{st.label}</Badge></span>
-                      </td>
-                      <td className={`${table.td} text-right tabular-nums`}>
-                        {e.registration_mode === "tickets" ? (
-                          <>
-                            {c?.going ?? 0}
-                            {c?.pending ? <span className="ml-1 text-xs text-orange" title="Awaiting approval">+{c.pending}</span> : null}
-                          </>
-                        ) : (
-                          <span className="text-xs text-muted">{e.registration_mode === "external" ? "external" : "info"}</span>
-                        )}
-                      </td>
-                      <td className={`${table.td} text-right`}><EventMenu event={e} /></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <EventsTable rows={tableRows} />
           <Pagination
             page={page}
             pageCount={Math.ceil(total / PAGE_SIZE)}

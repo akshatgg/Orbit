@@ -1,6 +1,8 @@
 // Reads a Luma event page's schema.org Event data (the JSON-LD Luma publishes for search engines).
 
-import { LIMITS, clamp, cleanProse, decodeEntities, orNull, stripHtml } from "./text";
+import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
+import { isValidTimezone } from "./timezone";
+import type { NormalizedEvent } from "./types";
 
 export type LumaPageDetails = {
   coverUrl: string | null;
@@ -8,6 +10,11 @@ export type LumaPageDetails = {
   priceMin: number | null;
   priceMax: number | null;
   currency: string | null;
+  venueName: string | null;
+  address: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 const IMAGE_HOSTS = new Set(["cdn.lu.ma", "images.lumacdn.com"]);
@@ -63,6 +70,54 @@ function prices(offers: unknown): { priceMin: number; priceMax: number; currency
   return { priceMin: Math.min(...values), priceMax: Math.max(...values), currency: currency! };
 }
 
+/** One Luma event page as an ORBIT event. Used when an admin pastes a single event link. */
+export function parseLumaLinkedEvent(html: string, pageUrl: string): NormalizedEvent | null {
+  const event = firstEvent(html);
+  if (!event) return null;
+
+  const title = clamp(oneLine(typeof event.name === "string" ? event.name : ""), LIMITS.title);
+  const starts = typeof event.startDate === "string" ? new Date(event.startDate) : null;
+  const ends = typeof event.endDate === "string" && event.endDate ? new Date(event.endDate) : null;
+  const url = safeHttpUrl(typeof event.url === "string" ? event.url : pageUrl) ?? safeHttpUrl(pageUrl);
+  if (title.length < 3 || !starts || Number.isNaN(starts.getTime()) || !url) return null;
+
+  const location = event.location && typeof event.location === "object" ? (event.location as Record<string, unknown>) : null;
+  const address = location?.address && typeof location.address === "object" ? (location.address as Record<string, unknown>) : null;
+  const geo = (location?.geo && typeof location.geo === "object" ? location.geo : location) as Record<string, unknown> | null;
+  const latitude = Number(geo?.latitude);
+  const longitude = Number(geo?.longitude);
+  const point =
+    Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+      ? { latitude, longitude }
+      : null;
+
+  const mode = typeof event.eventAttendanceMode === "string" ? event.eventAttendanceMode : "";
+  const status = typeof event.eventStatus === "string" ? event.eventStatus : "";
+  const description = orNull(clamp(cleanProse(stripHtml(typeof event.description === "string" ? event.description : "")), LIMITS.description));
+  const timezone = html.match(/"timezone":"([^"]+)"/)?.[1] ?? null;
+  const slug = new URL(url).pathname.split("/").filter(Boolean).pop() ?? null;
+  const apiId = html.match(/"api_id":"(evt-[^"]+)"/)?.[1] ?? null;
+
+  return {
+    sourceEventId: apiId ?? (slug ? `link-${slug}` : "link-event"),
+    title,
+    summary: summarise(description),
+    description,
+    startsAt: starts.toISOString(),
+    endsAt: ends && !Number.isNaN(ends.getTime()) ? ends.toISOString() : null,
+    allDay: false,
+    timezone: timezone && isValidTimezone(timezone) ? timezone : "Europe/London",
+    format: mode.includes("Online") ? "online" : mode.includes("Mixed") ? "hybrid" : "in_person",
+    venueName: orNull(clamp(oneLine(typeof location?.name === "string" ? location.name : ""), LIMITS.venue)),
+    address: orNull(clamp(oneLine(typeof address?.streetAddress === "string" ? address.streetAddress : ""), LIMITS.address)),
+    city: orNull(clamp(oneLine(typeof address?.addressLocality === "string" ? address.addressLocality : ""), LIMITS.venue)),
+    latitude: point?.latitude ?? null,
+    longitude: point?.longitude ?? null,
+    url,
+    cancelled: status.includes("Cancelled"),
+  };
+}
+
 /** Cover, full description and price from a Luma event page, or null when the page has none. */
 export function parseLumaEventPage(html: string): LumaPageDetails | null {
   const event = firstEvent(html);
@@ -70,12 +125,33 @@ export function parseLumaEventPage(html: string): LumaPageDetails | null {
   const coverUrl = images.map(safeImage).find((u): u is string => u !== null) ?? ogImage(html);
   const description = orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : "")), LIMITS.description));
   const price = event ? prices(event.offers) : null;
-  if (!coverUrl && !description && !price) return null;
+
+  const location = event?.location && typeof event.location === "object" ? (event.location as Record<string, unknown>) : null;
+  const address = location?.address && typeof location.address === "object" ? (location.address as Record<string, unknown>) : null;
+  const geo = (location?.geo && typeof location.geo === "object" ? location.geo : location) as Record<string, unknown> | null;
+  const latitude = Number(geo?.latitude);
+  const longitude = Number(geo?.longitude);
+  const point =
+    Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
+      ? { latitude, longitude }
+      : null;
+
+  const text = (value: unknown) => (typeof value === "string" ? value : "");
+  const venueName = orNull(clamp(text(location?.name), LIMITS.venue));
+  const street = orNull(clamp(text(address?.streetAddress), LIMITS.address));
+  const city = orNull(clamp(text(address?.addressLocality), LIMITS.venue));
+
+  if (!coverUrl && !description && !price && !venueName && !street && !point) return null;
   return {
     coverUrl,
     description,
     priceMin: price?.priceMin ?? null,
     priceMax: price?.priceMax ?? null,
     currency: price?.currency ?? null,
+    venueName,
+    address: street,
+    city,
+    latitude: point?.latitude ?? null,
+    longitude: point?.longitude ?? null,
   };
 }

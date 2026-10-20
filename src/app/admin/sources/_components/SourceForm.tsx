@@ -21,10 +21,20 @@ const URL_COPY: Record<SourceKind, { label: string; hint: string; placeholder: s
     hint: "On the Luma calendar page: Subscribe → Add iCal Subscription → copy the link (webcal://api.lu.ma/ics/…).",
     placeholder: "webcal://api.lu.ma/ics/get?entity=calendar&id=cal-…",
   },
+  "luma-discover": {
+    label: "Luma link",
+    hint: "A city page (https://lu.ma/london) imports the whole city; a single event link imports just that event.",
+    placeholder: "https://lu.ma/london",
+  },
   meetup: {
     label: "Meetup group link",
     hint: "The group's page, e.g. https://www.meetup.com/your-group/. ORBIT finds its calendar feed.",
     placeholder: "https://www.meetup.com/your-group/",
+  },
+  "meetup-search": {
+    label: "Meetup link",
+    hint: "A single event link imports one event; a find page (…/find/?categoryId=…) imports every matching event. Without a location parameter, Meetup’s default location is used.",
+    placeholder: "https://www.meetup.com/find/?location=…",
   },
 };
 
@@ -76,7 +86,7 @@ export function SourceForm({ source, organisers, categories }: {
           <Input id="default_tags" name="default_tags" placeholder="careers, consulting" defaultValue={source?.default_tags.join(", ") ?? ""} />
         </Field>
         <Field label="Attribution" htmlFor="attribution" hint="Credit line the source asks for, if any.">
-          <Input id="attribution" name="attribution" maxLength={200} placeholder={kind === "ical" ? "Events from Imperial Careers Service" : `Leave empty for “From ${kind === "luma" ? "Luma" : "Meetup"}”`} defaultValue={source?.attribution ?? ""} />
+          <Input id="attribution" name="attribution" maxLength={200} placeholder={kind === "ical" ? "Events from Imperial Careers Service" : `Leave empty for “From ${kind.startsWith("luma") ? "Luma" : "Meetup"}”`} defaultValue={source?.attribution ?? ""} />
         </Field>
       </section>
 
@@ -84,8 +94,15 @@ export function SourceForm({ source, organisers, categories }: {
         <section className="glass space-y-4 rounded-[20px] p-6">
           <h2 className="text-base font-semibold tracking-tight">Permission</h2>
           <p className="text-sm text-muted">
-            ORBIT only uses feeds we&rsquo;re allowed to. No scraping — check the owner&rsquo;s terms or get written OK first.
+            Feed sources use only feeds we&rsquo;re allowed to. Discovery sources read public listing pages — check the
+            platform&rsquo;s terms or get written OK first.
           </p>
+          {kind === "meetup-search" && (
+            <p className="rounded-xl border border-orange/25 bg-orange/10 p-3 text-xs text-orange">
+              Meetup&rsquo;s robots rules disallow the find-page parameters. Only enable this if you accept that risk and
+              will disable it if Meetup asks.
+            </p>
+          )}
           <label className="flex items-start gap-3 text-sm">
             <input
               type="checkbox"

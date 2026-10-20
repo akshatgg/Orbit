@@ -125,8 +125,12 @@ export async function runSource(
       else summary.flaggedMissing += ids.length;
     }
 
-    if (source.kind === "luma") summary.enriched = await enrichLumaEvents(source, { db, now, errors, run });
-    if (source.kind === "meetup") summary.enriched = await enrichMeetupEvents(source, { db, now, errors, run });
+    if (source.kind === "luma" || source.kind === "luma-discover") {
+      summary.enriched = await enrichLumaEvents(source, { db, now, errors, run });
+    }
+    if (source.kind === "meetup" || source.kind === "meetup-search") {
+      summary.enriched = await enrichMeetupEvents(source, { db, now, errors, run });
+    }
     summary.status = "ok";
   } catch (e) {
     summary.status = "error";
@@ -179,7 +183,7 @@ export async function detectDuplicates({ now = new Date(), db = createAdminClien
     selectAll<DuplicateCandidate>((from, to) =>
       db
         .from("events")
-        .select("id, title, starts_at, source, created_at")
+        .select("id, title, starts_at, source, created_at, external_url, source_event_id")
         .eq("status", "published")
         .is("duplicate_of", null)
         .gte("starts_at", since)
@@ -197,7 +201,7 @@ export async function detectDuplicates({ now = new Date(), db = createAdminClien
   for (const m of matches) {
     const { data, error } = await db
       .from("events")
-      .update({ duplicate_of: m.duplicateOf, needs_review: true })
+      .update({ duplicate_of: m.duplicateOf, needs_review: !m.exact })
       .eq("id", m.id)
       .is("duplicate_of", null)
       .select("id");

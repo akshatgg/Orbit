@@ -4,7 +4,9 @@
 // where an imported Meetup event is. The public page carries schema.org JSON-LD plus a venue
 // object in its app data (which includes lat/lng).
 
-import { LIMITS, clamp, decodeEntities, orNull } from "./text";
+import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
+import { isValidTimezone } from "./timezone";
+import type { NormalizedEvent } from "./types";
 
 export type MeetupPageDetails = {
   venueName: string | null;
@@ -82,6 +84,55 @@ function validPoint(latitude: number | null, longitude: number | null) {
   if (latitude === null || longitude === null) return null;
   if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
   return { latitude, longitude };
+}
+
+/**
+ * One Meetup event page as an ORBIT event. Used when an admin pastes a single event link
+ * instead of a search page. The page's JSON-LD and venue state carry everything we need.
+ */
+export function parseMeetupLinkedEvent(html: string, pageUrl: string): NormalizedEvent | null {
+  const event = firstEvent(html);
+  if (!event) return null;
+
+  const idMatch = pageUrl.match(/\/events\/(\d+)/) ?? (typeof event.url === "string" ? event.url.match(/\/events\/(\d+)/) : null);
+  const eventId = idMatch?.[1];
+  const title = clamp(oneLine(text(event.name) ?? ""), LIMITS.title);
+  const starts = typeof event.startDate === "string" ? new Date(event.startDate) : null;
+  const ends = typeof event.endDate === "string" && event.endDate ? new Date(event.endDate) : null;
+  const url = safeHttpUrl(text(event.url) ?? pageUrl) ?? safeHttpUrl(pageUrl);
+  if (!eventId || title.length < 3 || !starts || Number.isNaN(starts.getTime()) || !url) return null;
+
+  const location = event.location && typeof event.location === "object" ? (event.location as Record<string, unknown>) : null;
+  const address = location?.address && typeof location.address === "object" ? (location.address as Record<string, unknown>) : null;
+  const venueName = text(location?.name);
+  const state = venueState(html, venueName);
+  const point = validPoint(state?.latitude ?? null, state?.longitude ?? null);
+  const timezone = html.match(/"timezone":"([^"]+)"/)?.[1] ?? null;
+
+  const organizer = Array.isArray(event.organizer) ? event.organizer[0] : event.organizer;
+  const organizerName = organizer && typeof organizer === "object" ? text((organizer as Record<string, unknown>).name) : null;
+  const description = orNull(clamp(cleanProse(stripHtml(text(event.description) ?? "")), LIMITS.description));
+  const mode = text(event.eventAttendanceMode) ?? "";
+  const status = text(event.eventStatus) ?? "";
+
+  return {
+    sourceEventId: `event_${eventId}@meetup.com`,
+    title,
+    summary: summarise(description) ?? (organizerName ? clamp(organizerName, LIMITS.summary) : null),
+    description,
+    startsAt: starts.toISOString(),
+    endsAt: ends && !Number.isNaN(ends.getTime()) ? ends.toISOString() : null,
+    allDay: false,
+    timezone: timezone && isValidTimezone(timezone) ? timezone : "Europe/London",
+    format: mode.includes("Online") ? "online" : mode.includes("Mixed") ? "hybrid" : "in_person",
+    venueName: orNull(clamp(state?.name ?? venueName ?? "", LIMITS.venue)),
+    address: orNull(clamp(state?.address ?? text(address?.streetAddress) ?? "", LIMITS.address)),
+    city: orNull(clamp(state?.city ?? text(address?.addressLocality) ?? "", LIMITS.venue)),
+    latitude: point?.latitude ?? null,
+    longitude: point?.longitude ?? null,
+    url,
+    cancelled: status.includes("Cancelled"),
+  };
 }
 
 /** Venue details from a Meetup event page, or null when the page has no location. */

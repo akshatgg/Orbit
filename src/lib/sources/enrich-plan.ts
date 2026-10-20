@@ -29,7 +29,6 @@ export type EnrichCandidate = {
   cover_url: string | null;
   description: string | null;
   price_min: number | null;
-  /** Used by the Meetup location reader. */
   venue_name?: string | null;
   address?: string | null;
   city?: string | null;
@@ -62,11 +61,22 @@ export function pickEventsToEnrich(
 /** A platform is refusing or rate-limiting us: stop reading pages for this run. */
 export const isBlockedStatus = (status: number) => status === 403 || status === 429 || status === 503;
 
-export type DetailsPatch = { cover_url?: string; description?: string; price_min?: number; price_max?: number; currency?: string };
+export type DetailsPatch = {
+  cover_url?: string;
+  description?: string;
+  price_min?: number;
+  price_max?: number;
+  currency?: string;
+  venue_name?: string;
+  address?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+};
 
 /** Only fills fields that are empty, so admin edits always win. */
 export function detailsPatch(
-  current: Pick<EnrichCandidate, "cover_url" | "description" | "price_min">,
+  current: Pick<EnrichCandidate, "cover_url" | "description" | "price_min" | "venue_name" | "address" | "city" | "latitude" | "longitude">,
   page: LumaPageDetails,
   importedCover: string | null,
 ): DetailsPatch {
@@ -77,6 +87,13 @@ export function detailsPatch(
     patch.price_min = page.priceMin;
     patch.price_max = page.priceMax;
     patch.currency = page.currency;
+  }
+  if (!current.venue_name && page.venueName) patch.venue_name = page.venueName;
+  if (!current.address && page.address) patch.address = page.address;
+  if (!current.city && page.city) patch.city = page.city;
+  if (current.latitude == null && page.latitude !== null && page.longitude !== null) {
+    patch.latitude = page.latitude;
+    patch.longitude = page.longitude;
   }
   return patch;
 }

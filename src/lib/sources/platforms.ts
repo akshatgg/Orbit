@@ -9,7 +9,9 @@ export type FeedUrlResult = { ok: true; url: string } | { ok: false; error: stri
 /** Credit line used when an admin leaves attribution empty. */
 export const DEFAULT_ATTRIBUTION: Partial<Record<SourceKind, string>> = {
   luma: "From Luma",
+  "luma-discover": "From Luma",
   meetup: "From Meetup",
+  "meetup-search": "From Meetup",
 };
 
 const LUMA_HOSTS = new Set(["lu.ma", "www.lu.ma", "luma.com", "www.luma.com", "api.lu.ma", "api.luma.com"]);
@@ -66,10 +68,65 @@ function resolveLuma(input: string): FeedUrlResult {
   return finalCheck(url.toString());
 }
 
+/** First path segments on Luma that are site pages, not city slugs. */
+const LUMA_RESERVED = new Set([
+  "event", "events", "discover", "home", "signin", "signup", "create", "manage", "ics", "api",
+  "about", "help", "pricing", "blog", "careers", "terms", "privacy", "download", "explore",
+  "user", "calendar", "cal",
+]);
+
+/** The city slug of a Luma city page, or null. */
+export function lumaDiscoverSlug(input: string): string | null {
+  const url = parseLoose(input.trim());
+  if (!url) return null;
+  if (!LUMA_PAGE_HOSTS.has(url.hostname.toLowerCase())) return null;
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length !== 1) return null;
+  const slug = segments[0].toLowerCase();
+  return /^[a-z0-9-]{2,80}$/.test(slug) && !LUMA_RESERVED.has(slug) ? slug : null;
+}
+
+function resolveLumaDiscover(input: string): FeedUrlResult {
+  const raw = parseLoose(input.trim());
+  const host = raw?.hostname.toLowerCase();
+  const segments = raw?.pathname.split("/").filter(Boolean) ?? [];
+  if (raw && host && LUMA_PAGE_HOSTS.has(host) && segments[0] === "event" && segments[1]) {
+    return finalCheck(raw.toString());
+  }
+
+  const slug = lumaDiscoverSlug(input);
+  if (!slug) {
+    return { ok: false, error: "Paste a Luma city or event link, e.g. https://lu.ma/london." };
+  }
+  return finalCheck(`https://luma.com/${slug}`);
+}
+
+function resolveMeetupSearch(input: string): FeedUrlResult {
+  const url = parseLoose(input);
+  const host = url?.hostname.toLowerCase().replace(/^www\./, "");
+  if (!url || host !== "meetup.com") {
+    return { ok: false, error: "Paste a Meetup event link or search link." };
+  }
+
+  const isFind = /^\/find\/?$/.test(url.pathname);
+  const isEvent = !url.pathname.startsWith("/find/") && /^\/[^/]+\/events\/\d+\/?$/.test(url.pathname);
+  if (!isFind && !isEvent) {
+    return {
+      ok: false,
+      error: "Paste a Meetup event link (…/events/123/) or a search link (…/find/?location=…).",
+    };
+  }
+  // A find URL without `location` is fine: Meetup's page supplies its default coordinates,
+  // which the connector reads from __NEXT_DATA__.
+  return finalCheck(url.toString());
+}
+
 /** Turns what an admin pasted into the feed URL ORBIT fetches. */
 export function resolveFeedUrl(kind: SourceKind, input: string): FeedUrlResult {
   if (kind === "meetup") return resolveMeetup(input);
+  if (kind === "meetup-search") return resolveMeetupSearch(input);
   if (kind === "luma") return resolveLuma(input);
+  if (kind === "luma-discover") return resolveLumaDiscover(input);
   return finalCheck(input);
 }
 
@@ -81,7 +138,7 @@ const HOSTED_BY = /^Hosted by (.+)$/m;
 
 /** Platform tidy-up after parsing the feed. Other kinds pass through unchanged. */
 export function cleanEvent(kind: SourceKind, event: NormalizedEvent): NormalizedEvent {
-  if (kind !== "luma") return event;
+  if (kind !== "luma" && kind !== "luma-discover") return event;
   const stub = event.description ?? "";
   const host = stub.match(HOSTED_BY)?.[1]?.trim();
   return {

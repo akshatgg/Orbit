@@ -19,7 +19,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Only read pages for events that still need a venue or coordinates. */
 const needsLocation = (event: EnrichCandidate) =>
-  !!meetupPageUrl(event) && (!event.venue_name || !event.address || event.latitude == null || event.longitude == null);
+  !!meetupPageUrl(event) &&
+  (!event.venue_name || !event.address || !event.city || event.latitude == null || event.longitude == null);
 
 /**
  * Reads new Meetup event pages once each for venue name, address, city and coordinates.

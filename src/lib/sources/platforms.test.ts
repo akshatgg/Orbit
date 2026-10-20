@@ -55,11 +55,57 @@ describe("resolveFeedUrl — ical", () => {
   });
 });
 
+describe("resolveFeedUrl — discovery", () => {
+  it("accepts Luma city pages and single event links", () => {
+    expect(resolveFeedUrl("luma-discover", "https://lu.ma/london")).toEqual({ ok: true, url: "https://luma.com/london" });
+    expect(resolveFeedUrl("luma-discover", "luma.com/bengaluru/")).toEqual({ ok: true, url: "https://luma.com/bengaluru" });
+    expect(resolveFeedUrl("luma-discover", "https://lu.ma/van-dweb-social")).toEqual({ ok: true, url: "https://luma.com/van-dweb-social" });
+    expect(resolveFeedUrl("luma-discover", "https://luma.com/event/evt-abc123")).toEqual({ ok: true, url: "https://luma.com/event/evt-abc123" });
+  });
+
+  it("rejects Luma discover, API, user, calendar and short links", () => {
+    for (const input of [
+      "https://lu.ma/discover",
+      "https://api.lu.ma/ics/get?entity=discover&id=discplace-1",
+      "https://luma.com/user/boris",
+      "https://evil.example.com/london",
+      "https://lu.ma/",
+    ]) {
+      expect(resolveFeedUrl("luma-discover", input).ok, input).toBe(false);
+    }
+  });
+
+  it("accepts a find link with or without a location, or a single event link", () => {
+    expect(resolveFeedUrl("meetup-search", "https://www.meetup.com/find/?location=in--Bengaluru&source=EVENTS&categoryId=652")).toEqual({
+      ok: true,
+      url: "https://www.meetup.com/find/?location=in--Bengaluru&source=EVENTS&categoryId=652",
+    });
+    expect(resolveFeedUrl("meetup-search", "https://www.meetup.com/find/?categoryId=652&source=EVENTS")).toEqual({
+      ok: true,
+      url: "https://www.meetup.com/find/?categoryId=652&source=EVENTS",
+    });
+    expect(resolveFeedUrl("meetup-search", "https://www.meetup.com/london-software-craftsmanship/events/317008447/")).toEqual({
+      ok: true,
+      url: "https://www.meetup.com/london-software-craftsmanship/events/317008447/",
+    });
+  });
+
+  it("rejects non-event/non-find Meetup links", () => {
+    for (const input of [
+      "https://www.meetup.com/london-software-craftsmanship/",
+      "https://www.meetup.com/find/events/123",
+      "https://evil.example.com/find/?location=in--Bengaluru",
+    ]) {
+      expect(resolveFeedUrl("meetup-search", input).ok, input).toBe(false);
+    }
+  });
+});
+
 describe("cleanEvent — luma feed fixture", () => {
   it("takes the event link from the stub, sets 'Hosted by' as summary and drops the stub", () => {
     const { events } = parseIcal(fixture("luma-calendar.ics"), { now: new Date("2026-10-20T00:00:00Z") });
     expect(events).toHaveLength(1);
-    const event = cleanEvent("luma", events[0]);
+    const event = cleanEvent("luma-discover", events[0]);
     expect(event).toMatchObject({
       sourceEventId: "evt-q9Djl0hCCeyuDPT@events.lu.ma",
       title: "Open By Design: Tools for Participation - An Evening with Internet Archive Canada",

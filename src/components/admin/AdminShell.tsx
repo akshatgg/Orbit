@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCollapsibleSidebar } from "@/components/nav/sidebar";
+import { SidebarIcon } from "@/components/nav/SidebarIcon";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import {
   IconArrowLeft, IconBadge, IconCalendar, IconGrid, IconMenu, IconRss, IconTag, IconUpload, IconUsers, IconX,
@@ -24,53 +26,85 @@ const NAV_ICONS: Record<string, ReactNode> = {
 const isActive = (pathname: string, href: string) =>
   href === "/admin" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 
-function Brand({ onClick }: { onClick?: () => void }) {
+function Brand({ onClick, expanded = true }: { onClick?: () => void; expanded?: boolean }) {
   return (
     <Link
       href="/admin"
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-xl px-1 py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      aria-label="ORBIT admin"
+      title={expanded ? undefined : "ORBIT admin"}
+      className={`flex items-center gap-2.5 rounded-xl py-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+        expanded ? "px-1" : "justify-center"
+      }`}
     >
-      <Image src="/brand/orbit-mark.png" alt="" width={28} height={28} />
-      <span className="text-[13px] font-semibold tracking-[0.2em]">ORBIT</span>
-      <span className="rounded-full bg-ink/[0.08] px-2 py-0.5 text-[11px] font-medium text-muted">Admin</span>
+      <Image src="/brand/orbit-mark.png" alt="" width={28} height={28} className="shrink-0" />
+      {expanded && (
+        <>
+          <span className="whitespace-nowrap text-[13px] font-semibold tracking-[0.2em]">ORBIT</span>
+          <span className="whitespace-nowrap rounded-full bg-ink/[0.08] px-2 py-0.5 text-[11px] font-medium text-muted">Admin</span>
+        </>
+      )}
     </Link>
   );
 }
 
-function NavItem({ link, active, onNavigate }: { link: AdminLink; active: boolean; onNavigate?: () => void }) {
+function SidebarToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-controls="admin-sidebar"
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? "Pin the sidebar open" : "Collapse the sidebar"}
+      title={collapsed ? "Pin open" : "Collapse"}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted transition duration-200 ease-out hover:bg-ink/[0.06] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-95 motion-reduce:transition-none"
+    >
+      <SidebarIcon collapsed={collapsed} />
+    </button>
+  );
+}
+
+function NavItem({ link, active, expanded, onNavigate }: {
+  link: AdminLink; active: boolean; expanded: boolean; onNavigate?: () => void;
+}) {
   return (
     <li>
       <Link
         href={link.href}
         onClick={onNavigate}
         aria-current={active ? "page" : undefined}
-        className={`group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+        aria-label={expanded ? undefined : link.label}
+        title={expanded ? undefined : link.label}
+        className={`group relative flex items-center gap-2.5 rounded-xl py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+          expanded ? "px-3" : "justify-center px-0"
+        } ${
           active ? "bg-ink/[0.08] text-fg" : "text-muted hover:bg-ink/[0.05] hover:text-fg"
         }`}
       >
         {active && <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent" aria-hidden />}
-        <span className={active ? "text-accent" : "text-subtle transition-colors group-hover:text-muted"}>
+        <span className={`shrink-0 ${active ? "text-accent" : "text-subtle transition-colors group-hover:text-muted"}`}>
           {NAV_ICONS[link.href] ?? <IconGrid size={17} />}
         </span>
-        <span className="truncate">{link.label}</span>
+        {expanded && <span className="truncate whitespace-nowrap">{link.label}</span>}
       </Link>
     </li>
   );
 }
 
 function SidebarBody({
-  links, pathname, onNavigate, close,
+  links, pathname, expanded = true, collapsed = false, onNavigate, onToggle, close,
 }: {
-  links: AdminLink[]; pathname: string; onNavigate?: () => void; close?: ReactNode;
+  links: AdminLink[]; pathname: string; expanded?: boolean; collapsed?: boolean; onNavigate?: () => void;
+  onToggle?: () => void; close?: ReactNode;
 }) {
   const ungrouped = links.filter((link) => !link.group);
   const groups = [...new Set(links.map((link) => link.group).filter((group): group is string => !!group))];
 
   return (
     <>
-      <div className="flex items-center justify-between gap-2 pb-6">
-        <Brand onClick={onNavigate} />
+      <div className={`flex gap-1.5 pb-6 ${expanded ? "items-center justify-between" : "flex-col items-center"}`}>
+        <Brand onClick={onNavigate} expanded={expanded} />
+        {onToggle && <SidebarToggle collapsed={collapsed} onToggle={onToggle} />}
         {close}
       </div>
 
@@ -78,18 +112,18 @@ function SidebarBody({
         {ungrouped.length > 0 && (
           <ul className="space-y-0.5">
             {ungrouped.map((link) => (
-              <NavItem key={link.href} link={link} active={isActive(pathname, link.href)} onNavigate={onNavigate} />
+              <NavItem key={link.href} link={link} active={isActive(pathname, link.href)} expanded={expanded} onNavigate={onNavigate} />
             ))}
           </ul>
         )}
         {groups.map((group) => (
           <div key={group}>
-            <p className="mb-1.5 px-3 text-[11px] font-medium text-subtle">{group}</p>
+            {expanded && <p className="mb-1.5 px-3 text-[11px] font-medium text-subtle">{group}</p>}
             <ul className="space-y-0.5">
               {links
                 .filter((link) => link.group === group)
                 .map((link) => (
-                  <NavItem key={link.href} link={link} active={isActive(pathname, link.href)} onNavigate={onNavigate} />
+                  <NavItem key={link.href} link={link} active={isActive(pathname, link.href)} expanded={expanded} onNavigate={onNavigate} />
                 ))}
             </ul>
           </div>
@@ -100,12 +134,17 @@ function SidebarBody({
         <Link
           href="/"
           onClick={onNavigate}
-          className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.05] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          aria-label={expanded ? undefined : "Back to app"}
+          title={expanded ? undefined : "Back to app"}
+          className={`flex items-center gap-2 rounded-xl py-2 text-sm font-medium text-muted transition-colors hover:bg-ink/[0.05] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+            expanded ? "px-3" : "justify-center px-0"
+          }`}
         >
-          <IconArrowLeft size={16} /> Back to app
+          <IconArrowLeft size={16} className="shrink-0" />
+          {expanded && <span className="whitespace-nowrap">Back to app</span>}
         </Link>
-        <div className="flex items-center justify-between px-2">
-          <span className="text-xs text-subtle">Appearance</span>
+        <div className={`flex items-center ${expanded ? "justify-between px-2" : "justify-center"}`}>
+          {expanded && <span className="text-xs text-subtle">Appearance</span>}
           <ThemeToggle className="h-9 w-9" />
         </div>
       </div>
@@ -124,6 +163,7 @@ export function AdminShell({ links, children }: { links: AdminLink[]; children: 
   const drawerOpen = drawer.open && drawer.path === pathname;
   const drawerRef = useRef<HTMLElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const { collapsed, expanded, overlay, toggle, handlers } = useCollapsibleSidebar("orbit-admin-nav");
 
   const closeDrawer = (restoreFocus = true) => {
     setDrawer({ open: false, path: pathname });
@@ -149,11 +189,21 @@ export function AdminShell({ links, children }: { links: AdminLink[]; children: 
 
   return (
     <div className="min-h-dvh">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-line bg-bg/80 px-3 py-4 backdrop-blur-xl lg:flex xl:w-72">
-        <SidebarBody links={links} pathname={pathname} />
+      <aside
+        id="admin-sidebar"
+        {...handlers}
+        className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-line bg-bg/80 px-3 py-4 backdrop-blur-xl transition-[width] duration-300 ease-out motion-reduce:transition-none lg:flex ${
+          expanded ? "w-64 xl:w-72" : "w-20"
+        } ${overlay ? "shadow-[0_0_60px_rgb(0_0_0/0.45)]" : ""}`}
+      >
+        <SidebarBody links={links} pathname={pathname} expanded={expanded} collapsed={collapsed} onToggle={toggle} />
       </aside>
 
-      <div className="min-h-dvh lg:pl-64 xl:pl-72">
+      <div
+        className={`min-h-dvh transition-[padding-left] duration-300 ease-out motion-reduce:transition-none ${
+          collapsed ? "lg:pl-20" : "lg:pl-64 xl:pl-72"
+        }`}
+      >
         <button
           ref={buttonRef}
           type="button"

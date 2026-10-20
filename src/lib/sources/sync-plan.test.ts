@@ -18,6 +18,7 @@ const incoming = (id: string, over: Partial<NormalizedEvent> = {}): NormalizedEv
   format: "in_person",
   venueName: "Room 1",
   address: null,
+  city: null,
   latitude: null,
   longitude: null,
   url: `https://example.com/${id}`,
@@ -39,6 +40,7 @@ const existingFrom = (n: NormalizedEvent, over: Partial<ExistingSourceEvent> = {
     format: f.format,
     venue_name: f.venue_name,
     address: f.address,
+    city: f.city,
     latitude: f.latitude,
     longitude: f.longitude,
     registration_mode: f.registration_mode!,
@@ -70,6 +72,15 @@ describe("provenance", () => {
     const noLink = buildInsertRow(incoming("b", { url: null }), source, NOW);
     expect(noLink.registration_mode).toBe("none");
     expect(noLink.external_url).toBeNull();
+  });
+});
+
+describe("source kind metadata", () => {
+  it("labels discovery events and skips fields their feeds don't own", () => {
+    expect(EXTERNAL_LABELS["luma-discover"]).toBe("Register on Luma");
+    expect(EXTERNAL_LABELS["meetup-search"]).toBe("Register on Meetup");
+    expect(SKIPPED_FIELDS["luma-discover"]).toEqual(["description", "city"]);
+    expect(SKIPPED_FIELDS["meetup-search"]).toEqual(["venue_name", "address", "city", "latitude", "longitude"]);
   });
 });
 

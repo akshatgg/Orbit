@@ -55,6 +55,36 @@ export async function removeEvent(eventId: string, reason?: string): Promise<Act
   return r.ok ? { ok: true, message: `Removed “${r.title}” from ORBIT` } : r;
 }
 
+/**
+ * Bulk remove: hides every picked event from ORBIT in one request. Same soft-delete and audit
+ * trail as `removeEvent`, so each row still shows up in the logs on its own.
+ */
+export async function removeEvents(eventIds: string[], reason?: string): Promise<ActionResult> {
+  const parsed = z.array(id).min(1, "Pick at least one event").max(200).safeParse(eventIds);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const unique = [...new Set(parsed.data)];
+  const parsedReason = reasonSchema.safeParse(reason ?? "");
+  if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
+
+  const { supabase } = await adminContext();
+  const { data, error } = await supabase
+    .from("events")
+    .update({ status: "removed", is_featured: false })
+    .in("id", unique)
+    .select("id, title");
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  const removed = data ?? [];
+  if (removed.length === 0) return { ok: false, error: "Those events no longer exist" };
+
+  const details = { bulk: true, ...(parsedReason.data ? { reason: parsedReason.data } : {}) };
+  await Promise.all(removed.map((e) => logAdminAction(supabase, "event.remove", "event", e.id, { title: e.title, ...details })));
+  revalidateEverywhere();
+  return {
+    ok: true,
+    message: removed.length === 1 ? `Removed “${removed[0].title}” from ORBIT` : `Removed ${removed.length} events from ORBIT`,
+  };
+}
+
 export async function restoreEvent(eventId: string): Promise<ActionResult> {
   const r = await updateEvent(eventId, { status: "published", cancel_reason: null }, "event.restore");
   return r.ok ? { ok: true, message: `“${r.title}” is published again` } : r;

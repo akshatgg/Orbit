@@ -3,6 +3,7 @@
 const STOPWORDS = new Set(["the", "a", "an", "and", "of", "for", "with", "at", "in", "on", "to", "by", "x", "vs"]);
 
 export const DUPLICATE_WINDOW_MINUTES = 30;
+export const EXACT_WINDOW_HOURS = 6;
 export const JACCARD_THRESHOLD = 0.6;
 
 /** Lowercase, no accents or punctuation, "&" → "and", single spaces. */
@@ -45,6 +46,8 @@ export type DuplicateCandidate = {
   starts_at: string;
   source: string;
   created_at: string;
+  external_url?: string | null;
+  source_event_id?: string | null;
 };
 
 /** Events created in ORBIT (by organisers or admins) are the originals. */
@@ -63,6 +66,19 @@ export function sourceRank(source: string) {
 export const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 /**
+ * The same event page or platform event id is an exact match, regardless of title or a shifted
+ * start time. Those are auto-hidden; only title/time-only matches need an admin decision.
+ */
+function sameIdentity(a: DuplicateCandidate, b: DuplicateCandidate) {
+  return (
+    (!!a.external_url && a.external_url === b.external_url) ||
+    (!!a.source_event_id && a.source_event_id === b.source_event_id)
+  );
+}
+
+export type DuplicateMatch = { id: string; duplicateOf: string; exact: boolean };
+
+/**
  * Returns which events are duplicates of which. The highest-ranked event (ORBIT-native first,
  * then the oldest) is kept; the others point at it. Two ORBIT-native events are never paired
  * (organisers own those), and pairs an admin marked "Not a duplicate" are skipped.
@@ -70,24 +86,32 @@ export const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${
 export function findDuplicates(
   events: DuplicateCandidate[],
   { dismissed = new Set<string>(), windowMinutes = DUPLICATE_WINDOW_MINUTES }: { dismissed?: Set<string>; windowMinutes?: number } = {},
-): { id: string; duplicateOf: string }[] {
+): DuplicateMatch[] {
   const windowMs = windowMinutes * 60 * 1000;
+  const exactWindowMs = EXACT_WINDOW_HOURS * 60 * 60 * 1000;
   const ordered = [...events].sort(
     (a, b) => sourceRank(a.source) - sourceRank(b.source) || a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
   );
   const kept: (DuplicateCandidate & { ms: number })[] = [];
-  const result: { id: string; duplicateOf: string }[] = [];
+  const result: DuplicateMatch[] = [];
 
   for (const event of ordered) {
     const ms = new Date(event.starts_at).getTime();
-    const original = kept.find(
-      (k) =>
-        Math.abs(k.ms - ms) <= windowMs &&
-        !(isOrbitNative(k.source) && isOrbitNative(event.source)) &&
-        !dismissed.has(pairKey(k.id, event.id)) &&
-        titlesSimilar(k.title, event.title),
+    const pairAllowed = (k: DuplicateCandidate) =>
+      !(isOrbitNative(k.source) && isOrbitNative(event.source)) && !dismissed.has(pairKey(k.id, event.id));
+
+    // Same URL/id only auto-hides when the times are close; a weekly series reusing a page
+    // must not collapse all its occurrences.
+    const exact = kept.find((k) => pairAllowed(k) && Math.abs(k.ms - ms) <= exactWindowMs && sameIdentity(k, event));
+    if (exact) {
+      result.push({ id: event.id, duplicateOf: exact.id, exact: true });
+      continue;
+    }
+
+    const possible = kept.find(
+      (k) => pairAllowed(k) && Math.abs(k.ms - ms) <= windowMs && titlesSimilar(k.title, event.title),
     );
-    if (original) result.push({ id: event.id, duplicateOf: original.id });
+    if (possible) result.push({ id: event.id, duplicateOf: possible.id, exact: false });
     else kept.push({ ...event, ms });
   }
   return result;
