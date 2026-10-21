@@ -47,3 +47,27 @@ export function cloudinaryUrl(
   const t = ["f_auto", "q_auto", `c_${crop}`, `w_${Math.round(width)}`, ...(height ? [`h_${Math.round(height)}`] : []), "dpr_auto"].join(",");
   return `${url.slice(0, i + marker.length)}${t}/${url.slice(i + marker.length)}`;
 }
+
+/**
+ * The public id of an image ORBIT stored in its own Cloudinary account ("orbit/event-covers/…"),
+ * or null for anything else (another account, another folder, Supabase Storage, Meetup/Luma
+ * images). Only these ids are ever deleted.
+ */
+export function orbitImagePublicId(url: string | null | undefined, cloudName: string): string | null {
+  if (!url) return null;
+  let path: string;
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "res.cloudinary.com") return null;
+    path = decodeURIComponent(u.pathname);
+  } catch {
+    return null;
+  }
+  const prefix = `/${cloudName}/image/upload/`;
+  if (!path.startsWith(prefix)) return null;
+  // Drop transformation segments ("f_auto,q_auto,…") and the version ("v1792…").
+  const parts = path.slice(prefix.length).split("/");
+  while (parts.length > 1 && (/^v\d+$/.test(parts[0]) || /^[a-z]{1,3}_[^/]*$/.test(parts[0]) || parts[0].includes(","))) parts.shift();
+  const id = parts.join("/").replace(/\.[a-z0-9]+$/i, "");
+  return id.startsWith("orbit/") && !id.includes("..") ? id : null;
+}

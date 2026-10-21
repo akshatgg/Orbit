@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { notifyEventChanged } from "@/lib/notifications";
+import { releaseImages } from "@/lib/cloudinary-release";
 import { createClient } from "@/lib/supabase/server";
 import {
   formForDate, formToEventRow, formToPrivateRow, formToQuestionRows, formToTicketRows, logisticsChanged, type EventForm,
@@ -301,9 +302,10 @@ export async function deleteDraftEvent(eventId: string): Promise<{ ok: true } | 
   if (!id.success) return { ok: false, error: "Event not found." };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("events").delete().eq("id", id.data).eq("status", "draft").select("id");
+  const { data, error } = await supabase.from("events").delete().eq("id", id.data).eq("status", "draft").select("id, cover_url");
   if (error) return { ok: false, error: friendly(error, "We couldn't delete the draft. Please try again.") };
   if (!data?.length) return { ok: false, error: "Only drafts can be deleted. Cancel a published event instead." };
+  await releaseImages(data.map((e) => e.cover_url as string | null));
 
   revalidatePath("/organiser", "layout");
   return { ok: true };
