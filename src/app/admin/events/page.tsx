@@ -23,7 +23,7 @@ const selectClass = `${inputClass} !w-auto py-2 pr-8`;
 type Row = Pick<
   OrbitEvent,
   | "id" | "title" | "starts_at" | "ends_at" | "status" | "is_featured" | "needs_review" | "source" | "source_url"
-  | "organiser_id" | "registration_mode" | "cancel_reason" | "created_at"
+  | "organiser_id" | "registration_mode" | "cancel_reason" | "created_at" | "series_key" | "series_label"
 > & {
   organiser: { id: string; name: string; slug: string; is_verified: boolean; status: string } | null;
   category: { name: string } | null;
@@ -53,6 +53,8 @@ export default function Page({ searchParams }: PageProps<"/admin/events">) {
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
+const ukWeekday = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "Europe/London" });
+
 async function Content({ searchParams }: { searchParams: PageProps<"/admin/events">["searchParams"] }) {
   await requireAdmin();
   const sp = await searchParams;
@@ -72,7 +74,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
     .from("events")
     .select(
       `id, title, starts_at, ends_at, status, is_featured, needs_review, source, source_url, organiser_id,
-       registration_mode, cancel_reason, created_at,
+       registration_mode, cancel_reason, created_at, series_key, series_label,
        organiser:organisers ( id, name, slug, is_verified, status ), category:categories ( name )`,
       { count: "exact" },
     );
@@ -130,6 +132,9 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
       pending: c?.pending ?? 0,
       organiserId: e.organiser_id,
       sourceUrl: e.source_url,
+      seriesKey: e.series_key,
+      seriesLabel: e.series_label,
+      weekday: ukWeekday.format(new Date(e.starts_at)),
     };
   });
 

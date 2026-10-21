@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_EXTRA_DATES } from "./repeat";
 import { ORGANISER_KINDS } from "@/lib/taxonomy";
 import { hasOptions, type EventForm } from "./event-form";
 import { usesTickets } from "./registration";
@@ -93,7 +94,7 @@ export type StepId = (typeof EDITOR_STEPS)[number]["id"];
 const FIELD_STEP: Record<string, StepId> = {
   title: "basics", summary: "basics", description: "basics", category_id: "basics", tags: "basics", cover_url: "basics",
   starts_at: "when", ends_at: "when", format: "when", venue_name: "when", address: "when", city: "when",
-  online_url: "when", guest_info: "when",
+  online_url: "when", guest_info: "when", extra_dates: "when",
   registration: "registration", external_url: "registration", external_label: "registration",
   display_price: "registration", capacity: "registration", waitlist_enabled: "registration",
   registration_deadline: "registration",
@@ -162,6 +163,10 @@ export const eventFormSchema = z.object({
   registration_deadline: localTime,
   tickets: z.array(ticketSchema).max(10, "Up to 10 ticket types"),
   questions: z.array(questionSchema).max(20, "Up to 20 questions"),
+  extra_dates: z
+    .array(z.object({ key: z.string(), starts_at: localTime, ends_at: localTime }))
+    .max(MAX_EXTRA_DATES, `Up to ${MAX_EXTRA_DATES + 1} dates in one go`)
+    .default([]),
 });
 
 export type EventIntent = "draft" | "publish";
@@ -201,6 +206,18 @@ export function eventSchema(ctx: EventValidationContext) {
       const unchanged = ctx.originalStartsAt && new Date(ctx.originalStartsAt).getTime() === new Date(start).getTime();
       if (!unchanged) issue(["starts_at"], "The start time is in the past");
     }
+
+    // More dates: each needs a valid future start, an end after it, and no date twice.
+    const seen = new Set(start ? [new Date(start).getTime()] : []);
+    f.extra_dates.forEach((d, i) => {
+      const s = londonLocalToUtcIso(d.starts_at);
+      const e = d.ends_at ? londonLocalToUtcIso(d.ends_at) : null;
+      if (!s) return issue(["extra_dates", i, "starts_at"], "Choose when this date starts");
+      if (d.ends_at && (!e || new Date(e) <= new Date(s))) issue(["extra_dates", i, "ends_at"], "This date must end after it starts");
+      if (publishing && new Date(s).getTime() < now) issue(["extra_dates", i, "starts_at"], "This date is in the past");
+      if (seen.has(new Date(s).getTime())) issue(["extra_dates", i, "starts_at"], "This date is already in the list");
+      seen.add(new Date(s).getTime());
+    });
 
     if (f.registration === "external" && !f.external_url) {
       issue(["external_url"], "Paste the link where people register");

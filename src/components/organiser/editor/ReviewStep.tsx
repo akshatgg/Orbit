@@ -27,7 +27,10 @@ export function PreviewCard({ form, organiser, stacked = false }: { form: EventF
           <EventCover src={form.cover_url || null} title={form.title || "Your event"} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-accent">{start ? formatEventDate(start) : "Date to be set"}</p>
+          <p className="text-xs font-medium text-accent">
+            {start ? formatEventDate(start) : "Date to be set"}
+            {form.extra_dates.length > 0 && ` · +${form.extra_dates.length} more date${form.extra_dates.length === 1 ? "" : "s"}`}
+          </p>
           <h3 className="mt-0.5 line-clamp-2 font-semibold leading-snug">{form.title || "Untitled event"}</h3>
           <p className="mt-1 truncate text-xs text-muted">{organiser.name}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">

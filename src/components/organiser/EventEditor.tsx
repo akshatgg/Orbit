@@ -22,6 +22,8 @@ type Props = {
   status?: string;
   originalStartsAt?: string | null;
   registrations?: number;
+  /** Dates in this event's series (1 for a one-off): edits here change this date only. */
+  seriesDates?: number;
 };
 
 const toMap = (issues: EventIssue[]) => {
@@ -30,7 +32,7 @@ const toMap = (issues: EventIssue[]) => {
   return out;
 };
 
-export function EventEditor({ organiser, categories, initial, eventId: initialId, status: initialStatus = "draft", originalStartsAt = null, registrations = 0 }: Props) {
+export function EventEditor({ organiser, categories, initial, eventId: initialId, status: initialStatus = "draft", originalStartsAt = null, registrations = 0, seriesDates = 1 }: Props) {
   const router = useRouter();
   const [form, setForm] = useState(initial);
   const [step, setStep] = useState<StepId>("basics");
@@ -108,6 +110,8 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
         ...f,
         tickets: f.tickets.map((t, i) => ({ ...t, id: result.ticketIds[i] ?? t.id })),
         questions: f.questions.map((q, i) => ({ ...q, id: result.questionIds[i] ?? q.id })),
+        // Published dates are their own events now.
+        extra_dates: result.datesCreated > 0 ? [] : f.extra_dates,
       }));
       if (result.status === "published" && (intent === "publish")) {
         router.push(live ? `/organiser?org=${organiser.id}&updated=${result.id}` : `/organiser?org=${organiser.id}&published=${result.id}`);
@@ -176,7 +180,7 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
       <div className="px-4 pb-40 lg:grid lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start lg:gap-10">
         <div className="min-w-0">
         {step === "basics" && <BasicsStep {...stepProps} categories={categories} />}
-        {step === "when" && <WhenStep {...stepProps} />}
+        {step === "when" && <WhenStep {...stepProps} canAddDates={!live && seriesDates <= 1} seriesDates={seriesDates} />}
         {step === "registration" && <RegistrationStep {...stepProps} />}
         {step === "tickets" && <TicketsStep {...stepProps} chargesEnabled={organiser.stripe_charges_enabled} organiserId={organiser.id} />}
         {step === "review" && (

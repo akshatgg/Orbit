@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextOfEachSeries, seriesDayLabel, shortSeriesLabel } from "./series";
+import { nextOfEachSeries, seriesBlocks, seriesDayLabel, shortSeriesLabel } from "./series";
 
 const e = (id: string, startsAt: string, seriesKey: string | null = null) => ({ id, starts_at: startsAt, series_key: seriesKey });
 
@@ -36,5 +36,21 @@ describe("seriesDayLabel", () => {
     // 23:30 UTC on the 3rd is already the 4th in India.
     expect(seriesDayLabel("2026-11-03T23:30:00Z", "Asia/Kolkata")).toBe("Wed 4 Nov");
     expect(seriesDayLabel("2026-11-03T23:30:00Z", "Not/AZone")).toBe("Tue 3 Nov");
+  });
+});
+
+describe("seriesBlocks", () => {
+  it("folds each series into one entry led by its soonest date, keeping one-offs as they are", () => {
+    const rows = [
+      e("talk", "2026-10-27T10:00:00Z"),
+      e("oct28", "2026-10-28T18:00:00Z", "orbit:x"),
+      e("nov4", "2026-11-04T18:00:00Z", "orbit:x"),
+      e("fair", "2026-10-30T11:00:00Z"),
+    ];
+    expect(seriesBlocks(rows).map((b) => [b.lead.id, b.dates.map((d) => d.id)])).toEqual([
+      ["talk", ["talk"]],
+      ["oct28", ["oct28", "nov4"]],
+      ["fair", ["fair"]],
+    ]);
   });
 });
