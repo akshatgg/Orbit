@@ -7,7 +7,7 @@ export const EVENT_CARD_SELECT = `
   id, title, summary, cover_url, starts_at, ends_at, timezone, format, venue_name, address, city, tags,
   university, registration_mode, external_url, external_label, requires_approval, capacity,
   registration_deadline, price_min, price_max, currency, status, is_featured, organiser_id,
-  category_id, source, source_url, published_at, created_at,
+  category_id, source, source_url, published_at, created_at, series_key, series_label,
   organiser:organisers ( id, slug, name, logo_url, is_verified, kind ),
   category:categories ( id, slug, name, group )
 `;
@@ -18,7 +18,7 @@ export type EventCardData = Pick<
   | "venue_name" | "address" | "city" | "tags" | "university" | "registration_mode" | "external_url"
   | "external_label" | "requires_approval" | "capacity" | "registration_deadline" | "price_min"
   | "price_max" | "currency" | "status" | "is_featured" | "organiser_id" | "category_id" | "source"
-  | "source_url" | "published_at" | "created_at"
+  | "source_url" | "published_at" | "created_at" | "series_key" | "series_label"
 > & {
   organiser: Pick<Organiser, "id" | "slug" | "name" | "logo_url" | "is_verified" | "kind"> | null;
   category: Pick<Category, "id" | "slug" | "name" | "group"> | null;

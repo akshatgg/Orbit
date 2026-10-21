@@ -78,6 +78,10 @@ export type NormalizedEvent = {
   url: string | null;
   /** The source says this event was cancelled. ORBIT never auto-cancels — it flags for review. */
   cancelled: boolean;
+  /** Shared by every date of one recurring series; each date is still its own event. */
+  seriesKey?: string | null;
+  /** How the series repeats, in the source's words ("Every week on Wednesday until …"). */
+  seriesLabel?: string | null;
 };
 
 export type ConnectorResult = {

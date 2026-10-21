@@ -91,6 +91,7 @@ export const MEETUP_SEARCH_QUERY = `query meetupSearch(
 }
 fragment SearchEvent on Event {
   id title dateTime description eventType eventUrl
+  series { description }
   group { name urlname timezone }
   venue { name address city state country }
 }`;
@@ -102,6 +103,7 @@ type SearchNode = {
   description?: unknown;
   eventType?: unknown;
   eventUrl?: unknown;
+  series?: { description?: unknown } | null;
   group?: { name?: unknown; timezone?: unknown };
   venue?: { name?: unknown; address?: unknown; city?: unknown };
 };
@@ -181,6 +183,8 @@ export function parseMeetupSearchResponse(json: SearchResponse): MeetupSearchPag
       longitude: null,
       url,
       cancelled: false,
+      // Search consolidates a series into one result; the connector expands it to every date.
+      seriesLabel: typeof node.series?.description === "string" ? orNull(clamp(oneLine(node.series.description), LIMITS.summary)) : null,
     });
   }
 

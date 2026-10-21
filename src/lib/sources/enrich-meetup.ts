@@ -14,7 +14,7 @@ import { sourceKey, type DetailsStatus, type EventSource, type RunError, type So
 // Trusted server code only (called from the sync engine with the service-role client).
 
 const CANDIDATE_SELECT =
-  "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude";
+  "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude, series_key";
 
 const COVER_FOLDER = "orbit/event-covers/sources";
 const NO_COVER = "No cover image on the page.";
@@ -57,6 +57,9 @@ export async function enrichMeetupEvents(
     if (events.length === 0) return 0;
 
     const coversPossible = getCloudinaryConfig() !== null;
+    // Every date of a series has the same poster: import it once and share ORBIT's copy.
+    const seriesCover = new Map<string, string>();
+    for (const e of events) if (e.series_key && e.cover_url) seriesCover.set(e.series_key, e.cover_url);
     const needsCover = (event: EnrichCandidate) => coversPossible && !!meetupPageUrl(event) && !event.cover_url;
 
     const details = new Map<string, SourceEventDetails>();
@@ -106,9 +109,13 @@ export async function enrichMeetupEvents(
 
         let cover: string | null = null;
         let coverError: string | null = null;
-        if (needsCover(event) && page.coverUrl) {
+        const shared = event.series_key ? seriesCover.get(event.series_key) : undefined;
+        if (needsCover(event) && shared) {
+          cover = shared;
+        } else if (needsCover(event) && page.coverUrl) {
           try {
             cover = await importRemoteImage(page.coverUrl, COVER_FOLDER);
+            if (event.series_key) seriesCover.set(event.series_key, cover);
           } catch (e) {
             coverError = `Cover not imported: ${message(e)}`;
           }

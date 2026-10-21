@@ -36,6 +36,8 @@ export type EnrichCandidate = {
   city?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+  /** Dates of one recurring series share it (and their cover). */
+  series_key?: string | null;
 };
 
 /**

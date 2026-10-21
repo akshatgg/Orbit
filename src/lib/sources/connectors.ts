@@ -7,8 +7,9 @@ import {
   MEETUP_SEARCH_MAX_EVENTS, MEETUP_SEARCH_MAX_PAGES, fetchMeetupSearchPage, parseMeetupFindPage,
 } from "./meetup-search";
 import { parseMeetupLinkedEvent } from "./meetup-page";
+import { withSeriesDates } from "./meetup-series";
 import { cleanEvent, lumaDiscoverSlug } from "./platforms";
-import type { ConnectorResult, NormalizedEvent, SourceConnector, SourceKind } from "./types";
+import type { ConnectorResult, NormalizedEvent, RunError, SourceConnector, SourceKind } from "./types";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -64,7 +65,8 @@ const meetupSearchConnector: SourceConnector = {
     if (!args) {
       const single = parseMeetupLinkedEvent(html, source.url);
       if (!single) throw new Error("Couldn't read that Meetup link. Use an event page or a search page.");
-      return { events: [single], errors: [] };
+      const errors: RunError[] = [];
+      return { events: await withSeriesDates([single], { now, referer: source.url, errors }), errors };
     }
 
     const events: NormalizedEvent[] = [];
@@ -100,7 +102,7 @@ const meetupSearchConnector: SourceConnector = {
       })
       .slice(0, MEETUP_SEARCH_MAX_EVENTS);
 
-    return { events: unique, errors } satisfies ConnectorResult;
+    return { events: await withSeriesDates(unique, { now, referer: source.url, errors }), errors } satisfies ConnectorResult;
   },
 };
 
