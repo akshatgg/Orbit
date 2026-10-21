@@ -4,12 +4,15 @@ import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FeedTabs } from "@/components/nav/FeedTabs";
-import { HeroCard, RankedCard } from "@/components/discovery/Cards";
+import { HeroCard } from "@/components/discovery/Cards";
+import { DesktopHome, parseHomeView } from "@/components/discovery/DesktopHome";
 import { EventRows } from "@/components/events/EventRow";
 import { DismissProvider, Dismissible } from "@/components/discovery/Dismiss";
 import { DiscoveryHeader, FeedSkeleton, ICONS, IconLink, SectionHeading } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
-import { getRankedFeed, getViewer } from "@/lib/discovery/queries";
+import { parseSearchFilters } from "@/lib/discovery/filters";
+import { getRankedFeed, getViewer, type RankedEvent, type Viewer } from "@/lib/discovery/queries";
+import type { Profile } from "@/types/database";
 import { spotsLeft } from "@/lib/events/queries";
 
 export const metadata: Metadata = { title: "For You" };
@@ -17,30 +20,52 @@ export const metadata: Metadata = { title: "For You" };
 /** How far ahead the feed looks. */
 const HORIZON_DAYS = 60;
 
-export default function ForYouPage() {
+export default function ForYouPage({ searchParams }: PageProps<"/">) {
   return (
     <>
-      <DiscoveryHeader
-        brand
-        mobileAction={false}
-        title="For You"
-        subtitle="Ranked for your goals, interests and week"
-        action={<IconLink href="/search" label="Explore all events" path={ICONS.search} />}
-      />
-      <FeedTabs />
+      {/* Phones: the For You heading and its tabs. Tablets and laptops get the DesktopHome layout. */}
+      <div className="md:hidden">
+        <DiscoveryHeader
+          brand
+          mobileAction={false}
+          title="For You"
+          subtitle="Ranked for your goals, interests and week"
+          action={<IconLink href="/search" label="Explore all events" path={ICONS.search} />}
+        />
+        <FeedTabs />
+      </div>
+      <h1 className="sr-only max-md:hidden">For You</h1>
       <Suspense fallback={<FeedSkeleton />}>
-        <Feed />
+        <Feed searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function Feed() {
+async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
   const profile = await requireProfile();
   const viewer = await getViewer(profile);
   const now = new Date();
   const ranked = await getRankedFeed(viewer, { days: HORIZON_DAYS, now });
+  const params = await searchParams;
+  const { country, city } = parseSearchFilters(params);
 
+  return (
+    <>
+      <div className="md:hidden">
+        <PhoneFeed profile={profile} viewer={viewer} ranked={ranked} now={now} />
+      </div>
+      <div className="hidden md:block">
+        <DesktopHome viewer={viewer} ranked={ranked} view={parseHomeView(params.view)} place={{ country, city }} now={now} />
+      </div>
+    </>
+  );
+}
+
+/** The phone feed: the top recommendation, then the rest by day. */
+function PhoneFeed({ profile, viewer, ranked, now }: {
+  profile: Profile; viewer: Viewer; ranked: RankedEvent[]; now: Date;
+}) {
   const noInterests =
     !profile.career_interests?.length && !profile.personal_interests?.length && !profile.preferred_categories?.length;
 
@@ -91,31 +116,14 @@ async function Feed() {
       {rest.length > 0 && (
         <section aria-labelledby="more-for-you">
           <SectionHeading id="more-for-you" title="More for you" />
-          {/* Phones: a chronological list under day headings. */}
+          {/* A chronological list under day headings. */}
           <EventRows
             items={byDate.map((r) => ({ event: r.event, registration: state.registrations.get(r.event.id) }))}
             groupBy="day"
             now={now}
             dismissible
-            className="px-4 md:hidden"
+            className="px-4"
           />
-          {/* Tablet and up: ranked tiles. */}
-          <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
-            {rest.map((r) => (
-              <Dismissible key={r.event.id} id={r.event.id}>
-                <li>
-                  <RankedCard
-                    event={r.event}
-                    counts={r.event.counts}
-                    saved={state.saved.has(r.event.id)}
-                    reason={r.reason}
-                    dismissible
-                    tile
-                  />
-                </li>
-              </Dismissible>
-            ))}
-          </ul>
         </section>
       )}
 

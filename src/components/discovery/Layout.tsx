@@ -4,23 +4,23 @@ import { Skeleton } from "@/components/ui/Skeleton";
 /**
  * Header for the discovery screens. `brand` (For You, This Week, Calendar): on phones and tablets the
  * shared TopBar above already shows the logo, theme toggle and search, so only the page action (when
- * `mobileAction`) shows here; from lg up a normal page heading shows. Other screens keep a plain title.
+ * `mobileAction`) shows here; from md up (under the DesktopHeader) a normal page heading shows. Other screens keep a plain title.
  */
 export function DiscoveryHeader({ title, subtitle, action, brand = false, mobileAction = true }: {
   title: string; subtitle?: ReactNode; action?: ReactNode; brand?: boolean; mobileAction?: boolean;
 }) {
   if (brand) {
     return (
-      <header className="px-4 pt-4 lg:pb-4 lg:pt-[var(--page-top,2rem)]">
-        {action && mobileAction && <div className="-mb-1 flex justify-end lg:hidden">{action}</div>}
-        <div className="hidden items-start justify-between gap-3 lg:flex">
+      <header className="px-4 pt-4 md:pb-4 md:pt-[var(--page-top,2rem)]">
+        {action && mobileAction && <div className="-mb-1 flex justify-end md:hidden">{action}</div>}
+        <div className="hidden items-start justify-between gap-3 md:flex">
           <div className="min-w-0">
             <h1 className="text-4xl font-semibold leading-tight tracking-tight">{title}</h1>
             {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
           </div>
           {action}
         </div>
-        <h1 className="sr-only lg:hidden">{title}</h1>
+        <h1 className="sr-only md:hidden">{title}</h1>
       </header>
     );
   }

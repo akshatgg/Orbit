@@ -15,7 +15,7 @@ export type EventRowItem = {
   registration?: RegistrationStatus;
 };
 
-const ICON = {
+export const ICON = {
   clock: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
   pin: "M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Zm0-9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
   video: "M15 10.5 20 7v10l-5-3.5M5 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z",
@@ -30,7 +30,7 @@ function Icon({ path }: { path: string }) {
 }
 
 /** The pill on the cover: where the viewer stands with this event. */
-const STATUS: Partial<Record<RegistrationStatus, { label: string; className: string }>> = {
+export const STATUS_PILL: Partial<Record<RegistrationStatus, { label: string; className: string }>> = {
   going: { label: "Going", className: "bg-emerald-500 text-white" },
   pending: { label: "Pending", className: "bg-orange text-white" },
   waitlisted: { label: "Waitlist", className: "bg-sky-500 text-white" },
@@ -50,7 +50,8 @@ function flag(event: EventRowItem["event"]): { text: string; className: string }
   return null;
 }
 
-function place(event: EventCardData) {
+/** Where the event is, with its icon: "Venue, City", or "Online". */
+export function eventPlace(event: EventCardData) {
   if (event.format === "online") return { icon: ICON.video, text: FORMAT_LABELS.online };
   const where = [event.venue_name, event.city && !event.venue_name?.includes(event.city) ? event.city : null].filter(Boolean).join(", ");
   const text = where || FORMAT_LABELS.in_person;
@@ -66,11 +67,11 @@ export function EventRow({ event, registration, showDate = true, dismissible }: 
   /** Show "Not interested" (needs a surrounding <DismissProvider>). */
   dismissible?: boolean;
 }) {
-  const status = registration ? STATUS[registration] : undefined;
+  const status = registration ? STATUS_PILL[registration] : undefined;
   const note = flag(event);
   // Shown only when we know it: "Free", "£70", "£5 – £15". Unknown prices stay blank.
   const price = formatPrice(event.price_min, event.price_max, event.currency);
-  const where = place(event);
+  const where = eventPlace(event);
   const cancelled = event.status === "cancelled";
   return (
     <div className="relative">
