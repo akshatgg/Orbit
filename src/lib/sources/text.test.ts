@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clamp, cleanProse, decodeEntities, oneLine, safeHttpUrl, stripHtml, summarise } from "./text";
+import { clamp, cleanProse, decodeEntities, htmlToProse, oneLine, safeHttpUrl, stripHtml, summarise } from "./text";
 import { zonedTimeToUtc } from "./timezone";
 import { checkFeedUrl, checkResolvedAddresses, isPrivateAddress } from "./url-guard";
 
@@ -156,5 +156,28 @@ describe("feed URL guard", () => {
     expect(checkResolvedAddresses(["93.184.216.34"], prod)).toBeNull();
     expect(checkResolvedAddresses(["93.184.216.34", "10.0.0.5"], prod)).toMatch(/private/);
     expect(checkResolvedAddresses(["127.0.0.1"], { allowLoopback: true })).toBeNull();
+  });
+});
+
+describe("htmlToProse", () => {
+  it("keeps bold, italic, headings, lists and links in the stored format", () => {
+    const html =
+      '<h3><strong>Important Venue Information</strong></h3>' +
+      '<p>The <strong><strong>Global Camp Meeting</strong></strong> is <em>three days</em> of worship.</p>' +
+      '<p><br></p><ul><li>Live music</li><li>Street food</li></ul>' +
+      '<p>Tickets at <a href="https://example.com/tickets">our site</a>.</p>';
+    expect(htmlToProse(html)).toBe(
+      "**Important Venue Information**\n\nThe **Global Camp Meeting** is *three days* of worship.\n\n• Live music\n• Street food\n\nTickets at our site (https://example.com/tickets).",
+    );
+  });
+
+  it("keeps spaces outside the markers and drops empty emphasis and images", () => {
+    expect(htmlToProse('<p>Doors<strong> open </strong>at 7<strong> </strong></p><img src="https://cdn2.fatsoma.com/x.jpg"><p>Bye</p>'))
+      .toBe("Doors **open** at 7\n\nBye");
+  });
+
+  it("returns null for empty input", () => {
+    expect(htmlToProse("")).toBeNull();
+    expect(htmlToProse("<p><br></p>")).toBeNull();
   });
 });

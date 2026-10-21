@@ -208,6 +208,35 @@ describe("luma sources", () => {
   });
 });
 
+describe("eventbrite and fatsoma sources", () => {
+  const source = { id: "src-1", url: FEED, default_organiser_id: null, default_category_id: null, default_tags: [] };
+
+  it("labels the button and stores the platform's price on new events", () => {
+    const row = buildInsertRow(incoming("a", { price: { min: 0, max: 65, currency: "GBP" } }), { ...source, kind: "fatsoma" }, NOW);
+    expect(row).toMatchObject({ external_label: "Get tickets on Fatsoma", price_min: 0, price_max: 65, currency: "GBP" });
+    expect(buildInsertRow(incoming("a"), { ...source, kind: "eventbrite" }, NOW).external_label).toBe("Register on Eventbrite");
+  });
+
+  it("leaves price columns to their defaults when the platform has none", () => {
+    expect(Object.keys(buildInsertRow(incoming("a", { price: null }), source, NOW))).not.toContain("price_min");
+    expect(Object.keys(buildInsertRow(incoming("a"), source, NOW))).not.toContain("currency");
+  });
+
+  it("keeps Eventbrite's full description when a later sync only has the summary", () => {
+    const n = incoming("a", { description: "Short summary." });
+    const existing = existingFrom(n, { description: "The full description read from the event." });
+    const plan = planSync([existing], [n], { now: NOW, feedUrl: FEED, previousRunStartedAt, skip: SKIPPED_FIELDS.eventbrite });
+    expect(plan.updates).toEqual([]);
+    expect(SKIPPED_FIELDS.fatsoma).toBeUndefined(); // Fatsoma's API owns every synced field
+  });
+
+  it("never sends a price in an update", () => {
+    const n = incoming("a", { title: "Renamed", price: { min: 5, max: 10, currency: "GBP" } });
+    const patch = changedFields(existingFrom(incoming("a")), syncedFields(n, FEED));
+    expect(patch).toEqual({ title: "Renamed" });
+  });
+});
+
 describe("planSync: recurring series", () => {
   const series = { seriesKey: "meetup:group:weekly referral", seriesLabel: "Every week on Wednesday" };
   const temp = incoming("event_fbrkztyjcpbgb@meetup.com", { ...series, startsAt: "2026-11-04T11:30:00.000Z", endsAt: "2026-11-04T12:30:00.000Z" });

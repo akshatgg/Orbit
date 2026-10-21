@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_ATTEMPTS, PAGE_WORST_CASE_MS, detailsPatch, hasTimeFor, hintedTags, isBlockedStatus, pickEventsToEnrich,
-  type EnrichCandidate,
+  MAX_ATTEMPTS, PAGE_WORST_CASE_MS, detailsPatch, hasTimeFor, hintedTags, importedDescription, isBlockedStatus,
+  pickEventsToEnrich, type EnrichCandidate,
 } from "./enrich-plan";
 import type { SourceEventDetails } from "./types";
 
@@ -120,5 +120,20 @@ describe("hintedTags", () => {
     expect(hintedTags(event("a", { title: "Embedded Swift", tags: [], tags_locked: true }), tech)).toBeNull();
     expect(hintedTags(event("a", { title: "Embedded Swift", tags: [] }), [])).toBeNull();
     expect(hintedTags(event("a", { title: "Embedded Swift", tags: ["technology"] }), tech)).toBeNull();
+  });
+});
+
+describe("importedDescription", () => {
+  const full = "The **Global Camp Meeting London** is a three-day gathering.\n\n**Theme:** SENT";
+
+  it("replaces an empty description or the imported summary", () => {
+    expect(importedDescription({ description: null, summary: "Short" }, full)).toBe(full);
+    expect(importedDescription({ description: "Short", summary: "Short" }, full)).toBe(full);
+  });
+
+  it("keeps an admin's own description, and changes nothing without a new one", () => {
+    expect(importedDescription({ description: "Written by an admin", summary: "Short" }, full)).toBeNull();
+    expect(importedDescription({ description: full, summary: "Short" }, full)).toBeNull();
+    expect(importedDescription({ description: null, summary: null }, null)).toBeNull();
   });
 });

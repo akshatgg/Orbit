@@ -253,7 +253,7 @@ async function SourcesContent() {
         />
         {sources.length === 0 ? (
           <Empty title="No sources yet" action={<ButtonLink href="/admin/sources/new" size="sm">Add the first source</ButtonLink>}>
-            Add an iCal feed, a Luma link or a Meetup link the owner has agreed we can use.
+            Add an iCal feed, or a Luma, Meetup, Eventbrite or Fatsoma link the owner has agreed we can use.
           </Empty>
         ) : (
           <>
@@ -323,7 +323,7 @@ async function SourcesContent() {
                 Imported events <Badge>{imported.length}</Badge>
               </span>
               <span className="mt-0.5 block max-w-3xl text-xs text-muted">
-                Luma and Meetup events. Fill in a missing cover, description, venue or price here; the nightly refresh never
+                Luma, Meetup, Eventbrite and Fatsoma events. Fill in a missing cover, description, venue or price here; the nightly refresh never
                 overwrites what you save.
               </span>
             </div>

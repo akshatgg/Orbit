@@ -1,4 +1,5 @@
-// Platform-specific handling for Luma and Meetup sources: feed URLs, feed clean-up, page links.
+// Platform-specific handling for Luma, Meetup, Eventbrite and Fatsoma sources: feed URLs, feed
+// clean-up, page links.
 
 import { LIMITS, clamp, orNull } from "./text";
 import type { NormalizedEvent, SourceKind } from "./types";
@@ -12,6 +13,8 @@ export const DEFAULT_ATTRIBUTION: Partial<Record<SourceKind, string>> = {
   "luma-discover": "From Luma",
   meetup: "From Meetup",
   "meetup-search": "From Meetup",
+  eventbrite: "From Eventbrite",
+  fatsoma: "From Fatsoma",
 };
 
 const LUMA_HOSTS = new Set(["lu.ma", "www.lu.ma", "luma.com", "www.luma.com", "api.lu.ma", "api.luma.com"]);
@@ -121,12 +124,96 @@ function resolveMeetupSearch(input: string): FeedUrlResult {
   return finalCheck(url.toString());
 }
 
+// ─── Eventbrite ───────────────────────────────────────────────────────────
+
+/** eventbrite.com, eventbrite.co.uk, eventbrite.ie, eventbrite.com.au… with or without www. */
+const EVENTBRITE_HOST = /^(?:www\.)?eventbrite\.[a-z]{2,3}(?:\.[a-z]{2})?$/;
+/** The host ORBIT reads from: its own API answers there, for events on every country site. */
+export const EVENTBRITE_ORIGIN = "https://www.eventbrite.co.uk";
+
+export type EventbriteLink =
+  | { type: "organizer"; id: string; url: string }
+  | { type: "event"; id: string; url: string }
+  | { type: "search"; url: string };
+
+/** What an Eventbrite link points at: an organiser (/o/…), one event (/e/…) or a search (/d/…). */
+export function eventbriteLink(input: string): EventbriteLink | null {
+  const url = parseLoose(input);
+  if (!url || !EVENTBRITE_HOST.test(url.hostname.toLowerCase())) return null;
+  const [section, slug, ...rest] = url.pathname.split("/").filter(Boolean);
+  if (section === "o" && slug && rest.length === 0) {
+    const id = slug.match(/(?:^|-)(\d{5,20})$/)?.[1];
+    return id ? { type: "organizer", id, url: `${EVENTBRITE_ORIGIN}/o/${slug}` } : null;
+  }
+  if (section === "e" && slug && rest.length === 0) {
+    const id = slug.match(/(?:^|-)(\d{5,20})$/)?.[1];
+    return id ? { type: "event", id, url: `${EVENTBRITE_ORIGIN}/e/${slug}` } : null;
+  }
+  if (section === "d" && slug && /^[a-z0-9-]+$/i.test(slug) && rest.length <= 1) {
+    return { type: "search", url: `${EVENTBRITE_ORIGIN}${url.pathname.replace(/\/?$/, "/")}${url.search}` };
+  }
+  return null;
+}
+
+function resolveEventbrite(input: string): FeedUrlResult {
+  const link = eventbriteLink(input);
+  if (!link) {
+    return {
+      ok: false,
+      error: "Paste an Eventbrite organiser page (…/o/name-123), event page (…/e/name-tickets-123) or search page (…/d/united-kingdom--london/events/).",
+    };
+  }
+  return finalCheck(link.url);
+}
+
+// ─── Fatsoma ──────────────────────────────────────────────────────────────
+
+const FATSOMA_HOSTS = new Set(["fatsoma.com", "www.fatsoma.com"]);
+const FATSOMA_SLUG = /^[a-z0-9][a-z0-9_-]{0,99}$/i;
+
+export type FatsomaLink =
+  | { type: "page"; vanity: string; url: string }
+  | { type: "event"; vanity: string; url: string }
+  | { type: "city"; url: string };
+
+/** What a Fatsoma link points at: an organiser (/p/…), one event (/e/…) or a city (/l/gb/london). */
+export function fatsomaLink(input: string): FatsomaLink | null {
+  const url = parseLoose(input);
+  if (!url || !FATSOMA_HOSTS.has(url.hostname.toLowerCase())) return null;
+  const segments = url.pathname.split("/").filter(Boolean);
+  const [section, first, second] = segments;
+  if (!first || !FATSOMA_SLUG.test(first)) return null;
+  if (section === "p" && segments.length <= 3) {
+    return { type: "page", vanity: first, url: `https://www.fatsoma.com/p/${first}` };
+  }
+  if (section === "e" && segments.length <= 3 && (!second || FATSOMA_SLUG.test(second))) {
+    return { type: "event", vanity: first, url: `https://www.fatsoma.com/e/${first}${second ? `/${second}` : ""}` };
+  }
+  if (section === "l" && second && FATSOMA_SLUG.test(second) && segments.length === 3 && first !== "locations") {
+    return { type: "city", url: `https://www.fatsoma.com/l/${first.toLowerCase()}/${second.toLowerCase()}` };
+  }
+  return null;
+}
+
+function resolveFatsoma(input: string): FeedUrlResult {
+  const link = fatsomaLink(input);
+  if (!link) {
+    return {
+      ok: false,
+      error: "Paste a Fatsoma organiser page (…/p/name), event page (…/e/abc123/name) or city page (…/l/gb/london).",
+    };
+  }
+  return finalCheck(link.url);
+}
+
 /** Turns what an admin pasted into the feed URL ORBIT fetches. */
 export function resolveFeedUrl(kind: SourceKind, input: string): FeedUrlResult {
   if (kind === "meetup") return resolveMeetup(input);
   if (kind === "meetup-search") return resolveMeetupSearch(input);
   if (kind === "luma") return resolveLuma(input);
   if (kind === "luma-discover") return resolveLumaDiscover(input);
+  if (kind === "eventbrite") return resolveEventbrite(input);
+  if (kind === "fatsoma") return resolveFatsoma(input);
   return finalCheck(input);
 }
 
@@ -174,4 +261,25 @@ export function lumaPageUrl(event: { source_event_id: string | null; external_ur
   } catch {
     return null;
   }
+}
+
+const PLATFORM_IMAGE_HOSTS: Partial<Record<SourceKind, ReadonlySet<string>>> = {
+  eventbrite: new Set(["img.evbuc.com", "cdn.evbuc.com"]),
+  fatsoma: new Set(["cdn2.fatsoma.com", "fatsoma.imgix.net"]),
+};
+
+/** An https image on the platform's own hosts (accepted on import), or null. */
+export function platformImage(kind: SourceKind, value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && PLATFORM_IMAGE_HOSTS[kind]?.has(url.hostname) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** True for a cover still hotlinked from the platform (not yet copied into ORBIT's Cloudinary). */
+export function isPlatformHostedImage(kind: SourceKind, url: string | null | undefined): boolean {
+  return !!url && platformImage(kind, url) !== null;
 }

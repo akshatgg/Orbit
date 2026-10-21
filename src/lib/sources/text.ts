@@ -135,6 +135,35 @@ export function cleanProse(input: string | null | undefined, { keepEmphasis = fa
     .trim();
 }
 
+/** `**x**` around `inner`, with its surrounding spaces kept outside (RichText needs `**x**`). */
+function emphasise(marker: string, inner: string) {
+  const [, lead, core, trail] = inner.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
+  return core.replace(/<[^>]+>/g, "").trim() ? `${lead}${marker}${core}${marker}${trail}` : inner;
+}
+
+/**
+ * An HTML description (Eventbrite, Fatsoma) in the stored description format: paragraphs and
+ * lists as plain text, bold / italic / headings as `**` / `*`, links as "label (url)". Images go.
+ */
+export function htmlToProse(html: string | null | undefined): string | null {
+  if (!html) return null;
+  const marked = html
+    .replace(/<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href: string, label: string) => {
+      const url = safeHttpUrl(decodeEntities(href));
+      const text = oneLine(label);
+      return url && text && text !== url ? `${text} (${url})` : text || url || "";
+    })
+    .replace(/<(h[1-6])[^>]*>([\s\S]*?)<\/\1>/gi, (_, _tag: string, inner: string) => {
+      const text = oneLine(inner);
+      return text ? `<p>**${text}**</p>` : "";
+    })
+    .replace(/<(strong|b)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi, (_, _tag: string, inner: string) => emphasise("**", inner))
+    .replace(/<(em|i)(?:\s[^>]*)?>([\s\S]*?)<\/\1>/gi, (_, _tag: string, inner: string) => emphasise("*", inner))
+    // A blank line between blocks, as in every stored description; list items stay one per line.
+    .replace(/<\/(p|div|h[1-6]|ul|ol|blockquote)>/gi, "</$1>\n");
+  return orNull(clamp(cleanProse(stripHtml(marked), { keepEmphasis: true }), LIMITS.description));
+}
+
 /** Single-line version: all whitespace collapsed. */
 export function oneLine(input: string | null | undefined) {
   return stripHtml(input).replace(/\s+/g, " ").trim();

@@ -92,3 +92,19 @@ describe("platform hints", () => {
     expect(withInterests({ title: "Monthly meetup", tags: ["mine"] }, [{ label: "Climate", weight: HINT_WEIGHT.eventCategory }])).toEqual(["mine", "sustainability"]);
   });
 });
+
+describe("Eventbrite and Fatsoma categories", () => {
+  it.each([
+    [{ label: "Business & Professional", weight: HINT_WEIGHT.eventCategory }, ["entrepreneurship"]],
+    [{ label: "Science & Technology", weight: HINT_WEIGHT.eventCategory }, ["technology", "science"]],
+    [{ label: "Club Nights", weight: HINT_WEIGHT.eventCategory }, ["socialising", "music"]],
+    [{ label: "Fun Things", weight: HINT_WEIGHT.eventCategory }, ["socialising"]],
+    [{ label: "Religion & Spirituality", weight: HINT_WEIGHT.eventCategory }, ["wellbeing"]],
+  ])("%o → %o", (hint, expected) => {
+    expect(inferInterests({ title: "Saturday" }, [hint])).toEqual(expected);
+  });
+
+  it("a format alone (weight 1) isn't enough", () => {
+    expect(inferInterests({ title: "Saturday" }, [{ label: "Conference", weight: HINT_WEIGHT.groupTopic }])).toEqual([]);
+  });
+});

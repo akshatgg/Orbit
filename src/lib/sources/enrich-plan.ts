@@ -133,3 +133,15 @@ export function detailsPatch(
   }
   return patch;
 }
+
+/**
+ * Eventbrite's full description, when the event still has the one it was imported with (its
+ * summary) or none. Null when there's nothing to change or an admin has written their own.
+ */
+export function importedDescription(
+  current: Pick<EnrichCandidate, "description" | "summary">,
+  full: string | null,
+): string | null {
+  if (!full || full === current.description) return null;
+  return !current.description || current.description === current.summary ? full : null;
+}

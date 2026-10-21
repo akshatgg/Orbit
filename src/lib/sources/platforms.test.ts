@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseIcal } from "./ical";
-import { cleanEvent, lumaPageUrl, resolveFeedUrl } from "./platforms";
+import { cleanEvent, eventbriteLink, fatsomaLink, isPlatformHostedImage, lumaPageUrl, platformImage, resolveFeedUrl } from "./platforms";
 
 const fixture = (name: string) => readFileSync(fileURLToPath(new URL(`./__fixtures__/${name}`, import.meta.url)), "utf8");
 
@@ -181,5 +181,84 @@ describe("lumaPageUrl", () => {
     expect(lumaPageUrl({ source_event_id: "evt-a@events.lu.ma", external_url: "https://evil.example.com/abc" })).toBeNull();
     expect(lumaPageUrl({ source_event_id: "evt-a@events.lu.ma", external_url: "http://luma.com/abc" })).toBeNull();
     expect(lumaPageUrl({ source_event_id: "evt-a@events.lu.ma", external_url: null })).toBeNull();
+  });
+});
+
+describe("resolveFeedUrl — eventbrite", () => {
+  it.each([
+    ["https://www.eventbrite.com/o/shekinah-nation-78436165503", "https://www.eventbrite.co.uk/o/shekinah-nation-78436165503"],
+    ["eventbrite.co.uk/o/15241684138", "https://www.eventbrite.co.uk/o/15241684138"],
+    ["https://www.eventbrite.ie/e/global-camp-meeting-london-tickets-1983164153368?aff=x", "https://www.eventbrite.co.uk/e/global-camp-meeting-london-tickets-1983164153368"],
+    ["https://www.eventbrite.co.uk/d/united-kingdom--london/events/", "https://www.eventbrite.co.uk/d/united-kingdom--london/events/"],
+    ["https://www.eventbrite.co.uk/d/united-kingdom--london/free--events?page=1", "https://www.eventbrite.co.uk/d/united-kingdom--london/free--events/?page=1"],
+  ])("turns %s into %s", (input, url) => {
+    expect(resolveFeedUrl("eventbrite", input)).toEqual({ ok: true, url });
+  });
+
+  it.each([
+    "https://www.eventbrite.co.uk/",
+    "https://www.eventbrite.co.uk/o/no-id-here",
+    "https://www.eventbrite.co.uk/e/123",
+    "https://www.eventbrite.co.uk/organizer/home/",
+    "https://www.eventbrite.co.uk.evil.com/o/x-78436165503",
+    "https://lu.ma/london",
+  ])("rejects %s", (input) => {
+    expect(resolveFeedUrl("eventbrite", input).ok).toBe(false);
+  });
+
+  it("knows what each link points at", () => {
+    expect(eventbriteLink("https://www.eventbrite.com/o/shekinah-nation-78436165503")).toMatchObject({ type: "organizer", id: "78436165503" });
+    expect(eventbriteLink("https://www.eventbrite.com/e/1983164153368")).toMatchObject({ type: "event", id: "1983164153368" });
+    expect(eventbriteLink("https://www.eventbrite.co.uk/d/united-kingdom--london/events/")).toMatchObject({ type: "search" });
+  });
+});
+
+describe("resolveFeedUrl — fatsoma", () => {
+  it.each([
+    ["https://www.fatsoma.com/p/space-safari-drone-show", "https://www.fatsoma.com/p/space-safari-drone-show"],
+    ["fatsoma.com/p/space-safari-drone-show/events", "https://www.fatsoma.com/p/space-safari-drone-show"],
+    ["https://www.fatsoma.com/e/mhrxdx1i/space-safari-drone-light-show-cambridge", "https://www.fatsoma.com/e/mhrxdx1i/space-safari-drone-light-show-cambridge"],
+    ["https://www.fatsoma.com/l/GB/London", "https://www.fatsoma.com/l/gb/london"],
+  ])("turns %s into %s", (input, url) => {
+    expect(resolveFeedUrl("fatsoma", input)).toEqual({ ok: true, url });
+  });
+
+  it.each([
+    "https://www.fatsoma.com/",
+    "https://www.fatsoma.com/l/locations",
+    "https://www.fatsoma.com/l/gb",
+    "https://www.fatsoma.com/c/club-nights",
+    "https://fatsoma.com.evil.com/p/x",
+    "https://www.eventbrite.co.uk/o/x-78436165503",
+  ])("rejects %s", (input) => {
+    expect(resolveFeedUrl("fatsoma", input).ok).toBe(false);
+  });
+
+  it("knows what each link points at", () => {
+    expect(fatsomaLink("https://www.fatsoma.com/p/space-safari-drone-show")).toMatchObject({ type: "page", vanity: "space-safari-drone-show" });
+    expect(fatsomaLink("https://www.fatsoma.com/e/mhrxdx1i/x")).toMatchObject({ type: "event", vanity: "mhrxdx1i" });
+    expect(fatsomaLink("https://www.fatsoma.com/l/gb/london")).toMatchObject({ type: "city" });
+  });
+});
+
+describe("platform images", () => {
+  const eventbrite = "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1177620042%2F47679936479%2F1%2Foriginal.20260216-113617?auto=format%2Ccompress&q=75&sharp=10&s=8e3a8e87721936c8bf4cef53b537c68a";
+
+  it("keeps a signed Eventbrite image exactly as given", () => {
+    expect(platformImage("eventbrite", eventbrite)).toBe(eventbrite);
+  });
+
+  it("only accepts https images on the platform's own hosts", () => {
+    expect(platformImage("fatsoma", "https://cdn2.fatsoma.com/media/W1si")).toBe("https://cdn2.fatsoma.com/media/W1si");
+    expect(platformImage("fatsoma", "http://cdn2.fatsoma.com/media/W1si")).toBeNull();
+    expect(platformImage("fatsoma", eventbrite)).toBeNull();
+    expect(platformImage("eventbrite", "https://evil.example/x.jpg")).toBeNull();
+    expect(platformImage("eventbrite", 42)).toBeNull();
+  });
+
+  it("tells a hotlinked cover from ORBIT's own copy", () => {
+    expect(isPlatformHostedImage("eventbrite", eventbrite)).toBe(true);
+    expect(isPlatformHostedImage("eventbrite", "https://res.cloudinary.com/orbit/image/upload/x.jpg")).toBe(false);
+    expect(isPlatformHostedImage("fatsoma", null)).toBe(false);
   });
 });

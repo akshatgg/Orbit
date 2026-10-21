@@ -2,7 +2,7 @@
 
 import type { EventFormat } from "@/types/database";
 
-export const SOURCE_KINDS = ["ical", "luma", "luma-discover", "meetup", "meetup-search"] as const;
+export const SOURCE_KINDS = ["ical", "luma", "luma-discover", "meetup", "meetup-search", "eventbrite", "fatsoma"] as const;
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
 export const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
@@ -11,7 +11,13 @@ export const SOURCE_KIND_LABELS: Record<SourceKind, string> = {
   "luma-discover": "Luma link",
   meetup: "Meetup group",
   "meetup-search": "Meetup link",
+  eventbrite: "Eventbrite link",
+  fatsoma: "Fatsoma link",
 };
+
+/** Kinds whose events link to a platform page and can be filled in from the details editor. */
+export const IMPORTED_KINDS = ["luma", "luma-discover", "meetup", "meetup-search", "eventbrite", "fatsoma"] as const satisfies readonly SourceKind[];
+export type ImportedKind = (typeof IMPORTED_KINDS)[number];
 
 export type RunStatus = "ok" | "error";
 export type RunTrigger = "cron" | "manual";
@@ -88,10 +94,12 @@ export type NormalizedEvent = {
   /** What the platform says the event is about (Luma categories, Meetup group category/topics). */
   interestHints?: InterestHint[];
   /**
-   * The platform's own image for the event (hosted by Meetup or Luma). Shown straight away; page
-   * reads later swap Meetup's for ORBIT's own copy.
+   * The platform's own image for the event (hosted by Meetup, Luma, Eventbrite or Fatsoma). Shown
+   * straight away; page reads later swap it for ORBIT's own copy (not Luma's).
    */
   imageUrl?: string | null;
+  /** Ticket price range when the platform gives one (0 = free). Stored on insert only. */
+  price?: { min: number; max: number; currency: string } | null;
 };
 
 export type ConnectorResult = {

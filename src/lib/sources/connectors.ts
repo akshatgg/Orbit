@@ -1,4 +1,12 @@
 import "server-only";
+import {
+  EVENTBRITE_BATCH, EVENTBRITE_MAX_EVENTS, EVENTBRITE_MAX_PAGES, eventDetailsUrl, organizerEventsUrl, parseEventbriteEvents,
+  parseEventbriteSearchPage, parseOrganizerEvents,
+} from "./eventbrite";
+import {
+  FATSOMA_MAX_EVENTS, FATSOMA_MAX_PAGES, FATSOMA_PAGE_SIZE, fatsomaEventsUrl, fatsomaPageLookupUrl, parseFatsomaCityPage,
+  parseFatsomaEvents, parseFatsomaPageLookup, type FatsomaFilter,
+} from "./fatsoma";
 import { FetchHttpError, fetchFeedText } from "./fetch";
 import { parseIcal } from "./ical";
 import { parseLumaDiscoverPage } from "./luma-discover";
@@ -8,7 +16,7 @@ import {
 } from "./meetup-search";
 import { parseMeetupLinkedEvent } from "./meetup-page";
 import { withSeriesDates } from "./meetup-series";
-import { cleanEvent, lumaDiscoverSlug } from "./platforms";
+import { cleanEvent, eventbriteLink, fatsomaLink, lumaDiscoverSlug } from "./platforms";
 import type { ConnectorResult, NormalizedEvent, RunError, SourceConnector, SourceKind } from "./types";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -106,6 +114,99 @@ const meetupSearchConnector: SourceConnector = {
   },
 };
 
+/**
+ * Requests to one platform, 1 s apart. Any failure fails the run: a partial list would make the
+ * sync flag every event it didn't see as missing.
+ */
+function politeClient() {
+  let sent = 0;
+  return {
+    async json(url: string) {
+      if (sent++ > 0) await sleep(1000);
+      return fetchFeedText(url, { accept: "application/json" });
+    },
+    async html(url: string) {
+      if (sent++ > 0) await sleep(1000);
+      return fetchHtml(url);
+    },
+  };
+}
+
+/** Eventbrite organiser, event or search links: the event ids first, then details 50 at a time. */
+const eventbriteConnector: SourceConnector = {
+  kind: "eventbrite",
+  async fetchEvents(source) {
+    const link = eventbriteLink(source.url);
+    if (!link) throw new Error("That isn't an Eventbrite organiser, event or search link.");
+    const client = politeClient();
+
+    let ids: string[];
+    if (link.type === "event") {
+      ids = [link.id];
+    } else if (link.type === "search") {
+      ids = parseEventbriteSearchPage(await client.html(link.url));
+      if (ids.length === 0) throw new Error("No events found on that Eventbrite search page.");
+    } else {
+      ids = [];
+      let continuation: string | null = null;
+      for (let page = 0; page < EVENTBRITE_MAX_PAGES && ids.length < EVENTBRITE_MAX_EVENTS; page++) {
+        const listing = parseOrganizerEvents(await client.json(organizerEventsUrl(link.id, continuation)));
+        if (!listing) throw new Error("Couldn't read that organiser's events on Eventbrite.");
+        ids.push(...listing.ids.filter((id) => !ids.includes(id)));
+        continuation = listing.continuation;
+        if (!continuation) break;
+      }
+    }
+
+    const result: ConnectorResult = { events: [], errors: [] };
+    const wanted = ids.slice(0, EVENTBRITE_MAX_EVENTS);
+    for (let i = 0; i < wanted.length; i += EVENTBRITE_BATCH) {
+      const batch = parseEventbriteEvents(await client.json(eventDetailsUrl(wanted.slice(i, i + EVENTBRITE_BATCH))));
+      if (!batch) throw new Error("Couldn't read event details from Eventbrite.");
+      result.events.push(...batch.events);
+      result.errors.push(...batch.errors);
+    }
+    if (link.type === "event" && result.events.length === 0) throw new Error("That Eventbrite event isn't public or has ended.");
+    return result;
+  },
+};
+
+/** Fatsoma organiser, event or city links, through the API Fatsoma's own site uses. */
+const fatsomaConnector: SourceConnector = {
+  kind: "fatsoma",
+  async fetchEvents(source, { now }) {
+    const link = fatsomaLink(source.url);
+    if (!link) throw new Error("That isn't a Fatsoma organiser, event or city link.");
+    const client = politeClient();
+
+    let filter: FatsomaFilter;
+    if (link.type === "event") {
+      filter = { vanity: link.vanity };
+    } else if (link.type === "page") {
+      const pageId = parseFatsomaPageLookup(await client.json(fatsomaPageLookupUrl(link.vanity)));
+      if (!pageId) throw new Error(`No Fatsoma organiser page called "${link.vanity}".`);
+      filter = { pageId };
+    } else {
+      const latLon = parseFatsomaCityPage(await client.html(link.url));
+      if (!latLon) throw new Error("Couldn't find the event list on that Fatsoma city page.");
+      filter = { latLon };
+    }
+
+    const result: ConnectorResult = { events: [], errors: [] };
+    for (let page = 1; page <= FATSOMA_MAX_PAGES && result.events.length < FATSOMA_MAX_EVENTS; page++) {
+      const response = parseFatsomaEvents(await client.json(fatsomaEventsUrl(filter, page, now)));
+      if (!response) throw new Error("Couldn't read events from Fatsoma.");
+      result.events.push(...response.events);
+      result.errors.push(...response.errors);
+      const read = response.events.length + response.errors.length;
+      if (read < FATSOMA_PAGE_SIZE || (response.total !== null && page * FATSOMA_PAGE_SIZE >= response.total)) break;
+    }
+    result.events = result.events.slice(0, FATSOMA_MAX_EVENTS);
+    if (link.type === "event" && result.events.length === 0) throw new Error("That Fatsoma event isn't on sale or has ended.");
+    return result;
+  },
+};
+
 /** Add new kinds here (official APIs etc.) — the sync engine only sees NormalizedEvent[]. */
 export const CONNECTORS: Record<SourceKind, SourceConnector> = {
   ical: feedConnector("ical"),
@@ -113,4 +214,6 @@ export const CONNECTORS: Record<SourceKind, SourceConnector> = {
   "luma-discover": lumaDiscoverConnector,
   meetup: feedConnector("meetup"),
   "meetup-search": meetupSearchConnector,
+  eventbrite: eventbriteConnector,
+  fatsoma: fatsomaConnector,
 };

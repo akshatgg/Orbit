@@ -12,7 +12,7 @@ export default function NewSourcePage() {
       <AdminHeader
         eyebrow="Sources"
         title="Add source"
-        subtitle="An iCal feed or a Luma / Meetup link we have permission to use"
+        subtitle="An iCal feed or a Luma, Meetup, Eventbrite or Fatsoma link we have permission to use"
       />
       <Suspense fallback={<TableSkeleton rows={4} />}>
         <NewForm />

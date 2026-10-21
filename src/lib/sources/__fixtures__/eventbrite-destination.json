@@ -1,0 +1,543 @@
+{
+ "events": [
+  {
+   "id": "1983164153368",
+   "eid": "excdpxdt",
+   "eventbrite_event_id": "1983164153368",
+   "name": "Global Camp Meeting London",
+   "summary": "Get ready to gather in London for the Global Camp Meeting, a time to pray, worship, and be sent.",
+   "start_time": "10:00",
+   "end_time": "20:00",
+   "start_date": "2026-10-23",
+   "end_date": "2026-10-25",
+   "published": "2026-02-15T00:32:43Z",
+   "hide_start_date": true,
+   "hide_end_date": true,
+   "language": "en-gb",
+   "timezone": "Europe/London",
+   "url": "https://www.eventbrite.com/e/global-camp-meeting-london-tickets-1983164153368",
+   "tickets_url": "https://www.eventbrite.com/checkout-external?eid=1983164153368",
+   "tickets_by": "Eventbrite",
+   "is_cancelled": null,
+   "is_online_event": false,
+   "privacy_setting": "unlocked",
+   "is_protected_event": false,
+   "primary_venue_id": "299898036",
+   "primary_organizer_id": "78436165503",
+   "series_id": null,
+   "tags": [
+    {
+     "display_name": "Christianity",
+     "prefix": "EventbriteSubCategory",
+     "tag": "EventbriteSubCategory/14001"
+    },
+    {
+     "display_name": "Religion & Spirituality",
+     "prefix": "EventbriteCategory",
+     "tag": "EventbriteCategory/114",
+     "localized": {
+      "display_name": "Religion & Spirituality"
+     }
+    },
+    {
+     "display_name": "Conference",
+     "prefix": "EventbriteFormat",
+     "tag": "EventbriteFormat/1"
+    },
+    {
+     "_type": "tag",
+     "display_name": "christian",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/christian"
+    },
+    {
+     "_type": "tag",
+     "display_name": "worship",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/worship"
+    },
+    {
+     "_type": "tag",
+     "display_name": "youth",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/youth"
+    },
+    {
+     "_type": "tag",
+     "display_name": "church",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/church"
+    },
+    {
+     "_type": "tag",
+     "display_name": "london",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/london"
+    },
+    {
+     "_type": "tag",
+     "display_name": "londonnetworking",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/londonnetworking"
+    },
+    {
+     "_type": "tag",
+     "display_name": "london_events",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/london_events"
+    }
+   ],
+   "image_id": "1177620042",
+   "checkout_flow": "widget",
+   "status": "live",
+   "_type": "destination_event",
+   "primary_venue": {
+    "_type": "destination_venue",
+    "id": "299898036",
+    "name": "Gaumont State Cinema",
+    "address": {
+     "address_1": "197-199 Kilburn High Road",
+     "address_2": "",
+     "city": "London",
+     "region": "England",
+     "postal_code": "NW6 7HY",
+     "country": "GB",
+     "latitude": "51.5412085",
+     "longitude": "-0.1979899",
+     "localized_address_display": "197-199 Kilburn High Road, London, NW6 7HY",
+     "localized_area_display": "London",
+     "localized_multi_line_address_display": [
+      "197-199 Kilburn High Road",
+      "London",
+      "NW6 7HY"
+     ]
+    },
+    "venue_profile_id": null,
+    "venue_profile_url": ""
+   },
+   "ticket_availability": {
+    "minimum_ticket_price": {
+     "currency": "GBP",
+     "value": 0,
+     "major_value": "0.00",
+     "display": "0.00 GBP"
+    },
+    "maximum_ticket_price": {
+     "currency": "GBP",
+     "value": 0,
+     "major_value": "0.00",
+     "display": "0.00 GBP"
+    },
+    "is_sold_out": false,
+    "has_available_tickets": true,
+    "is_free": false,
+    "has_bogo_tickets": false
+   },
+   "primary_organizer": {
+    "_type": "destination_profile",
+    "id": "78436165503",
+    "profile_type": "organizer",
+    "name": "Shekinah Nation",
+    "url": "https://www.eventbrite.com/o/shekinah-nation-78436165503",
+    "image_id": "688228599",
+    "summary": null,
+    "twitter": null,
+    "facebook": null,
+    "website_url": null,
+    "followed_by_you": false,
+    "num_followers": 356,
+    "num_following": null,
+    "num_saves": null,
+    "num_collections": null,
+    "num_upcoming_events": null
+   },
+   "image": {
+    "id": "1177620042",
+    "crop_mask": null,
+    "focal_point": null,
+    "aspect_ratio": "2",
+    "original": {
+     "url": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1177620042%2F47679936479%2F1%2Foriginal.20260216-113617?auto=format%2Ccompress&q=75&sharp=10&s=8e3a8e87721936c8bf4cef53b537c68a",
+     "width": 2048,
+     "height": 1024
+    },
+    "url": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1177620042%2F47679936479%2F1%2Foriginal.20260216-113617?w=400&auto=format%2Ccompress&q=75&sharp=10&s=ac4e6c40ab035bfcd902b5cef333b313",
+    "edge_color": "#45459a",
+    "edge_color_set": true,
+    "image_sizes": {
+     "small": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1177620042%2F47679936479%2F1%2Foriginal.20260216-113617?w=320&auto=format%2Ccompress&q=75&sharp=10&s=fdbf81960e68f0ea527aadac77b77eb0",
+     "medium": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1177620042%2F47679936479%2F1%2Foriginal.20260216-113617?w=640&auto=format%2Ccompress&q=75&sharp=10&s=74ddd0949836710a3f54163f220b7a51",
+     "large": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1177620042%2F47679936479%2F1%2Foriginal.20260216-113617?w=1024&auto=format%2Ccompress&q=75&sharp=10&s=abfdba40df3e2592f5118d478812acdc"
+    }
+   },
+   "event_sales_status": {
+    "sales_status": "on_sale",
+    "start_sales_date": {
+     "timezone": "Europe/London",
+     "utc": "2026-02-17T00:00:00Z",
+     "local": "2026-02-17T00:00:00"
+    },
+    "currency": "GBP",
+    "end_sales_date": {
+     "timezone": "Europe/London",
+     "utc": "2026-10-23T09:00:00Z",
+     "local": "2026-10-23T10:00:00"
+    },
+    "message": null,
+    "default_message": null,
+    "message_code": null,
+    "message_type": null
+   }
+  },
+  {
+   "id": "1989612185606",
+   "eid": "exdkmdhx",
+   "eventbrite_event_id": "1989612185606",
+   "name": "SYNTHONY | LONDON | 01 NOVEMBER 2026",
+   "summary": "Get ready to dive into a world of sounds and vibes that’ll blow your mind at Synthony!",
+   "start_time": "18:00",
+   "end_time": "22:00",
+   "start_date": "2026-11-01",
+   "end_date": "2026-11-01",
+   "published": "2026-05-17T20:04:46Z",
+   "hide_start_date": false,
+   "hide_end_date": false,
+   "language": "en-us",
+   "timezone": "Europe/London",
+   "url": "https://www.eventbrite.co.uk/e/synthony-london-01-november-2026-tickets-1989612185606",
+   "tickets_url": "https://www.eventbrite.com/checkout-external?eid=1989612185606",
+   "tickets_by": "Eventbrite",
+   "is_cancelled": null,
+   "is_online_event": false,
+   "privacy_setting": "unlocked",
+   "is_protected_event": false,
+   "primary_venue_id": "245012683",
+   "primary_organizer_id": "18439156860",
+   "series_id": null,
+   "tags": [
+    {
+     "display_name": "EDM / Electronic",
+     "prefix": "EventbriteSubCategory",
+     "tag": "EventbriteSubCategory/3006"
+    },
+    {
+     "display_name": "Music",
+     "prefix": "EventbriteCategory",
+     "tag": "EventbriteCategory/103",
+     "localized": {
+      "display_name": "Music"
+     }
+    },
+    {
+     "display_name": "Concert or Performance",
+     "prefix": "EventbriteFormat",
+     "tag": "EventbriteFormat/6"
+    },
+    {
+     "_type": "tag",
+     "display_name": "londonevent",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/londonevent"
+    },
+    {
+     "_type": "tag",
+     "display_name": "musicfestival",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/musicfestival"
+    },
+    {
+     "_type": "tag",
+     "display_name": "november01",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/november01"
+    },
+    {
+     "_type": "tag",
+     "display_name": "synthony2026",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/synthony2026"
+    },
+    {
+     "_type": "tag",
+     "display_name": "synthparty",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/synthparty"
+    }
+   ],
+   "image_id": "1184796913",
+   "checkout_flow": "widget",
+   "status": "live",
+   "_type": "destination_event",
+   "primary_venue": {
+    "_type": "destination_venue",
+    "id": "245012683",
+    "name": "OVO Arena Wembley",
+    "address": {
+     "address_1": "Engineers Way",
+     "address_2": "",
+     "city": "Wembley Park",
+     "region": "England",
+     "postal_code": "HA9 0AA",
+     "country": "GB",
+     "latitude": "51.5581441",
+     "longitude": "-0.2827548",
+     "localized_address_display": "Engineers Way, Wembley Park, HA9 0AA",
+     "localized_area_display": "Wembley Park",
+     "localized_multi_line_address_display": [
+      "Engineers Way",
+      "Wembley Park",
+      "HA9 0AA"
+     ]
+    },
+    "venue_profile_id": null,
+    "venue_profile_url": ""
+   },
+   "ticket_availability": {
+    "minimum_ticket_price": {
+     "currency": "GBP",
+     "value": 5131,
+     "major_value": "51.31",
+     "display": "51.31 GBP"
+    },
+    "maximum_ticket_price": {
+     "currency": "GBP",
+     "value": 18240,
+     "major_value": "182.40",
+     "display": "182.40 GBP"
+    },
+    "is_sold_out": false,
+    "has_available_tickets": true,
+    "is_free": false,
+    "has_bogo_tickets": false
+   },
+   "primary_organizer": {
+    "_type": "destination_profile",
+    "id": "18439156860",
+    "profile_type": "organizer",
+    "name": "Event House UK",
+    "url": "https://www.eventbrite.co.uk/o/event-house-uk-18439156860",
+    "image_id": "994997773",
+    "summary": "Event House UK presents standout live entertainment experiences across London and Europe, from major concerts and touring productions to high-energy cultural events and comedy shows at leading venues....",
+    "twitter": null,
+    "facebook": "eventhouseuk/",
+    "website_url": "https://event-house.uk/",
+    "followed_by_you": false,
+    "num_followers": 2012,
+    "num_following": null,
+    "num_saves": null,
+    "num_collections": null,
+    "num_upcoming_events": null
+   },
+   "image": {
+    "id": "1184796913",
+    "crop_mask": null,
+    "focal_point": {
+     "x": 0.5,
+     "y": 0.5
+    },
+    "aspect_ratio": "1.775",
+    "original": {
+     "url": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1184796913%2F287133516878%2F1%2Foriginal.20260517-185954?auto=format%2Ccompress&q=75&sharp=10&s=69922c5a74380a851253d3250401338d",
+     "width": 1440,
+     "height": 810
+    },
+    "url": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1184796913%2F287133516878%2F1%2Foriginal.20260517-185954?crop=focalpoint&fit=crop&w=400&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=09a36673644962c4aefcb645d96c3af8",
+    "edge_color": "#36204f",
+    "edge_color_set": true,
+    "image_sizes": {
+     "small": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1184796913%2F287133516878%2F1%2Foriginal.20260517-185954?crop=focalpoint&fit=crop&w=320&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=1ac45be8d717a11e3d068887264bea7e",
+     "medium": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1184796913%2F287133516878%2F1%2Foriginal.20260517-185954?crop=focalpoint&fit=crop&w=640&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=072cd194b0b50311f41170df49661a59",
+     "large": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1184796913%2F287133516878%2F1%2Foriginal.20260517-185954?crop=focalpoint&fit=crop&w=1024&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.5&fp-y=0.5&s=62570c1b8cc49b1ce97bd05a7a9f4d89"
+    }
+   },
+   "event_sales_status": {
+    "sales_status": "on_sale",
+    "start_sales_date": {
+     "timezone": "Europe/London",
+     "utc": "2026-05-21T09:00:00Z",
+     "local": "2026-05-21T10:00:00"
+    },
+    "currency": "GBP",
+    "end_sales_date": {
+     "timezone": "Europe/London",
+     "utc": "2026-11-01T18:00:00Z",
+     "local": "2026-11-01T18:00:00"
+    },
+    "message": null,
+    "default_message": null,
+    "message_code": null,
+    "message_type": null
+   }
+  },
+  {
+   "id": "2002231587577",
+   "eid": "exfywqgy",
+   "eventbrite_event_id": "2002231587577",
+   "name": "Coming Together for Multilingual Children with DLD",
+   "summary": "ESLA Webinars series",
+   "start_time": "18:00",
+   "end_time": "19:30",
+   "start_date": "2026-10-22",
+   "end_date": "2026-10-22",
+   "published": "2026-09-24T19:06:17Z",
+   "hide_start_date": false,
+   "hide_end_date": false,
+   "language": "en-gb",
+   "timezone": "Europe/Brussels",
+   "url": "https://www.eventbrite.co.uk/e/coming-together-for-multilingual-children-with-dld-tickets-2002231587577",
+   "tickets_url": "https://www.eventbrite.com/checkout-external?eid=2002231587577",
+   "tickets_by": "Eventbrite",
+   "is_cancelled": null,
+   "is_online_event": true,
+   "privacy_setting": "unlocked",
+   "is_protected_event": false,
+   "primary_venue_id": null,
+   "primary_organizer_id": "32531848963",
+   "series_id": null,
+   "tags": [
+    {
+     "display_name": "Education",
+     "prefix": "EventbriteSubCategory",
+     "tag": "EventbriteSubCategory/15001"
+    },
+    {
+     "display_name": "Family & Education",
+     "prefix": "EventbriteCategory",
+     "tag": "EventbriteCategory/115",
+     "localized": {
+      "display_name": "Family & Education"
+     }
+    },
+    {
+     "display_name": "Seminar or Talk",
+     "prefix": "EventbriteFormat",
+     "tag": "EventbriteFormat/2"
+    },
+    {
+     "_type": "tag",
+     "display_name": "development",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/development"
+    },
+    {
+     "_type": "tag",
+     "display_name": "slt",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/slt"
+    },
+    {
+     "_type": "tag",
+     "display_name": "dld",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/dld"
+    },
+    {
+     "_type": "tag",
+     "display_name": "speech_and_language",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/speech_and_language"
+    },
+    {
+     "_type": "tag",
+     "display_name": "devlanguagedisorder",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/devlanguagedisorder"
+    },
+    {
+     "_type": "tag",
+     "display_name": "europeanslt",
+     "prefix": "OrganizerTag",
+     "tag": "OrganizerTag/europeanslt"
+    }
+   ],
+   "image_id": "1194707539",
+   "checkout_flow": "widget",
+   "status": "live",
+   "_type": "destination_event",
+   "ticket_availability": {
+    "minimum_ticket_price": {
+     "currency": "EUR",
+     "value": 0,
+     "major_value": "0.00",
+     "display": "0.00 EUR"
+    },
+    "maximum_ticket_price": {
+     "currency": "EUR",
+     "value": 1168,
+     "major_value": "11.68",
+     "display": "11.68 EUR"
+    },
+    "is_sold_out": false,
+    "has_available_tickets": true,
+    "is_free": false,
+    "has_bogo_tickets": false
+   },
+   "primary_organizer": {
+    "_type": "destination_profile",
+    "id": "32531848963",
+    "profile_type": "organizer",
+    "name": "ESLA",
+    "url": "https://www.eventbrite.co.uk/o/esla-32531848963",
+    "image_id": null,
+    "summary": null,
+    "twitter": null,
+    "facebook": null,
+    "website_url": "https://eslaeurope.eu/",
+    "followed_by_you": false,
+    "num_followers": 979,
+    "num_following": null,
+    "num_saves": null,
+    "num_collections": null,
+    "num_upcoming_events": null
+   },
+   "image": {
+    "id": "1194707539",
+    "crop_mask": null,
+    "focal_point": {
+     "x": 0.068,
+     "y": 0.521
+    },
+    "aspect_ratio": "3",
+    "original": {
+     "url": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194707539%2F513197560043%2F1%2Foriginal.20260930-094941?auto=format%2Ccompress&q=75&sharp=10&s=95e97ddcf28e1053fab2a61180dde4b9",
+     "width": 1500,
+     "height": 500
+    },
+    "url": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194707539%2F513197560043%2F1%2Foriginal.20260930-094941?crop=focalpoint&fit=crop&w=512&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.068&fp-y=0.521&s=15587d9e9433190689caa6cbeb872117",
+    "edge_color": "#d6edf6",
+    "edge_color_set": true,
+    "image_sizes": {
+     "small": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194707539%2F513197560043%2F1%2Foriginal.20260930-094941?crop=focalpoint&fit=crop&w=320&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.068&fp-y=0.521&s=f04775442e6e64f9afba4171ffd1f07d",
+     "medium": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194707539%2F513197560043%2F1%2Foriginal.20260930-094941?crop=focalpoint&fit=crop&w=640&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.068&fp-y=0.521&s=5c5d11034892596cb0612a18b844d47c",
+     "large": "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F1194707539%2F513197560043%2F1%2Foriginal.20260930-094941?crop=focalpoint&fit=crop&w=1024&auto=format%2Ccompress&q=75&sharp=10&fp-x=0.068&fp-y=0.521&s=b7579294b7c7c10ef2a25d6c6fe33a3e"
+    }
+   },
+   "event_sales_status": {
+    "sales_status": "on_sale",
+    "start_sales_date": {
+     "timezone": "Europe/Brussels",
+     "utc": "2026-09-27T09:00:00Z",
+     "local": "2026-09-27T11:00:00"
+    },
+    "currency": "EUR",
+    "end_sales_date": {
+     "timezone": "Europe/Brussels",
+     "utc": "2026-10-22T14:00:00Z",
+     "local": "2026-10-22T16:00:00"
+    },
+    "message": null,
+    "default_message": null,
+    "message_code": null,
+    "message_type": null
+   }
+  }
+ ],
+ "pagination": {
+  "has_more_items": false,
+  "continuation": null,
+  "object_count": 3,
+  "page_number": 1,
+  "page_count": 1,
+  "page_size": 50
+ }
+}

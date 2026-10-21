@@ -8,7 +8,7 @@ import { importRemoteImage } from "@/lib/sources/cloudinary-import";
 import { importedDetailsSchema } from "@/lib/sources/details-schema";
 import { detectDuplicates, runSource } from "@/lib/sources/engine";
 import { DEFAULT_ATTRIBUTION, resolveFeedUrl } from "@/lib/sources/platforms";
-import { SOURCE_KINDS, sourceIdFromKey, sourceKey } from "@/lib/sources/types";
+import { IMPORTED_KINDS as IMPORTED_SOURCE_KINDS, SOURCE_KINDS, sourceIdFromKey, sourceKey } from "@/lib/sources/types";
 import { createClient } from "@/lib/supabase/server";
 
 export type ActionState = { ok: boolean; error?: string; message?: string } | null;
@@ -199,7 +199,9 @@ export async function resolveReview(_prev: ActionState, formData: FormData): Pro
   };
 }
 
-const IMPORTED_KINDS = new Set(["luma", "luma-discover", "meetup", "meetup-search"]);
+const IMPORTED_KINDS = new Set<string>(IMPORTED_SOURCE_KINDS);
+/** Kinds whose feed doesn't own the description, so an admin's one survives every sync. */
+const EDITABLE_DESCRIPTION = new Set(["luma", "luma-discover", "eventbrite"]);
 
 /** Admin fallback for imported events: cover (pasted link or upload), description, price. */
 export async function saveImportedDetails(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -223,7 +225,7 @@ export async function saveImportedDetails(_prev: ActionState, formData: FormData
     ? await supabase.from("event_sources").select("kind").eq("id", sourceId).maybeSingle()
     : { data: null };
   if (!source || !IMPORTED_KINDS.has(source.kind as string)) {
-    return { ok: false, error: "Only Luma and Meetup events can be edited here." };
+    return { ok: false, error: "Only events imported from Luma, Meetup, Eventbrite or Fatsoma can be edited here." };
   }
 
   let cover = cover_url;
@@ -236,8 +238,8 @@ export async function saveImportedDetails(_prev: ActionState, formData: FormData
   }
 
   const patch: Record<string, unknown> = {};
-  // Meetup descriptions belong to the feed, so only Luma events take one from the form.
-  if (source.kind === "luma" || source.kind === "luma-discover") patch.description = description;
+  // Meetup and Fatsoma descriptions belong to the feed, so only the others take one from the form.
+  if (EDITABLE_DESCRIPTION.has(source.kind as string)) patch.description = description;
   // Only a changed price is (re)stored in £; unrelated saves leave the stored currency alone.
   const same = (a: unknown, b: number | null) => (a === null || a === undefined ? null : Number(a)) === b;
   if (!same(event.price_min, price_min) || !same(event.price_max, price_max)) {
