@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findDuplicates, jaccard, normaliseTitle, pairKey, titleTokens, titlesSimilar, type DuplicateCandidate } from "./duplicates";
+import { findDuplicates, jaccard, normaliseTitle, pairKey, titleTokens, titlesSimilar, type DuplicateCandidate, certainDuplicate } from "./duplicates";
 
 describe("title similarity", () => {
   it("normalises case, accents, punctuation and ampersands", () => {
@@ -97,5 +97,38 @@ describe("findDuplicates", () => {
   it("skips pairs an admin marked as not duplicates", () => {
     const imported = ev("feed-1", "Case Interview Bootcamp", "2026-10-17T18:00:00Z", "source:abc");
     expect(findDuplicates([native, imported], { dismissed: new Set([pairKey("feed-1", "orbit-1")]) })).toEqual([]);
+  });
+});
+
+describe("certainDuplicate", () => {
+  const spooky = (over: Partial<DuplicateCandidate> = {}): DuplicateCandidate => ({
+    id: "a", title: "Saturday night spooky stories", starts_at: "2026-10-24T11:00:00+00:00", source: "source:s1",
+    created_at: "2026-10-21T10:00:00Z", format: "online", venue_name: null, address: null, ...over,
+  });
+
+  it("is certain for the same event posted in two groups (same title, start, online) — real case", () => {
+    expect(certainDuplicate(spooky(), spooky({ id: "b", title: "Saturday Night Spooky Stories!" }))).toBe(true);
+  });
+
+  it("is certain at the same venue, but not at a different one or a shifted time", () => {
+    const at = (venue: string, start = "2026-10-24T11:00:00+00:00") => spooky({ format: "in_person", venue_name: venue, starts_at: start });
+    expect(certainDuplicate(at("Indiranagar Social"), at("indiranagar social"))).toBe(true);
+    expect(certainDuplicate(at("Indiranagar Social"), at("Koramangala Social"))).toBe(false);
+    expect(certainDuplicate(at("Indiranagar Social"), at("Indiranagar Social", "2026-10-24T11:20:00+00:00"))).toBe(false);
+    expect(certainDuplicate(spooky({ format: "in_person" }), spooky({ format: "in_person" }))).toBe(false); // no place to compare
+  });
+
+  it("needs the same title, not just a similar one", () => {
+    expect(certainDuplicate(spooky(), spooky({ title: "Saturday night spooky stories: special" }))).toBe(false);
+  });
+
+  it("makes findDuplicates hide the pair without a review", () => {
+    const matches = findDuplicates([spooky(), spooky({ id: "b", created_at: "2026-10-21T11:00:00Z" })]);
+    expect(matches).toEqual([{ id: "b", duplicateOf: "a", exact: true }]);
+  });
+
+  it("still asks about near matches", () => {
+    const matches = findDuplicates([spooky(), spooky({ id: "b", created_at: "2026-10-21T11:00:00Z", title: "Saturday night spooky story night" })]);
+    expect(matches.map((m) => m.exact)).toEqual([false]);
   });
 });
