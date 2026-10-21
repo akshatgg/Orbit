@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { buttonClass, ButtonLink } from "@/components/ui/Button";
 import { FeedTabs } from "@/components/nav/FeedTabs";
 import { EventCard } from "@/components/events/EventCard";
+import { EventRows } from "@/components/events/EventRow";
 import { RegistrationBadge } from "@/components/events/RegistrationBadge";
 import { Badge } from "@/components/ui/Badge";
 import { CalendarMonth, type DayMarks } from "@/components/discovery/CalendarMonth";
@@ -97,18 +98,25 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
             count={dayEntries.length || undefined}
           />
           {dayEntries.length ? (
-            <ul className="space-y-3 px-4">
-              {dayEntries.map((e) => (
-                <li key={e.event.id}>
-                  <EventCard
-                    event={e.event}
-                    counts={e.event.counts}
-                    saved={e.saved}
-                    registration={e.registration}
-                  />
-                </li>
-              ))}
-            </ul>
+            <>
+              <EventRows
+                items={dayEntries.map((e) => ({ event: e.event, registration: e.registration }))}
+                showDate={false}
+                className="px-4 md:hidden"
+              />
+              <ul className="hidden space-y-3 px-4 md:block">
+                {dayEntries.map((e) => (
+                  <li key={e.event.id}>
+                    <EventCard
+                      event={e.event}
+                      counts={e.event.counts}
+                      saved={e.saved}
+                      registration={e.registration}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
             <div className="mx-4 rounded-[22px] border border-dashed border-ink/12 bg-ink/[0.025] px-5 py-6 text-center text-sm text-muted">
               Nothing saved for this day.{" "}

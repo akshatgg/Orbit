@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { RegistrationStatus } from "@/types/database";
 import { type EventCardData, type EventCounts } from "@/lib/events/queries";
-import { FORMAT_LABELS, formatDeadline, formatEventDate, formatPrice } from "@/lib/format";
+import { FORMAT_LABELS, formatEventDate, formatPrice } from "@/lib/format";
 import { seriesHint } from "@/lib/events/series";
 import { Avatar } from "@/components/ui/Avatar";
 import { reasonSegments, reasonTag } from "@/lib/discovery/feed-display";
@@ -135,51 +135,6 @@ const heroDate = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "nume
 /** "Thu 23 Oct, 7:00 pm" */
 function formatHeroDate(startsAt: string) {
   return heroDate.format(new Date(startsAt)).replace(/ (am|pm)$/i, (m) => m.toLowerCase());
-}
-
-const rowDay = new Intl.DateTimeFormat("en-GB", { weekday: "short", timeZone: "Europe/London" });
-const rowTime = new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit", hour12: false, timeZone: "Europe/London" });
-
-/**
- * One row of the mobile "More for you" list. Dark: 72px rounded thumbnail on the left, blue date line.
- * Light: diary row, weekday + time on the left, title and host in the middle, 56px thumbnail on the right.
- */
-export function FeedRow({ event, dismissible }: { event: EventCardData; dismissible?: boolean }) {
-  const deadline = formatDeadline(event.registration_deadline);
-  const closing = deadline && deadline !== "Registration closed" && event.registration_mode !== "none" && /hour|today|\b[1-7] day/.test(deadline) ? deadline : null;
-  const start = new Date(event.starts_at);
-  const meta = [event.organiser?.name, event.format === "in_person" ? event.venue_name : FORMAT_LABELS[event.format as keyof typeof FORMAT_LABELS]].filter(Boolean).join(", ");
-  return (
-    <div className="relative">
-      <Link
-        href={`/events/${event.id}`}
-        className="flex items-center gap-3.5 py-2.5 pr-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent light:grid light:grid-cols-[3.25rem_minmax(0,1fr)_3.5rem] light:gap-3 light:py-3 light:pr-0"
-      >
-        <div aria-hidden className="hidden text-[13px] font-semibold leading-tight light:block">
-          {rowDay.format(start)}
-          <span className="block text-[11.5px] font-normal text-muted">{rowTime.format(start)}</span>
-        </div>
-        <div className="min-w-0 flex-1 pr-7 light:pr-5">
-          <p className="text-xs font-medium text-accent light:hidden">{formatEventDate(event.starts_at)}{seriesHint(event)}</p>
-          <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight">{event.title}</h3>
-          <p className="mt-0.5 truncate text-[12.5px] text-muted">
-            {meta}
-            {closing && <span className="ml-1.5 hidden font-medium text-orange light:inline">· {closing}</span>}
-          </p>
-        </div>
-        <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl dark:order-first light:h-14 light:w-14 light:rounded-[14px]">
-          <EventCover src={event.cover_url} title={event.title} width={200} />
-        </div>
-      </Link>
-      {dismissible && (
-        <NotInterestedButton
-          id={event.id}
-          title={event.title}
-          className="absolute bottom-1 right-0 light:right-[4.25rem]"
-        />
-      )}
-    </div>
-  );
 }
 
 /** Tall card for horizontal carousels (This Week → Top picks). */

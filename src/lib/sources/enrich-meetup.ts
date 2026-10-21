@@ -18,6 +18,7 @@ const CANDIDATE_SELECT =
 
 const COVER_FOLDER = "orbit/event-covers/sources";
 const NO_COVER = "No cover image on the page.";
+const NO_PRICE = "No price on the page.";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -27,9 +28,12 @@ const needsLocation = (event: EnrichCandidate) =>
   !!meetupPageUrl(event) &&
   (!event.venue_name || !event.address || !event.city || event.latitude == null || event.longitude == null);
 
+/** Events whose price we don't know yet. */
+const needsPrice = (event: EnrichCandidate) => !!meetupPageUrl(event) && event.price_min === null;
+
 /**
- * Reads new Meetup event pages once each for venue name, address, city, coordinates and the
- * cover image (copied to Cloudinary so ORBIT serves its own image).
+ * Reads new Meetup event pages once each for venue name, address, city, coordinates, the price
+ * (or that it's free) and the cover image (copied to Cloudinary so ORBIT serves its own image).
  * Politeness matches the Luma reader: one page at a time, a small budget, stop on blocks.
  * Never throws. Returns how many events got details.
  */
@@ -77,15 +81,16 @@ export async function enrichMeetupEvents(
 
     // A location can be lost if an older sync cleared it. Treat an "ok" row whose location is
     // now missing as unread so this run can put it back (the retry limits then apply). Pages read
-    // before covers were imported are read once more for their image; a page known to have no
-    // image isn't.
+    // before covers or prices were imported are read once more for them; a page known to have no
+    // image or no price isn't.
     for (const [eventId, row] of details) {
       const event = events.find((e) => e.id === eventId);
-      const coverPending = event && needsCover(event) && row.last_error !== NO_COVER;
-      if (row.status === "ok" && event && (needsLocation(event) || coverPending)) details.delete(eventId);
+      const coverPending = event && needsCover(event) && !row.last_error?.includes(NO_COVER);
+      const pricePending = event && needsPrice(event) && !row.last_error?.includes(NO_PRICE);
+      if (row.status === "ok" && event && (needsLocation(event) || coverPending || pricePending)) details.delete(eventId);
     }
 
-    const picked = pickEventsToEnrich(events, details, now, ENRICH_LIMIT, (e) => needsLocation(e) || needsCover(e));
+    const picked = pickEventsToEnrich(events, details, now, ENRICH_LIMIT, (e) => needsLocation(e) || needsCover(e) || needsPrice(e));
     const limit = Math.min(Date.now() + ENRICH_BUDGET_MS, run.deadline);
 
     for (const [i, event] of picked.entries()) {
@@ -105,7 +110,7 @@ export async function enrichMeetupEvents(
       try {
         const page = parseMeetupEventPage(await fetchFeedText(url, { accept: "text/html" }));
         if (!page) {
-          await record("failed", "No location or cover found on the page.");
+          await record("failed", "No location, cover or price found on the page.");
           continue;
         }
 
@@ -146,6 +151,10 @@ export async function enrichMeetupEvents(
           wrote = (await apply({ latitude: page.latitude, longitude: page.longitude }, "latitude", event.latitude)) || wrote;
         }
         if (cover) wrote = (await apply({ cover_url: cover }, "cover_url", event.cover_url)) || wrote;
+        if (needsPrice(event) && page.price) {
+          const { amount, currency } = page.price;
+          wrote = (await apply({ price_min: amount, price_max: amount, ...(currency ? { currency } : {}) }, "price_min", event.price_min)) || wrote;
+        }
         const tags = hintedTags(event, page.interestHints);
         if (tags) {
           const { error: tagError } = await db.from("events").update({ tags }).eq("id", event.id).eq("source", key).eq("tags_locked", false);
@@ -157,7 +166,8 @@ export async function enrichMeetupEvents(
           await record("failed", coverError);
           errors.push({ event: event.source_event_id ?? event.id, message: coverError });
         } else {
-          await record("ok", needsCover(event) && !page.coverUrl ? NO_COVER : null);
+          const missing = [needsCover(event) && !page.coverUrl && NO_COVER, needsPrice(event) && !page.price && NO_PRICE].filter(Boolean);
+          await record("ok", missing.join(" ") || null);
         }
       } catch (e) {
         if (e instanceof FetchHttpError && isBlockedStatus(e.status)) {
