@@ -30,6 +30,13 @@ export const IconBan = (p: IconProps) => <Svg {...p}><circle cx="12" cy="12" r="
 export const IconTrash = (p: IconProps) => (
   <Svg {...p}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></Svg>
 );
+export const IconEyeOff = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M10.7 5.1A10.4 10.4 0 0 1 12 5c7 0 10 7 10 7a13.2 13.2 0 0 1-1.7 2.7M6.6 6.6A13.5 13.5 0 0 0 2 12s3 7 10 7a9.7 9.7 0 0 0 5.4-1.6" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+    <path d="m2 2 20 20" />
+  </Svg>
+);
 export const IconUndo = (p: IconProps) => <Svg {...p}><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></Svg>;
 export const IconEye = (p: IconProps) => (
   <Svg {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></Svg>

@@ -40,6 +40,7 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   "event.unfeature": "unfeatured",
   "event.cancel": "cancelled",
   "event.remove": "removed",
+  "event.delete": "permanently deleted",
   "event.restore": "restored",
   "event.reviewed": "marked as reviewed",
   "event.create": "added event",

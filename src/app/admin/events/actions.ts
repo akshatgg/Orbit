@@ -128,8 +128,49 @@ export async function restoreEvent(eventId: string): Promise<ActionResult> {
   return r.ok ? { ok: true, message: `“${r.title}” is published again` } : r;
 }
 
-export async function markReviewed(eventId: string): Promise<ActionResult> {
-  const r = await updateEvent(eventId, { needs_review: false, last_verified_at: new Date().toISOString() }, "event.reviewed");
+/**
+ * Hard delete: removes the rows themselves and everything the schema cascades from an event —
+ * registrations, tickets, questions, saved items, check-in history. Admin only, not reversible.
+ */
+async function hardDeleteEvents(ids: string[]): Promise<ActionResult> {
+  const { supabase } = await adminContext();
+  const { data, error: readError } = await supabase.from("events").select("id, title").in("id", ids);
+  if (readError) return { ok: false, error: friendlyDbError(readError) };
+  const doomed = data ?? [];
+  if (doomed.length === 0) return { ok: false, error: "Those events no longer exist" };
+
+  const eventIds = doomed.map((e) => e.id);
+  const { count: registrations } = await supabase
+    .from("registrations")
+    .select("id", { count: "exact", head: true })
+    .in("event_id", eventIds);
+
+  const { error } = await supabase.from("events").delete().in("id", eventIds);
+  if (error) return { ok: false, error: friendlyDbError(error) };
+
+  await Promise.all(
+    doomed.map((e) => logAdminAction(supabase, "event.delete", "event", e.id, { title: e.title, permanent: true })),
+  );
+  revalidateEverywhere();
+
+  const what = doomed.length === 1 ? `“${doomed[0].title}”` : `${doomed.length} events`;
+  const guests = registrations ? ` and ${registrations} registration${registrations === 1 ? "" : "s"}` : "";
+  return { ok: true, message: `Deleted ${what}${guests} permanently` };
+}
+
+export async function deleteEvent(eventId: string): Promise<ActionResult> {
+  const parsed = id.safeParse(eventId);
+  if (!parsed.success) return { ok: false, error: "Invalid event" };
+  return hardDeleteEvents([parsed.data]);
+}
+
+export async function deleteEvents(eventIds: string[]): Promise<ActionResult> {
+  const parsed = z.array(id).min(1, "Pick at least one event").max(200).safeParse(eventIds);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  return hardDeleteEvents([...new Set(parsed.data)]);
+}
+
+export async function markReviewed(eventId: string): Promise<ActionResult> {  const r = await updateEvent(eventId, { needs_review: false, last_verified_at: new Date().toISOString() }, "event.reviewed");
   return r.ok ? { ok: true, message: `Marked “${r.title}” as reviewed` } : r;
 }
 

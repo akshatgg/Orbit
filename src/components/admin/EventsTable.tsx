@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { removeEvents, setEventsCategory } from "@/app/admin/events/actions";
+import { deleteEvents, removeEvents, setEventsCategory } from "@/app/admin/events/actions";
 import { Badge, VerifiedMark } from "@/components/ui/Badge";
 import { buttonClass } from "@/components/ui/Button";
 import { EVENT_STATUS, sourceLabel, type Tone } from "@/lib/admin/labels";
 import type { EventStatus, RegistrationMode } from "@/types/database";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventMenu } from "./EventActions";
-import { IconStar, IconFlag, IconTrash } from "./icons";
+import { IconEyeOff, IconStar, IconFlag, IconTrash } from "./icons";
 import { table } from "./primitives";
 import { toast } from "./Toaster";
 
@@ -44,8 +44,8 @@ export function EventsTable({ rows, categories, sourceNames }: {
   rows: EventTableRow[]; categories: { id: string; name: string }[]; sourceNames: Record<string, string>;
 }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<"remove" | "delete" | null>(null);
   const [category, setCategory] = useState("");
   const [pending, startTransition] = useTransition();
   const allSelected = rows.length > 0 && selected.size === rows.length;
@@ -77,9 +77,28 @@ export function EventsTable({ rows, categories, sourceNames }: {
         result = { ok: false as const, error: "Couldn't reach the server. Try again." };
       }
       if (result.ok) {
-        setConfirmOpen(false);
+        setConfirm(null);
         setSelected(new Set());
         toast(result.message ?? "Events removed");
+      } else {
+        setError(result.error);
+      }
+    });
+  }
+
+  function hardDelete() {
+    setError(null);
+    startTransition(async () => {
+      let result;
+      try {
+        result = await deleteEvents(chosen);
+      } catch {
+        result = { ok: false as const, error: "Couldn't reach the server. Try again." };
+      }
+      if (result.ok) {
+        setConfirm(null);
+        setSelected(new Set());
+        toast(result.message ?? "Events deleted");
       } else {
         setError(result.error);
       }
@@ -145,11 +164,19 @@ export function EventsTable({ rows, categories, sourceNames }: {
           </button>
           <button
             type="button"
-            onClick={() => { setError(null); setConfirmOpen(true); }}
+            onClick={() => { setError(null); setConfirm("remove"); }}
+            disabled={pending || chosen.length === 0}
+            className={buttonClass({ variant: "secondary", size: "sm" })}
+          >
+            <IconEyeOff size={14} /> Remove (hide)…
+          </button>
+          <button
+            type="button"
+            onClick={() => { setError(null); setConfirm("delete"); }}
             disabled={pending || chosen.length === 0}
             className={buttonClass({ variant: "danger", size: "sm" })}
           >
-            <IconTrash size={14} /> Remove selected…
+            <IconTrash size={14} /> Delete permanently…
           </button>
         </div>
       </div>
@@ -251,18 +278,33 @@ export function EventsTable({ rows, categories, sourceNames }: {
       </div>
 
       <ConfirmDialog
-        open={confirmOpen}
+        open={confirm !== null}
         pending={pending}
         error={error}
-        onClose={() => { if (!pending) setConfirmOpen(false); }}
-        onConfirm={remove}
-        options={{
-          title: chosen.length === 1 ? "Remove 1 event?" : `Remove ${chosen.length} events?`,
-          body: "They'll be hidden from ORBIT completely (spam, duplicates, wrong info). You can restore them one at a time later.",
-          confirmLabel: chosen.length === 1 ? "Remove event" : `Remove ${chosen.length} events`,
-          danger: true,
-          reason: { label: "Internal note", placeholder: "Optional — e.g. duplicate imports from the Meetup find page" },
-        }}
+        onClose={() => { if (!pending) setConfirm(null); }}
+        onConfirm={confirm === "delete" ? hardDelete : remove}
+        options={
+          confirm === "delete"
+            ? {
+                title: chosen.length === 1 ? "Delete 1 event permanently?" : `Delete ${chosen.length} events permanently?`,
+                body: (
+                  <>
+                    This erases the event{chosen.length === 1 ? "" : "s"} and everything attached — registrations,
+                    tickets, questions, saved items and check-in history. It leaves the database entirely and{" "}
+                    <b>cannot be undone</b>. Choose Remove instead if you only want it hidden.
+                  </>
+                ),
+                confirmLabel: chosen.length === 1 ? "Delete permanently" : `Delete ${chosen.length} permanently`,
+                danger: true,
+              }
+            : {
+                title: chosen.length === 1 ? "Remove 1 event?" : `Remove ${chosen.length} events?`,
+                body: "They'll be hidden from ORBIT completely (spam, duplicates, wrong info) but stay in the database. You can restore them one at a time later.",
+                confirmLabel: chosen.length === 1 ? "Remove event" : `Remove ${chosen.length} events`,
+                danger: true,
+                reason: { label: "Internal note", placeholder: "Optional — e.g. duplicate imports from the Meetup find page" },
+              }
+        }
       />
     </>
   );
