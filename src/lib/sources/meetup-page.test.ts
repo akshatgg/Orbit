@@ -14,7 +14,26 @@ describe("parseMeetupEventPage", () => {
       city: "London",
       latitude: 51.522907,
       longitude: -0.101072,
+      coverUrl: null,
     });
+  });
+
+  it("reads the event photo at full size, falling back to og:image", () => {
+    const og = '<meta property="og:image" content="https://secure.meetupstatic.com/photos/event/5/2/c/2/600_536061186.jpeg"/>';
+    const featured =
+      '"featuredEventPhoto":{"__typename":"PhotoInfo","id":"536061186","source":"https://secure.meetupstatic.com/photos/event/5/2/c/2/highres_536061186.jpeg","baseUrl":"https://secure-content.meetupstatic.com/images/classic-events/"}';
+    expect(parseMeetupEventPage(`<head>${og}</head><script>${featured}</script>`)?.coverUrl).toBe(
+      "https://secure.meetupstatic.com/photos/event/5/2/c/2/highres_536061186.jpeg",
+    );
+    expect(parseMeetupEventPage(fixture.replace("</head>", `${og}</head>`))).toMatchObject({
+      venueName: "Codurance",
+      coverUrl: "https://secure.meetupstatic.com/photos/event/5/2/c/2/600_536061186.jpeg",
+    });
+  });
+
+  it("ignores images that aren't on Meetup's image hosts", () => {
+    const og = '<meta property="og:image" content="https://evil.example/x.jpg"/>';
+    expect(parseMeetupEventPage(fixture.replace("</head>", `${og}</head>`))?.coverUrl).toBeNull();
   });
 
   it("returns null when the page has no location", () => {

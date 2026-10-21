@@ -1,4 +1,4 @@
-// Reads a Meetup event page for its venue: name, street address, city and coordinates.
+// Reads a Meetup event page for its venue (name, street address, city, coordinates) and cover.
 //
 // Meetup's iCal feed often omits LOCATION entirely, so this is the only automatic source for
 // where an imported Meetup event is. The public page carries schema.org JSON-LD plus a venue
@@ -14,7 +14,27 @@ export type MeetupPageDetails = {
   city: string | null;
   latitude: number | null;
   longitude: number | null;
+  coverUrl: string | null;
 };
+
+const IMAGE_HOSTS = new Set(["secure.meetupstatic.com", "secure-content.meetupstatic.com"]);
+
+function safeImage(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(decodeEntities(value));
+    return url.protocol === "https:" && IMAGE_HOSTS.has(url.hostname) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The event's own photo at full size (`"featuredEventPhoto":{…,"source":…}`), else og:image. */
+function coverImage(html: string): string | null {
+  const featured = html.match(/"featuredEventPhoto":\{[^}]*?"source":"([^"]+)"/)?.[1];
+  const ogTag = html.match(/<meta[^>]+property=["']og:image["'][^>]*>/i)?.[0];
+  return safeImage(featured) ?? safeImage(ogTag?.match(/content=["']([^"']+)["']/i)?.[1]);
+}
 
 function firstEvent(html: string): Record<string, unknown> | null {
   for (const match of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
@@ -135,7 +155,7 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
   };
 }
 
-/** Venue details from a Meetup event page, or null when the page has no location. */
+/** Venue details and cover from a Meetup event page, or null when the page has neither. */
 export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
   const event = firstEvent(html);
   const location = event && typeof event.location === "object" ? (event.location as Record<string, unknown>) : null;
@@ -147,8 +167,9 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
   const street = state?.address ?? text(address?.streetAddress);
   const city = state?.city ?? text(address?.addressLocality);
   const point = validPoint(state?.latitude ?? null, state?.longitude ?? null);
+  const coverUrl = coverImage(html);
 
-  if (!venueName && !street && !city && !point) return null;
+  if (!venueName && !street && !city && !point && !coverUrl) return null;
 
   return {
     venueName: orNull(clamp(decodeEntities(venueName ?? ""), LIMITS.venue)),
@@ -156,5 +177,6 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
     city: orNull(clamp(decodeEntities(city ?? ""), LIMITS.venue)),
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
+    coverUrl,
   };
 }
