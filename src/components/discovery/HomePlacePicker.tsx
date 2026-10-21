@@ -19,12 +19,12 @@ export function HomePlacePicker({ places, value, view }: { places: PlaceGroup[];
     startTransition(() => router.push(qs ? `/?${qs}#browse` : "/#browse", { scroll: false }));
   }
   return (
-    <label className={`relative inline-flex items-center ${pending ? "opacity-60" : ""}`}>
+    <label className={`relative inline-flex items-center self-start md:self-auto ${pending ? "opacity-60" : ""}`}>
       <span className="sr-only">Place</span>
       <select
         value={value}
         onChange={(e) => pick(e.target.value)}
-        className="field-sizing-content cursor-pointer appearance-none rounded-full bg-transparent py-1 pl-1 pr-7 text-2xl font-semibold tracking-tight text-accent outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="field-sizing-content cursor-pointer appearance-none rounded-full bg-transparent py-1 pl-1 pr-7 text-xl font-semibold md:text-2xl tracking-tight text-accent outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <option value="">everywhere</option>
         {places.map((group) => (

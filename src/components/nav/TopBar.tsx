@@ -5,7 +5,7 @@ import { ICONS, IconLink } from "@/components/discovery/Layout";
 
 /**
  * Top bar on phones for every tabbed screen (For You, Explore, Tickets, Profile, Studio):
- * ORBIT mark + wordmark on the left, theme toggle and search on the right. From md up the
+ * ORBIT mark + wordmark on the left, theme toggle, calendar and search on the right. From md up the
  * DesktopHeader takes over, so this hides.
  */
 export function TopBar() {
@@ -17,6 +17,7 @@ export function TopBar() {
       </Link>
       <div className="flex items-center gap-2">
         <ThemeToggle className="glass" />
+        <IconLink href="/calendar" label="Your calendar" path={ICONS.calendar} />
         <IconLink href="/search" label="Search events" path={ICONS.search} />
       </div>
     </header>
