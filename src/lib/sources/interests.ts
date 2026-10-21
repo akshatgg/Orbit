@@ -23,6 +23,7 @@ export const INTEREST_KEYWORDS: Record<string, readonly string[]> = {
   entrepreneurship: [
     "startup", "startups", "founder", "founders", "entrepreneur", "entrepreneurs", "entrepreneurship",
     "pitch night", "small business", "business owners", "online business", "smes", "bootstrapping",
+    "business networking", "business referral", "referral meetup", "b2b", "export import", "business strategy",
   ],
   product: ["product management", "product manager", "product managers", "product growth", "product design", "product leaders", "product owner", "product owners"],
   data: ["data", "analytics", "data science", "data scientist", "data engineering", "sql", "power bi", "tableau", "statistics"],
@@ -34,9 +35,23 @@ export const INTEREST_KEYWORDS: Record<string, readonly string[]> = {
   "public-sector": ["policy", "public policy", "government", "civil service", "public sector", "politics"],
   law: ["law", "legal", "lawyer", "lawyers", "solicitor", "solicitors", "barrister", "attorney"],
   creative: [
-    "design", "designer", "designers", "ux", "photography", "photographers", "film", "filmmaking", "writing",
-    "writers", "creative", "creatives", "creators", "content creators", "movie", "movies", "filmmakers",
+    "design", "designer", "designers", "ux", "photography", "photographers", "film", "filmmaking",
+    "creative", "creatives", "creators", "content creators", "movie", "movies", "filmmakers",
     "illustration", "animation", "fashion",
+  ],
+  ai: [
+    "ai", "artificial intelligence", "machine learning", "deep learning", "llm", "llms", "genai", "generative ai",
+    "chatgpt", "claude", "openai", "agentic", "ai agents", "multi agent", "prompt engineering", "neural networks",
+  ],
+  crypto: ["crypto", "cryptocurrency", "bitcoin", "ethereum", "web3", "blockchain", "defi", "nft", "nfts", "solana", "dao"],
+  careers: [
+    "career", "careers", "career growth", "job", "jobs", "job search", "hiring", "hired", "recruitment", "recruiting",
+    "resume", "cv", "interview", "interviews", "internship", "internships", "placement", "placements", "job fair",
+    "career fair", "mentorship", "mentoring", "upskilling", "get job", "job seekers",
+  ],
+  science: [
+    "science", "scientific", "scientists", "researchers", "physics", "chemistry", "biology", "astronomy",
+    "space", "mathematics", "maths", "math", "stem", "neuroscience", "quantum",
   ],
   socialising: [
     "social", "socials", "socialising", "socializing", "friends", "new friends", "make friends", "mixer",
@@ -51,8 +66,8 @@ export const INTEREST_KEYWORDS: Record<string, readonly string[]> = {
     "hike", "outdoors", "outdoor", "adventure", "backpacking", "road trip", "camping",
   ],
   arts: [
-    "art", "arts", "culture", "cultural", "museum", "gallery", "theatre", "theater", "book club", "books", "reading",
-    "poetry", "literature", "painting", "drawing", "crafts", "pottery", "history", "language exchange",
+    "art", "arts", "culture", "cultural", "museum", "gallery", "theatre", "theater", "painting", "drawing", "history",
+    "language exchange",
   ],
   music: ["music", "concert", "gig", "live music", "dj", "karaoke", "nightlife", "jam session", "band", "singing"],
   food: [
@@ -68,6 +83,19 @@ export const INTEREST_KEYWORDS: Record<string, readonly string[]> = {
     "cleanup", "clean up", "nonprofit", "non profit",
   ],
   gaming: ["gaming", "gamers", "video games", "board games", "board game", "esports", "game night", "games night", "chess"],
+  books: [
+    "book", "books", "book club", "reading", "readers", "literature", "poetry", "poems", "writing", "writers",
+    "authors", "storytelling", "novel", "novels",
+  ],
+  growth: [
+    "personal growth", "personal development", "self improvement", "self development", "leadership", "coaching",
+    "life coaching", "mindset", "productivity", "public speaking", "toastmasters", "confidence", "motivation",
+    "habits", "goal setting",
+  ],
+  hobbies: [
+    "hobby", "hobbies", "crafts", "craft", "crafting", "diy", "knitting", "crochet", "sewing", "pottery",
+    "woodworking", "origami", "calligraphy", "lego", "model making",
+  ],
 };
 
 /** Where a keyword appears decides how much it says: the title most, a passing mention least. */

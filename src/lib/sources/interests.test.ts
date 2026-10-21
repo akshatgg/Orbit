@@ -7,8 +7,14 @@ describe("inferInterests", () => {
   it.each([
     ["Bangalore Startup & Entrepreneurs Network", ["entrepreneurship"]],
     ["Product Growth Meetup in Mumbai", ["product"]],
-    ["TradFi & Bitcoin Club", ["finance"]],
-    ["Book Club {Online} Meet", ["arts"]],
+    ["TradFi & Bitcoin Club", ["finance", "crypto"]],
+    ["Book Club {Online} Meet", ["books"]],
+    ["Multi-Agent AI for Financial Research", ["technology", "ai", "finance"]],
+    ["Your Resume, Your Power: Build a Career-Ready CV in 60 Minutes", ["careers"]],
+    ["10% OFF! 6 Weeks to HIRED: The Fall 2026 Job Search Bootcamp", ["careers"]],
+    ["1% Leadership Club {Online} Meet", ["growth"]],
+    ["Business Networking & Referral Meetup ( 5 PM )", ["entrepreneurship"]],
+    ["Export Import Business Strategy Online Meetup India", ["entrepreneurship"]],
     ["Bowling & Other Activities", ["socialising"]],
     ["Join a vibrant mix of talents and pros for a FREE lively Friends Circle Night!", ["socialising"]],
     ["My Gardening Journey (And Yours!): Let’s Chat About Plants & Growth", ["wellbeing"]],
@@ -22,13 +28,14 @@ describe("inferInterests", () => {
 
   it("ignores a couple of passing mentions in the description", () => {
     expect(inferInterests({ title: "Monthly meetup", description: "Drinks will be provided." })).toEqual([]);
-    expect(inferInterests({ title: "Multi-Agent AI", description: "We serve healthcare and clinical teams." })).toEqual(["technology"]);
+    expect(inferInterests({ title: "Multi-Agent AI", description: "We serve healthcare and clinical teams." })).toEqual(["technology", "ai"]);
     expect(inferInterests({ title: "Monthly meetup", description: "Drinks, dinner and a wine tasting." })).toEqual(["food"]);
-    expect(inferInterests({ title: "Sunday Book Club", summary: "An adventure through books." })).toEqual(["arts"]);
+    expect(inferInterests({ title: "Sunday Book Club", summary: "An adventure through books." })).toEqual(["books"]);
   });
 
   it("matches whole words only", () => {
     expect(inferInterests({ title: "Lawn games and a raid on the pantry" })).toEqual([]);
+    expect(inferInterests({ title: "Meet travel agents and estate agents" })).toEqual(["travel"]);
   });
 
   it("keeps the strongest few", () => {
