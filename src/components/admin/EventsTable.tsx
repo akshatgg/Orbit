@@ -40,7 +40,9 @@ const checkboxClass =
  * Admin events table with multi-select. Tick rows (or the header box) and the selection bar
  * lets you re-categorise or remove them all at once, behind the same confirm + audit trail as the row menu.
  */
-export function EventsTable({ rows, categories }: { rows: EventTableRow[]; categories: { id: string; name: string }[] }) {
+export function EventsTable({ rows, categories, sourceNames }: {
+  rows: EventTableRow[]; categories: { id: string; name: string }[]; sourceNames: Record<string, string>;
+}) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -213,7 +215,7 @@ export function EventsTable({ rows, categories }: { rows: EventTableRow[]; categ
                       <span className="text-muted">—</span>
                     )}
                   </td>
-                  <td className={`${table.td} text-muted`}>{sourceLabel(e.source)}</td>
+                  <td className={`${table.td} text-muted`}>{sourceLabel(e.source, sourceNames)}</td>
                   <td className={table.td}>
                     <span title={e.cancelReason ?? undefined}><Badge tone={st.tone}>{st.label}</Badge></span>
                   </td>

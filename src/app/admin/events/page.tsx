@@ -86,16 +86,21 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
   if (f.when === "past") query = query.or(`ends_at.lt.${nowIso},and(ends_at.is.null,starts_at.lt.${nowIso})`);
   query = query.order("starts_at", { ascending: f.when === "upcoming" }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  const [{ data, count, error }, { data: orgs }, { data: sourceRows }, { data: categoryRows }] = await Promise.all([
+  const [{ data, count, error }, { data: orgs }, { data: sourceRows }, { data: sourceNameRows }, { data: categoryRows }] = await Promise.all([
     query,
     supabase.from("organisers").select("id, name").order("name"),
     supabase.from("events").select("source").neq("source", "orbit").limit(1000),
+    supabase.from("event_sources").select("id, name").order("name"),
     supabase.from("categories").select("id, name").order("sort_order").order("name"),
   ]);
   if (error) throw error;
   const rows = (data ?? []) as unknown as Row[];
   const total = count ?? 0;
-  const sources = [...new Set(["orbit", "manual", "csv", ...(sourceRows ?? []).map((r) => r.source as string)])];
+  const sourceNames = Object.fromEntries(
+    ((sourceNameRows ?? []) as { id: string; name: string }[]).map((s) => [`source:${s.id}`, s.name]),
+  );
+  const sources = [...new Set(["orbit", "manual", "csv", ...(sourceRows ?? []).map((r) => r.source as string)])]
+    .sort((a, b) => sourceLabel(a, sourceNames).localeCompare(sourceLabel(b, sourceNames)));
   const categories = (categoryRows ?? []) as { id: string; name: string }[];
 
   const { data: countRows } = rows.length
@@ -156,7 +161,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
         <label className="sr-only" htmlFor="ev-source">Source</label>
         <select id="ev-source" name="source" defaultValue={f.source} className={selectClass}>
           <option value="">Any source</option>
-          {sources.map((s) => <option key={s} value={s}>{sourceLabel(s)}</option>)}
+          {sources.map((s) => <option key={s} value={s}>{sourceLabel(s, sourceNames)}</option>)}
         </select>
         <label className="flex h-[38px] cursor-pointer items-center gap-2 rounded-[14px] border border-ink/10 bg-ink/[0.045] px-3.5 text-sm text-muted transition-colors hover:border-ink/15 has-checked:border-orange/40 has-checked:bg-orange/10 has-checked:text-orange">
           <input type="checkbox" name="review" value="1" defaultChecked={!!f.review} className="accent-orange" />
@@ -175,7 +180,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
         </Empty>
       ) : (
         <>
-          <EventsTable rows={tableRows} categories={categories} />
+          <EventsTable rows={tableRows} categories={categories} sourceNames={sourceNames} />
           <Pagination
             page={page}
             pageCount={Math.ceil(total / PAGE_SIZE)}
