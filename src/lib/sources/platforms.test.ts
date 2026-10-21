@@ -162,8 +162,9 @@ describe("meetup feed fixture", () => {
     const event = cleanEvent("meetup", events.find((e) => e.title === "The Hottest New Programming Language is Ubiquitous")!);
     expect(event).toMatchObject({ timezone: "Europe/London", startsAt: "2026-11-19T18:00:00.000Z" });
     expect(event.description).toContain("Hemal Varambhia");
-    // Feed descriptions carry Markdown; the event page renders plain text, so markers must go.
-    expect(event.description).not.toContain("**");
+    // Bold survives for RichText; links are expanded and divider lines are gone.
+    expect(event.description).toContain("**The Hottest New Programming Language is Ubiquitous (Within a Bounded Context Window)**");
+    expect(event.description).toContain("**Speaker Biography:**");
     expect(event.description).not.toContain("](");
     expect(event.description).not.toMatch(/^-{3,}$/m);
     expect(event.description).toContain("• This talk is a continuation");

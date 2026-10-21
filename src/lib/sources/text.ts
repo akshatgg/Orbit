@@ -47,6 +47,39 @@ export function stripHtml(input: string | null | undefined) {
 const SEPARATOR_LINE = /^[ \t]*[\\|*_=~+\-–—]{3,}[ \t]*$/gm;
 
 /**
+ * Markdown authors often write every ordered-list item as `1.` and let the renderer number them.
+ * The event page is plain text, so renumber each consecutive list block (blank lines between
+ * items are allowed).
+ */
+function renumberOrderedLists(input: string) {
+  const lines = input.split("\n");
+  let number = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const item = line.match(/^[ \t]*\d+[.)][ \t]+(.*)$/);
+    if (item) {
+      number += 1;
+      lines[i] = `${number}. ${item[1]}`;
+      continue;
+    }
+
+    if (line.trim() === "") {
+      let next = i + 1;
+      while (next < lines.length && lines[next].trim() === "") next++;
+      if (next >= lines.length || !/^[ \t]*\d+[.)][ \t]+/.test(lines[next])) number = 0;
+      continue;
+    }
+
+    // An indented line is normally a wrapped continuation of the current list item.
+    if (number > 0 && /^[ \t]+\S/.test(line)) continue;
+    number = 0;
+  }
+
+  return lines.join("\n");
+}
+
+/**
  * Turns lightweight Markdown / iCal prose into readable plain text. Event pages render plain
  * text, so markers would otherwise show up literally: `**bold**`, `[label](url)`,
  * `-\|\-\|…` divider lines, escaped punctuation and bullet asterisks.
@@ -54,7 +87,7 @@ const SEPARATOR_LINE = /^[ \t]*[\\|*_=~+\-–—]{3,}[ \t]*$/gm;
  * Deliberately conservative: it only removes markers that pair up, so ordinary prose (including
  * `2 * 3` or `C++`) is left alone.
  */
-export function cleanProse(input: string | null | undefined) {
+export function cleanProse(input: string | null | undefined, { keepEmphasis = false }: { keepEmphasis?: boolean } = {}) {
   if (!input) return "";
   let text = input
     .replace(/\r\n?/g, "\n")
@@ -73,11 +106,17 @@ export function cleanProse(input: string | null | undefined) {
   // Bullets first, so a leading `*` can't pair with an emphasis marker later in the line.
   text = text.replace(/^[ \t]*[*+-][ \t]+/gm, "• ");
 
-  // Emphasis, strikethrough and inline code.
-  text = text.replace(/(\*\*|__)(?=\S)([\s\S]*?\S)\1/g, "$2");
+  // Emphasis, strikethrough and inline code. Event descriptions keep bold/italic markers so
+  // RichText can render them; summaries strip them.
+  if (keepEmphasis) {
+    text = text.replace(/(__)(?=\S)([\s\S]*?\S)\1/g, "**$2**");
+    text = text.replace(/(^|[\s(])_(?=\S)([^_\n]*?\S)_(?=$|[\s).,!?:;])/gm, "$1*$2*");
+  } else {
+    text = text.replace(/(\*\*|__)(?=\S)([\s\S]*?\S)\1/g, "$2");
+    text = text.replace(/\*(?=\S)([^*\n]*?\S)\*/g, "$1");
+    text = text.replace(/(^|[\s(])_(?=\S)([^_\n]*?\S)_(?=$|[\s).,!?:;])/gm, "$1$2");
+  }
   text = text.replace(/~~(?=\S)([^~\n]*?\S)~~/g, "$1");
-  text = text.replace(/\*(?=\S)([^*\n]*?\S)\*/g, "$1");
-  text = text.replace(/(^|[\s(])_(?=\S)([^_\n]*?\S)_(?=$|[\s).,!?:;])/gm, "$1$2");
   text = text.replace(/`([^`\n]+)`/g, "$1");
 
   // Headings and block quotes.
@@ -87,6 +126,7 @@ export function cleanProse(input: string | null | undefined) {
   // Divider lines and any remaining standalone marker runs.
   text = text.replace(SEPARATOR_LINE, "");
   text = text.replace(/(^|\s)[*_~]{2,}(?=\s|$)/g, "$1");
+  text = renumberOrderedLists(text);
 
   return text
     .replace(/[ \t]+$/gm, "")
@@ -115,7 +155,7 @@ export const orNull = (s: string) => (s.length ? s : null);
 export function summarise(description: string | null) {
   if (!description) return null;
   const firstPara = description.split("\n").find((l) => l.trim().length > 0) ?? "";
-  return orNull(clamp(firstPara.trim(), LIMITS.summary));
+  return orNull(clamp(cleanProse(firstPara), LIMITS.summary));
 }
 
 /** Only absolute http(s) URLs survive. */

@@ -4,6 +4,7 @@ import {
   defaultTicketId,
   formatTicketCode,
   friendlyError,
+  inlineParts,
   linkify,
   mapsUrl,
   paragraphs,
@@ -153,6 +154,30 @@ describe("text helpers", () => {
     ]);
     expect(linkify("javascript:alert(1) stays text")).toEqual([{ type: "text", value: "javascript:alert(1) stays text" }]);
     expect(linkify("(https://en.wikipedia.org/wiki/A_(b))")[1]).toMatchObject({ href: "https://en.wikipedia.org/wiki/A_(b)" });
+  });
+
+  it("parses bold and italic without breaking links", () => {
+    expect(inlineParts("**Bold** and *italic* https://x.test")).toEqual([
+      { type: "bold", children: [{ type: "text", value: "Bold" }] },
+      { type: "text", value: " and " },
+      { type: "italic", children: [{ type: "text", value: "italic" }] },
+      { type: "text", value: " " },
+      { type: "link", value: "https://x.test", href: "https://x.test/" },
+    ]);
+    expect(inlineParts("**See https://x.test**")).toEqual([
+      {
+        type: "bold",
+        children: [
+          { type: "text", value: "See " },
+          { type: "link", value: "https://x.test", href: "https://x.test/" },
+        ],
+      },
+    ]);
+  });
+
+  it("leaves arithmetic and unpaired markers as plain text", () => {
+    expect(inlineParts("2 * 3 * 4")).toEqual([{ type: "text", value: "2 * 3 * 4" }]);
+    expect(inlineParts("**unclosed")).toEqual([{ type: "text", value: "**unclosed" }]);
   });
 
   it("splits paragraphs on blank lines", () => {

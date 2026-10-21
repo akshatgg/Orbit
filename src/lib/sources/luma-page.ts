@@ -93,7 +93,7 @@ export function parseLumaLinkedEvent(html: string, pageUrl: string): NormalizedE
 
   const mode = typeof event.eventAttendanceMode === "string" ? event.eventAttendanceMode : "";
   const status = typeof event.eventStatus === "string" ? event.eventStatus : "";
-  const description = orNull(clamp(cleanProse(stripHtml(typeof event.description === "string" ? event.description : "")), LIMITS.description));
+  const description = orNull(clamp(cleanProse(stripHtml(typeof event.description === "string" ? event.description : ""), { keepEmphasis: true }), LIMITS.description));
   const timezone = html.match(/"timezone":"([^"]+)"/)?.[1] ?? null;
   const slug = new URL(url).pathname.split("/").filter(Boolean).pop() ?? null;
   const apiId = html.match(/"api_id":"(evt-[^"]+)"/)?.[1] ?? null;
@@ -123,7 +123,7 @@ export function parseLumaEventPage(html: string): LumaPageDetails | null {
   const event = firstEvent(html);
   const images = event ? (Array.isArray(event.image) ? event.image : [event.image]) : [];
   const coverUrl = images.map(safeImage).find((u): u is string => u !== null) ?? ogImage(html);
-  const description = orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : "")), LIMITS.description));
+  const description = orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : ""), { keepEmphasis: true }), LIMITS.description));
   const price = event ? prices(event.offers) : null;
 
   const location = event?.location && typeof event.location === "object" ? (event.location as Record<string, unknown>) : null;

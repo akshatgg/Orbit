@@ -111,7 +111,7 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
 
   const organizer = Array.isArray(event.organizer) ? event.organizer[0] : event.organizer;
   const organizerName = organizer && typeof organizer === "object" ? text((organizer as Record<string, unknown>).name) : null;
-  const description = orNull(clamp(cleanProse(stripHtml(text(event.description) ?? "")), LIMITS.description));
+  const description = orNull(clamp(cleanProse(stripHtml(text(event.description) ?? ""), { keepEmphasis: true }), LIMITS.description));
   const mode = text(event.eventAttendanceMode) ?? "";
   const status = text(event.eventStatus) ?? "";
 

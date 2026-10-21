@@ -50,7 +50,7 @@ describe("parseMeetupSearchResponse", () => {
       url: "https://www.meetup.com/softwarearchitectsbangalore/events/316719692/",
       cancelled: false,
     });
-    expect(page.events[0].description).toContain("Agenda for the day:");
+    expect(page.events[0].description).toContain("**Agenda** for the day:");
     expect(page.events[0].description).toContain("• Welcome");
 
     expect(page.events[1]).toMatchObject({ format: "online", venueName: null, description: null });

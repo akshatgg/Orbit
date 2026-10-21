@@ -148,7 +148,7 @@ function normalise(
   if (endsAt && endsAt.getTime() <= startsAt.getTime()) endsAt = allDay ? new Date(startsAt.getTime() + DAY - 60000) : null;
   if (Number.isNaN(startsAt.getTime())) return { event: sourceEventId, message: "Skipped: invalid start date" };
 
-  const description = orNull(clamp(cleanProse(stripHtml(item.description)), LIMITS.description));
+  const description = orNull(clamp(cleanProse(stripHtml(item.description), { keepEmphasis: true }), LIMITS.description));
   const { venueName, address, format } = splitLocation(item.location);
   const { latitude, longitude } = geoPoint(item.component);
   const status = textProp(item.component, "status")?.toUpperCase();
