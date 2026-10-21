@@ -3,10 +3,11 @@
 import type { EventFormat, RegistrationMode } from "@/types/database";
 import type { EventSource, NormalizedEvent, SourceKind } from "./types";
 import { sourceKey } from "./types";
+import { normaliseCountry } from "@/lib/places";
 
 /** Columns of events that a sync reads for one source. */
 export const EXISTING_EVENT_SELECT =
-  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, city, latitude, longitude, registration_mode, external_url, source_url, series_key, series_label, status, needs_review, last_verified_at";
+  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, city, country, latitude, longitude, registration_mode, external_url, source_url, series_key, series_label, status, needs_review, last_verified_at";
 
 export type ExistingSourceEvent = {
   id: string;
@@ -21,6 +22,7 @@ export type ExistingSourceEvent = {
   venue_name: string | null;
   address: string | null;
   city: string | null;
+  country: string | null;
   latitude: number | null;
   longitude: number | null;
   registration_mode: RegistrationMode;
@@ -45,6 +47,8 @@ export type SyncedFields = {
   venue_name: string | null;
   address: string | null;
   city: string | null;
+  /** Only present when the feed names the country, so a feed without one never clears it. */
+  country?: string;
   latitude: number | null;
   longitude: number | null;
   registration_mode?: RegistrationMode;
@@ -90,6 +94,7 @@ export function provenanceUrl(event: Pick<NormalizedEvent, "url">, feedUrl: stri
 }
 
 export function syncedFields(event: NormalizedEvent, feedUrl: string): SyncedFields {
+  const country = normaliseCountry(event.country);
   return {
     title: event.title,
     summary: event.summary,
@@ -101,6 +106,7 @@ export function syncedFields(event: NormalizedEvent, feedUrl: string): SyncedFie
     venue_name: event.venueName,
     address: event.address,
     city: event.city,
+    ...(country ? { country } : {}),
     latitude: event.latitude,
     longitude: event.longitude,
     registration_mode: event.url ? "external" : "none",

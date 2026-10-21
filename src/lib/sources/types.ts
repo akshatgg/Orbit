@@ -80,6 +80,8 @@ export type NormalizedEvent = {
   venueName: string | null;
   address: string | null;
   city: string | null;
+  /** The country as the platform gives it ("gb", "IN", "United Kingdom"); stored as an ISO code. */
+  country?: string | null;
   /** Latitude / longitude when the feed provides a GEO point. */
   latitude: number | null;
   longitude: number | null;

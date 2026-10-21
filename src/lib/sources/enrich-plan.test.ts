@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_ATTEMPTS, PAGE_WORST_CASE_MS, detailsPatch, hasTimeFor, hintedTags, importedDescription, isBlockedStatus,
-  pickEventsToEnrich, type EnrichCandidate,
+  needsCountry, pickEventsToEnrich, rereadForCountry, type EnrichCandidate,
 } from "./enrich-plan";
 import type { SourceEventDetails } from "./types";
 
@@ -58,6 +58,27 @@ describe("isBlockedStatus", () => {
   it("treats 403, 429 and 503 as blocking", () => {
     expect([403, 429, 503].every(isBlockedStatus)).toBe(true);
     expect([404, 500].some(isBlockedStatus)).toBe(false);
+  });
+});
+
+describe("countries", () => {
+  it("needs one only for in-person events in a place ORBIT can't name", () => {
+    expect(needsCountry({ format: "in_person", country: null, city: "Mohali" })).toBe(false); // known city
+    expect(needsCountry({ format: "in_person", country: null, city: "Some Town" })).toBe(true);
+    expect(needsCountry({ format: "in_person", country: null, city: null })).toBe(true);
+    expect(needsCountry({ format: "in_person", country: "IN", city: "Some Town" })).toBe(false);
+    expect(needsCountry({ format: "online", country: null, city: null })).toBe(false);
+  });
+  it("reads a page again once if it was read before countries were saved", () => {
+    const place = { format: "in_person", country: null, city: "Some Town" };
+    expect(rereadForCountry(place, "2026-10-21T03:00:00+00:00")).toBe(true);
+    expect(rereadForCountry(place, "2026-10-25T03:00:00+00:00")).toBe(false);
+  });
+  it("fills an empty country from the page, as a code", () => {
+    const page = { coverUrl: null, description: null, priceMin: null, priceMax: null, currency: null, venueName: null, address: null, city: null, latitude: null, longitude: null };
+    expect(detailsPatch(event("a"), { ...page, country: "in" }, null)).toEqual({ country: "IN" });
+    expect(detailsPatch(event("a", { country: "GB" }), { ...page, country: "in" }, null)).toEqual({});
+    expect(detailsPatch(event("a"), { ...page, country: "Atlantis" }, null)).toEqual({});
   });
 });
 

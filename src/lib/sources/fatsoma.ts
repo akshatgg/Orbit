@@ -143,6 +143,7 @@ function toEvent(resource: Resource, lookup: (type: string, id: unknown) => Reco
     venueName: orNull(clamp(oneLine(text(location?.name) ?? ""), LIMITS.venue)),
     address: orNull(clamp(oneLine(street), LIMITS.address)),
     city: orNull(clamp(oneLine(text(location?.city) ?? ""), LIMITS.venue)),
+    country: text(location?.country),
     latitude: located?.latitude ?? null,
     longitude: located?.longitude ?? null,
     url: `https://www.fatsoma.com/e/${vanity}${seo && /^[a-z0-9-]+$/i.test(seo) ? `/${seo}` : ""}`,

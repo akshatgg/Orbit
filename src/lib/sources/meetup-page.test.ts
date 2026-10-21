@@ -12,6 +12,7 @@ describe("parseMeetupEventPage", () => {
       venueName: "Codurance",
       address: "3 Sutton Lane",
       city: "London",
+      country: "gb",
       latitude: 51.522907,
       longitude: -0.101072,
       coverUrl: null,
@@ -93,7 +94,7 @@ describe("parseMeetupLinkedEvent", () => {
     });
     expect(parseMeetupLinkedEvent(html, url)?.description).toContain("This is an **online meetup** designed for business owners");
     expect(parseMeetupEventPage(html)).toEqual({
-      venueName: null, address: null, city: null, latitude: null, longitude: null,
+      venueName: null, address: null, city: null, country: null, latitude: null, longitude: null,
       coverUrl: "https://secure.meetupstatic.com/photos/event/d/e/5/6/highres_533996918.jpeg",
       price: null,
       interestHints: [

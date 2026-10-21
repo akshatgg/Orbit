@@ -4,6 +4,7 @@ import { getCloudinaryConfig } from "@/lib/cloudinary";
 import { importRemoteImage } from "./cloudinary-import";
 import {
   ENRICH_BUDGET_MS, FORMATTED_DESCRIPTIONS_SINCE, PAUSE_MS, detailsPatch, hasTimeFor, hintedTags, isBlockedStatus, pickEventsToEnrich,
+  rereadForCountry,
   type EnrichCandidate, type EnrichRunState,
 } from "./enrich-plan";
 import { FetchHttpError, fetchFeedText } from "./fetch";
@@ -14,7 +15,7 @@ import { sourceKey, type DetailsStatus, type EventSource, type RunError, type So
 // Trusted server code only (called from the sync engine with the service-role client).
 
 const CANDIDATE_SELECT =
-  "id, source_event_id, external_url, starts_at, created_at, updated_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude, title, summary, tags, tags_locked";
+  "id, source_event_id, external_url, starts_at, created_at, updated_at, cover_url, description, price_min, venue_name, address, city, country, format, latitude, longitude, title, summary, tags, tags_locked";
 const COVER_FOLDER = "orbit/event-covers/sources";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -64,6 +65,8 @@ export async function enrichLumaEvents(
       const event = events.find((e) => e.id === eventId);
       const readBefore = new Date(row.fetched_at).getTime() < FORMATTED_DESCRIPTIONS_SINCE;
       if (row.status === "ok" && event?.description && readBefore) details.delete(eventId);
+      // Likewise pages read before countries were saved, for events we can't place in a country.
+      if (row.status === "ok" && event && rereadForCountry(event, row.fetched_at)) details.delete(eventId);
     }
 
     const picked = pickEventsToEnrich(events, details, now);
@@ -132,6 +135,7 @@ export async function enrichLumaEvents(
           if (patch.venue_name) wrote = (await applyGroup(event, "venue_name", { venue_name: patch.venue_name })) || wrote;
           if (patch.address) wrote = (await applyGroup(event, "address", { address: patch.address })) || wrote;
           if (patch.city) wrote = (await applyGroup(event, "city", { city: patch.city })) || wrote;
+          if (patch.country) wrote = (await applyGroup(event, "country", { country: patch.country })) || wrote;
           if (patch.latitude !== undefined) {
             const point = { latitude: patch.latitude, longitude: patch.longitude };
             wrote = (await applyGroup(event, "latitude", point)) || wrote;

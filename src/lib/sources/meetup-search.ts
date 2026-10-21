@@ -109,7 +109,7 @@ type SearchNode = {
   series?: { description?: unknown } | null;
   featuredEventPhoto?: { highResUrl?: unknown } | null;
   group?: { name?: unknown; timezone?: unknown; topicCategory?: { name?: unknown } | null };
-  venue?: { name?: unknown; address?: unknown; city?: unknown };
+  venue?: { name?: unknown; address?: unknown; city?: unknown; country?: unknown };
 };
 
 type SearchResponse = {
@@ -183,6 +183,7 @@ export function parseMeetupSearchResponse(json: SearchResponse): MeetupSearchPag
       venueName: orNull(clamp(oneLine(typeof node.venue?.name === "string" ? node.venue.name : ""), LIMITS.venue)),
       address: orNull(clamp(oneLine(typeof node.venue?.address === "string" ? node.venue.address : ""), LIMITS.address)),
       city: orNull(clamp(oneLine(typeof node.venue?.city === "string" ? node.venue.city : ""), LIMITS.venue)),
+      country: typeof node.venue?.country === "string" ? node.venue.country : null,
       latitude: null,
       longitude: null,
       url,

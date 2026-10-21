@@ -23,3 +23,11 @@ export function firstJsonLdEvent(html: string): Record<string, unknown> | null {
   }
   return null;
 }
+
+/** A schema.org PostalAddress's country: a code ("IN") or a Country object's name. */
+export function addressCountry(address: Record<string, unknown> | null | undefined): string | null {
+  const value = address?.addressCountry;
+  if (typeof value === "string") return value.trim() || null;
+  const name = value && typeof value === "object" ? (value as Record<string, unknown>).name : null;
+  return typeof name === "string" ? name.trim() || null : null;
+}

@@ -168,6 +168,7 @@ function toEvent(raw: Record<string, unknown>): NormalizedEvent | RunError {
     venueName: online ? null : orNull(clamp(oneLine(text(venue?.name) ?? ""), LIMITS.venue)),
     address: online ? null : orNull(clamp(oneLine(street), LIMITS.address)),
     city: online ? null : orNull(clamp(oneLine(text(address?.city) ?? ""), LIMITS.venue)),
+    country: online ? null : text(address?.country),
     latitude: online ? null : (located?.latitude ?? null),
     longitude: online ? null : (located?.longitude ?? null),
     url: safeHttpUrl(text(raw.url)) ?? `${EVENTBRITE_ORIGIN}/e/${id}`,
