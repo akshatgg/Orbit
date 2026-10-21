@@ -6,6 +6,7 @@
 import { FetchHttpError, USER_AGENT } from "./fetch";
 import { LIMITS, clamp, cleanProse, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
 import { isValidTimezone } from "./timezone";
+import { HINT_WEIGHT } from "./interests";
 import type { NormalizedEvent, RunError } from "./types";
 
 export const MEETUP_SEARCH_GQL = "https://www.meetup.com/gql2";
@@ -91,7 +92,8 @@ export const MEETUP_SEARCH_QUERY = `query meetupSearch(
 }
 fragment SearchEvent on Event {
   id title dateTime description eventType eventUrl
-  group { name urlname timezone }
+  series { description }
+  group { name urlname timezone topicCategory { name } }
   venue { name address city state country }
 }`;
 
@@ -102,7 +104,8 @@ type SearchNode = {
   description?: unknown;
   eventType?: unknown;
   eventUrl?: unknown;
-  group?: { name?: unknown; timezone?: unknown };
+  series?: { description?: unknown } | null;
+  group?: { name?: unknown; timezone?: unknown; topicCategory?: { name?: unknown } | null };
   venue?: { name?: unknown; address?: unknown; city?: unknown };
 };
 
@@ -181,6 +184,12 @@ export function parseMeetupSearchResponse(json: SearchResponse): MeetupSearchPag
       longitude: null,
       url,
       cancelled: false,
+      // Search consolidates a series into one result; the connector expands it to every date.
+      seriesLabel: typeof node.series?.description === "string" ? orNull(clamp(oneLine(node.series.description), LIMITS.summary)) : null,
+      // The group's category; its topics come from the event page when it's read (enrich-meetup).
+      interestHints: typeof node.group?.topicCategory?.name === "string"
+        ? [{ label: node.group.topicCategory.name, weight: HINT_WEIGHT.groupCategory }]
+        : [],
     });
   }
 

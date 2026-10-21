@@ -5,7 +5,7 @@ import type { OrbitEvent, Organiser, Category, RegistrationStatus, TicketType, R
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { EventCounts } from "@/lib/events/queries";
-import type { Question, TicketOption } from "./logic";
+import { hasEnded, type Question, type TicketOption } from "./logic";
 
 export const isId = (value: string) => z.guid().safeParse(value).success;
 
@@ -14,7 +14,7 @@ const EVENT_DETAIL_SELECT = `
   latitude, longitude,
   tags, university, registration_mode, external_url, external_label, requires_approval, capacity,
   waitlist_enabled, registration_deadline, price_min, price_max, currency, status, cancel_reason,
-  organiser_id, source, source_url, published_at,
+  organiser_id, source, source_url, published_at, series_key, series_label,
   organiser:organisers ( id, slug, name, logo_url, is_verified, kind ),
   category:categories ( id, slug, name, group )
 `;
@@ -25,6 +25,7 @@ export type EventDetail = Pick<
   | "venue_name" | "address" | "city" | "latitude" | "longitude" | "tags" | "university" | "registration_mode"
   | "external_url" | "external_label" | "requires_approval" | "capacity" | "waitlist_enabled" | "registration_deadline"
   | "price_min" | "price_max" | "currency" | "status" | "cancel_reason" | "organiser_id" | "source" | "source_url" | "published_at"
+  | "series_key" | "series_label"
 > & {
   organiser: Pick<Organiser, "id" | "slug" | "name" | "logo_url" | "is_verified" | "kind"> | null;
   category: Pick<Category, "id" | "slug" | "name" | "group"> | null;
@@ -42,6 +43,8 @@ export type MyRegistration = Pick<Registration, "id" | "status" | "ticket_type_i
   status: RegistrationStatus;
 };
 
+export type SeriesDate = Pick<OrbitEvent, "id" | "starts_at" | "ends_at" | "timezone">;
+
 export type EventPageData = {
   event: EventDetail;
   userId: string | null;
@@ -54,16 +57,25 @@ export type EventPageData = {
   saved: boolean;
   externalRegistered: boolean;
   canManage: boolean;
+  /** Dates of the event's recurring series still to come, plus this one (null for a one-off). */
+  series: { label: string | null; dates: SeriesDate[] } | null;
   privateInfo: { online_url: string | null; guest_info: string | null } | null;
 };
 
 /** Everything the event page needs in one go. */
+/** The series' dates still to come, always including the one being viewed (it may have ended). */
+function seriesFor(event: EventDetail, rows: SeriesDate[]): EventPageData["series"] {
+  const now = new Date();
+  const dates = rows.filter((d) => d.id === event.id || !hasEnded(d, now));
+  return dates.length > 1 || event.series_label ? { label: event.series_label, dates } : null;
+}
+
 export async function getEventPageData(id: string): Promise<EventPageData | null> {
   const [event, user] = await Promise.all([getEvent(id), getCurrentUser()]);
   if (!event) return null;
   const supabase = await createClient();
 
-  const [countsRes, availabilityRes, ticketsRes, questionsRes, regRes, marksRes, manageRes] = await Promise.all([
+  const [countsRes, availabilityRes, ticketsRes, questionsRes, regRes, marksRes, manageRes, seriesRes] = await Promise.all([
     supabase.rpc("event_counts", { event_ids: [event.id] }),
     supabase.rpc("ticket_availability", { p_event_id: event.id }),
     supabase.from("ticket_types").select("id, name, description, price, currency, quantity, sales_end_at, sort_order")
@@ -78,6 +90,11 @@ export async function getEventPageData(id: string): Promise<EventPageData | null
       ? supabase.from("user_events").select("kind").eq("event_id", event.id).eq("user_id", user.id)
       : Promise.resolve({ data: [] }),
     user ? supabase.rpc("can_manage_event", { ev: event.id }) : Promise.resolve({ data: false }),
+    event.series_key
+      ? supabase.from("events").select("id, starts_at, ends_at, timezone")
+        .eq("series_key", event.series_key).eq("status", "published").is("duplicate_of", null)
+        .order("starts_at").limit(40)
+      : Promise.resolve({ data: null }),
   ]);
 
   const countRow = ((countsRes.data ?? []) as ({ event_id: string } & EventCounts)[])[0];
@@ -121,6 +138,7 @@ export async function getEventPageData(id: string): Promise<EventPageData | null
     externalRegistered: marks.has("external_registered"),
     canManage: manageRes.data === true,
     privateInfo,
+    series: event.series_key ? seriesFor(event, (seriesRes.data ?? []) as SeriesDate[]) : null,
   };
 }
 

@@ -56,6 +56,9 @@ export type SourceRun = {
   errors: RunError[];
 };
 
+/** A platform's own label for an event and how much it counts toward an interest (see interests.ts). */
+export type InterestHint = { label: string; weight: number };
+
 /** One event as a connector hands it to the sync engine, already cleaned up. */
 export type NormalizedEvent = {
   /** Stable id within the source (iCal UID, plus the occurrence for recurring events). */
@@ -78,6 +81,12 @@ export type NormalizedEvent = {
   url: string | null;
   /** The source says this event was cancelled. ORBIT never auto-cancels — it flags for review. */
   cancelled: boolean;
+  /** Shared by every date of one recurring series; each date is still its own event. */
+  seriesKey?: string | null;
+  /** How the series repeats, in the source's words ("Every week on Wednesday until …"). */
+  seriesLabel?: string | null;
+  /** What the platform says the event is about (Luma categories, Meetup group category/topics). */
+  interestHints?: InterestHint[];
 };
 
 export type ConnectorResult = {

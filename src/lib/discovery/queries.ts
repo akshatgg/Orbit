@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { datePresetRange } from "./dates";
 import type { SearchFilters } from "./filters";
 import { interestTags } from "@/lib/taxonomy";
+import { nextOfEachSeries } from "@/lib/events/series";
 
 /** Card columns plus what ranking needs to judge "full without a waitlist". */
 const DISCOVERY_SELECT = `${EVENT_CARD_SELECT}, waitlist_enabled`;
@@ -57,7 +58,8 @@ export async function listCandidates({ to, now, limit = 200 }: { to: Date; now: 
     .order("starts_at", { ascending: true })
     .limit(limit);
   if (error) throw error;
-  return (await withCounts((data ?? []) as unknown as DiscoveryEvent[])) as DiscoveryEvent[];
+  // A recurring series shows only its next date; the event page lists the rest.
+  return (await withCounts(nextOfEachSeries((data ?? []) as unknown as DiscoveryEvent[]))) as DiscoveryEvent[];
 }
 
 /** The personalised feed: ranked events in the next `days` days. */
@@ -133,7 +135,7 @@ export async function searchEvents(
     rows = (data ?? []) as unknown as DiscoveryEvent[];
   }
 
-  const withC = (await withCounts(rows)) as DiscoveryEvent[];
+  const withC = (await withCounts(nextOfEachSeries(rows))) as DiscoveryEvent[];
   const ranked = rankEvents(
     withC,
     viewer.profile,

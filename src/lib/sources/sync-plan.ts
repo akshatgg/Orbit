@@ -6,7 +6,7 @@ import { sourceKey } from "./types";
 
 /** Columns of events that a sync reads for one source. */
 export const EXISTING_EVENT_SELECT =
-  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, city, latitude, longitude, registration_mode, external_url, source_url, status, needs_review, last_verified_at";
+  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, city, latitude, longitude, registration_mode, external_url, source_url, series_key, series_label, status, needs_review, last_verified_at";
 
 export type ExistingSourceEvent = {
   id: string;
@@ -26,6 +26,8 @@ export type ExistingSourceEvent = {
   registration_mode: RegistrationMode;
   external_url: string | null;
   source_url: string | null;
+  series_key: string | null;
+  series_label: string | null;
   status: string;
   needs_review: boolean;
   last_verified_at: string;
@@ -48,6 +50,8 @@ export type SyncedFields = {
   registration_mode?: RegistrationMode;
   external_url?: string | null;
   source_url: string | null;
+  series_key: string | null;
+  series_label: string | null;
 };
 
 /** Label on the "register" button of imported events, by source kind. */
@@ -98,6 +102,8 @@ export function syncedFields(event: NormalizedEvent, feedUrl: string): SyncedFie
     registration_mode: event.url ? "external" : "none",
     external_url: event.url,
     source_url: provenanceUrl(event, feedUrl),
+    series_key: event.seriesKey ?? null,
+    series_label: event.seriesLabel ?? null,
   };
 }
 
@@ -156,7 +162,8 @@ export function changedFields(
 
 export type SyncPlan = {
   inserts: NormalizedEvent[];
-  updates: { id: string; sourceEventId: string; patch: Partial<SyncedFields> }[];
+  /** `source_event_id` is only in a patch when a series date was re-keyed (see planSync). */
+  updates: { id: string; sourceEventId: string; patch: Partial<SyncedFields> & { source_event_id?: string } }[];
   unchanged: string[];
   /** Upcoming events no longer in the feed, or cancelled at the source → needs_review. */
   flagged: { id: string; reason: "missing" | "cancelled" }[];
@@ -183,6 +190,16 @@ export function planSync(
   const plan: SyncPlan = { inserts: [], updates: [], unchanged: [], flagged: [] };
   const byId = new Map(existing.filter((e) => e.source_event_id).map((e) => [e.source_event_id!, e]));
   const seenIds = new Set<string>();
+  // A series date can change id upstream (Meetup gives unannounced dates a temporary id and a
+  // numeric one later). Same series + same start is the same date: re-key it instead of
+  // inserting a copy and flagging the old row as missing.
+  const incomingIds = new Set(incoming.map((e) => e.sourceEventId));
+  const seriesDate = (key: string, startsAt: string) => `${key}|${new Date(startsAt).getTime()}`;
+  const bySeriesDate = new Map(
+    existing
+      .filter((e) => e.series_key && e.source_event_id && !incomingIds.has(e.source_event_id))
+      .map((e) => [seriesDate(e.series_key!, e.starts_at), e]),
+  );
 
   const wasSeenLastRun = (e: ExistingSourceEvent) =>
     !previousRunStartedAt || new Date(e.last_verified_at).getTime() >= previousRunStartedAt.getTime();
@@ -193,7 +210,16 @@ export function planSync(
   for (const event of incoming) {
     if (seenIds.has(event.sourceEventId)) continue;
     seenIds.add(event.sourceEventId);
-    const current = byId.get(event.sourceEventId);
+    let current = byId.get(event.sourceEventId);
+    let rekeyed = false;
+    if (!current && event.seriesKey) {
+      current = bySeriesDate.get(seriesDate(event.seriesKey, event.startsAt));
+      if (current) {
+        rekeyed = true;
+        seenIds.add(current.source_event_id!);
+        bySeriesDate.delete(seriesDate(event.seriesKey, event.startsAt));
+      }
+    }
     if (event.cancelled) {
       if (current) flag(current, "cancelled");
       continue;
@@ -202,7 +228,8 @@ export function planSync(
       plan.inserts.push(event);
       continue;
     }
-    const patch = changedFields(current, syncedFields(event, feedUrl), skip);
+    const patch: SyncPlan["updates"][number]["patch"] = changedFields(current, syncedFields(event, feedUrl), skip);
+    if (rekeyed) patch.source_event_id = event.sourceEventId;
     if (Object.keys(patch).length) plan.updates.push({ id: current.id, sourceEventId: event.sourceEventId, patch });
     else plan.unchanged.push(current.id);
   }

@@ -3,6 +3,7 @@ import type { RegistrationStatus } from "@/types/database";
 import type { EventCardData } from "@/lib/events/queries";
 import { spotsLeft, type EventCounts } from "@/lib/events/spots";
 import { FORMAT_LABELS, formatDeadline, formatEventDate, formatPrice } from "@/lib/format";
+import { seriesHint } from "@/lib/events/series";
 import { Badge, VerifiedMark } from "@/components/ui/Badge";
 import { EventCover } from "./EventCover";
 import { RegistrationBadge } from "./RegistrationBadge";
@@ -35,7 +36,7 @@ export function EventCard({ event, counts, saved, registration, reason, actions,
           <EventCover src={event.cover_url} title={event.title} />
         </div>
         <div className={`min-w-0 flex-1 pr-8 ${tile ? "md:p-4 md:pr-4" : ""}`}>
-          <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}</p>
+          <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}{seriesHint(event)}</p>
           <h3 className={`mt-0.5 line-clamp-2 font-semibold leading-snug tracking-tight ${cancelled ? "text-muted line-through" : ""}`}>
             {event.title}
           </h3>

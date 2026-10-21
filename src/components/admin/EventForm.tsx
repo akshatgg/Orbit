@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Field, FormMessage, Input, Select, Textarea } from "@/components/ui/Field";
+import { InterestTagsField } from "./InterestTagsField";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { buttonClass } from "@/components/ui/Button";
 import type { EventFormState } from "@/app/admin/events/actions";
@@ -58,9 +59,13 @@ export function EventForm({ action, values = {}, organisers, categories, submitL
             </Select>
           </Field>
         </div>
-        <Field label="Tags" htmlFor="f-tags" error={err("tags")} hint="Comma or semicolon separated, e.g. finance, networking">
-          <Input {...common("tags")} defaultValue={(values.tags ?? []).join(", ")} />
-        </Field>
+        <InterestTagsField
+          name="tags"
+          label="Interests & tags"
+          defaultValue={values.tags ?? []}
+          error={err("tags") ?? undefined}
+          hint="changing these locks them: automatic interest tagging won't add to this event again."
+        />
       </Card>
 
       <Card title="When & where">

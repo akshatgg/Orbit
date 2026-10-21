@@ -111,6 +111,10 @@ const CAREER_PHRASE: Record<string, string> = {
   "public-sector": "policy",
   law: "law",
   creative: "the creative industries",
+  ai: "AI",
+  crypto: "crypto & web3",
+  careers: "career growth",
+  science: "science & research",
 };
 
 const PERSONAL_PHRASE: Record<string, string> = {
@@ -124,10 +128,15 @@ const PERSONAL_PHRASE: Record<string, string> = {
   wellbeing: "wellbeing",
   volunteering: "volunteering",
   gaming: "gaming",
+  books: "books & writing",
+  growth: "personal growth",
+  hobbies: "hobbies & crafts",
 };
 
 /** Category slugs that imply an interest even when the organiser didn't tag it. */
 const CATEGORY_TOPICS: Record<string, string[]> = {
+  "careers-fair": ["careers"],
+  "employer-presentation": ["careers"],
   fitness: ["fitness"],
   social: ["socialising"],
   networking: ["socialising"],

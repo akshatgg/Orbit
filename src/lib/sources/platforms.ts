@@ -150,7 +150,8 @@ export function cleanEvent(kind: SourceKind, event: NormalizedEvent): Normalized
 }
 
 const MEETUP_PAGE_HOSTS = new Set(["meetup.com", "www.meetup.com"]);
-const MEETUP_EVENT_PATH = /\/events\/\d+\/?$/;
+// Numeric ids, or the lowercase-letter ids Meetup gives unannounced dates of a series.
+const MEETUP_EVENT_PATH = /\/events\/(?:\d+|[a-z]{10,})\/?$/;
 
 /** The Meetup event page to read for location details, or null when it isn't one. */
 export function meetupPageUrl(event: { source_event_id: string | null; external_url: string | null }): string | null {

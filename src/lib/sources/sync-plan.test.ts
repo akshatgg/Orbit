@@ -46,6 +46,8 @@ const existingFrom = (n: NormalizedEvent, over: Partial<ExistingSourceEvent> = {
     registration_mode: f.registration_mode!,
     external_url: f.external_url ?? null,
     source_url: f.source_url,
+    series_key: f.series_key,
+    series_label: f.series_label,
     status: "published",
     needs_review: false,
     last_verified_at: "2026-10-15T03:00:00+00:00",
@@ -203,5 +205,38 @@ describe("luma sources", () => {
     expect(patch).toEqual({ title: "New title" });
     expect(Object.keys(patch)).not.toContain("cover_url");
     expect(Object.keys(patch)).not.toContain("price_min");
+  });
+});
+
+describe("planSync: recurring series", () => {
+  const series = { seriesKey: "meetup:group:weekly referral", seriesLabel: "Every week on Wednesday" };
+  const temp = incoming("event_fbrkztyjcpbgb@meetup.com", { ...series, startsAt: "2026-11-04T11:30:00.000Z", endsAt: "2026-11-04T12:30:00.000Z" });
+
+  it("re-keys a date whose Meetup id changed (same series, same start) instead of inserting a copy", () => {
+    const announced = { ...temp, sourceEventId: "event_317000001@meetup.com", url: "https://example.com/event_317000001@meetup.com" };
+    const plan = planSync([existingFrom(temp)], [announced], { now: NOW, feedUrl: FEED, previousRunStartedAt });
+    expect(plan.inserts).toEqual([]);
+    expect(plan.flagged).toEqual([]);
+    expect(plan.updates).toEqual([
+      {
+        id: "db-event_fbrkztyjcpbgb@meetup.com",
+        sourceEventId: "event_317000001@meetup.com",
+        patch: { external_url: announced.url, source_url: announced.url, source_event_id: "event_317000001@meetup.com" },
+      },
+    ]);
+  });
+
+  it("treats a different start as a different date", () => {
+    const moved = { ...temp, sourceEventId: "event_317000001@meetup.com", startsAt: "2026-11-05T11:30:00.000Z" };
+    const plan = planSync([existingFrom(temp)], [moved], { now: NOW, feedUrl: FEED, previousRunStartedAt });
+    expect(plan.inserts.map((e) => e.sourceEventId)).toEqual(["event_317000001@meetup.com"]);
+    expect(plan.flagged).toEqual([{ id: "db-event_fbrkztyjcpbgb@meetup.com", reason: "missing" }]);
+  });
+
+  it("stores the series key and label on new dates and keeps them in sync", () => {
+    expect(syncedFields(temp, FEED)).toMatchObject({ series_key: series.seriesKey, series_label: series.seriesLabel });
+    const relabelled = { ...temp, seriesLabel: "Every week on Wednesday until January 14, 2027" };
+    const plan = planSync([existingFrom(temp)], [relabelled], { now: NOW, feedUrl: FEED, previousRunStartedAt });
+    expect(plan.updates[0].patch).toEqual({ series_label: relabelled.seriesLabel });
   });
 });

@@ -118,6 +118,14 @@ describe("lumaMirrorDescription", () => {
     );
   });
 
+  it("reads Luma's own categories as strong interest hints", () => {
+    const html = withDoc({ type: "doc", content: [] }).replace('"description_mirror"', '"categories":[{"api_id":"cat-tech","name":"Tech"},{"api_id":"cat-ai","name":"AI"}],"description_mirror"');
+    expect(parseLumaEventPage(`${ld({ "@type": "Event", name: "x", startDate: "2026-11-01T10:00:00Z" })}${html}`)?.interestHints).toEqual([
+      { label: "Tech", weight: 3 },
+      { label: "AI", weight: 3 },
+    ]);
+  });
+
   it("falls back to the JSON-LD description without page data", () => {
     expect(lumaMirrorDescription("<html></html>")).toBeNull();
     expect(lumaMirrorDescription(withDoc({ type: "not-a-doc" }))).toBeNull();

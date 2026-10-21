@@ -16,6 +16,7 @@ import { STATUS_COPY, hasEnded, isActiveStatus, mapsUrl, paragraphs, safeHttpUrl
 import { LocationMap } from "@/components/tickets/LocationMap";
 import { getEvent, getEventPageData, type EventPageData } from "@/lib/tickets/queries";
 import { EventCover } from "@/components/events/EventCover";
+import { seriesDayLabel } from "@/lib/events/series";
 import { RegistrationBadge } from "@/components/events/RegistrationBadge";
 import { SaveButton } from "@/components/events/SaveButton";
 import { Avatar } from "@/components/ui/Avatar";
@@ -80,6 +81,7 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
   const signedIn = !!userId;
   const now = new Date();
   const ended = hasEnded(event, now);
+  const nextInSeries = data.series?.dates.find((d) => d.id !== event.id && new Date(d.starts_at) > new Date(event.starts_at) && !hasEnded(d, now));
   const cancelled = event.status === "cancelled";
   const cta = selectCta({ event, registrationStatus: registration?.status ?? null, tickets, questionCount: questions.length, now });
   const price = formatPrice(event.price_min, event.price_max, event.currency);
@@ -150,7 +152,21 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
             {event.cancel_reason ?? "The organiser cancelled this event."}
           </Banner>
         )}
-        {!cancelled && ended && <Banner tone="neutral" icon="clock" title="This event has ended">Hope it was a good one.</Banner>}
+        {!cancelled && ended && (
+          <Banner tone="neutral" icon="clock" title="This event has ended">
+            {nextInSeries ? (
+              <>
+                It runs again:{" "}
+                <Link href={`/events/${nextInSeries.id}`} className="font-medium text-accent underline underline-offset-2">
+                  {seriesDayLabel(nextInSeries.starts_at, nextInSeries.timezone)}
+                </Link>
+                .
+              </>
+            ) : (
+              "Hope it was a good one."
+            )}
+          </Banner>
+        )}
         {event.status !== "published" && event.status !== "cancelled" && canManage && (
           <Banner tone="warning" icon="info" title={event.status === "draft" ? "Draft preview" : `Preview · ${event.status}`}>
             Only your team can see this page until the event is published.
@@ -169,6 +185,33 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
           </h1>
           {event.summary && <p className="mt-2 text-[15px] leading-relaxed text-muted">{event.summary}</p>}
         </header>
+
+        {/* Recurring series: every date is its own event; chips open the others (like Meetup). */}
+        {data.series && (
+          <section aria-label="Dates in this series" className="space-y-2.5">
+            {data.series.label && <p className="text-sm text-muted">{data.series.label}</p>}
+            {/* Chips wrap onto more lines, so no date is ever cut off at any width. */}
+            {data.series.dates.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                {data.series.dates.map((d) =>
+                  d.id === event.id ? (
+                    <span key={d.id} aria-current="page" className="shrink-0 rounded-full bg-gradient px-3.5 py-1.5 text-[13px] font-semibold text-bg">
+                      {seriesDayLabel(d.starts_at, d.timezone)}
+                    </span>
+                  ) : (
+                    <Link
+                      key={d.id}
+                      href={`/events/${d.id}`}
+                      className="shrink-0 rounded-full border border-ink/10 bg-ink/[0.045] px-3.5 py-1.5 text-[13px] font-medium text-fg transition hover:border-ink/20 hover:bg-ink/[0.08]"
+                    >
+                      {seriesDayLabel(d.starts_at, d.timezone)}
+                    </Link>
+                  ),
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Organiser */}
         {event.organiser && (

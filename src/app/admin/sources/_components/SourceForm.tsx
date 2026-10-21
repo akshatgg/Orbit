@@ -6,6 +6,7 @@ import { buttonClass } from "@/components/ui/Button";
 import { Field, FormMessage, Input, Select, Textarea } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { SOURCE_KINDS, SOURCE_KIND_LABELS, type EventSource, type SourceKind } from "@/lib/sources/types";
+import { InterestTagsField } from "@/components/admin/InterestTagsField";
 import { saveSource } from "../actions";
 
 type Option = { id: string; name: string };
@@ -93,9 +94,12 @@ export function SourceForm({ source, organisers, categories }: {
             </Select>
           </Field>
         </div>
-        <Field label="Tags" htmlFor="default_tags" hint="Comma separated, up to 10 — added to every imported event.">
-          <Input id="default_tags" name="default_tags" placeholder="careers, consulting" defaultValue={source?.default_tags.join(", ") ?? ""} />
-        </Field>
+        <InterestTagsField
+          name="default_tags"
+          label="Interests & tags"
+          defaultValue={source?.default_tags ?? []}
+          hint="added to every event from this link, on top of the interests ORBIT detects."
+        />
         <label className="flex items-start gap-3 rounded-[14px] border border-line bg-ink/[0.03] p-3.5 text-sm">
           <input
             type="checkbox"

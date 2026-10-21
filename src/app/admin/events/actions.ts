@@ -185,14 +185,17 @@ export async function saveEvent(eventId: string | null, _prev: EventFormState, f
 
   if (eventId) {
     if (!id.safeParse(eventId).success) return { error: "Invalid event" };
-    const { data: existing } = await supabase.from("events").select("registration_mode").eq("id", eventId).maybeSingle();
+    const { data: existing } = await supabase.from("events").select("registration_mode, tags").eq("id", eventId).maybeSingle();
     if (!existing) return { error: "Event not found" };
     if (existing.registration_mode === "tickets") {
       return { error: "This event sells ORBIT tickets — edit it from the organiser's event page" };
     }
+    // Tags edited by hand are final: syncs stop adding interests, so a removed one stays removed.
+    const before = [...((existing.tags as string[] | null) ?? [])].sort().join("\n");
+    const tagsEdited = before !== [...values.tags].sort().join("\n");
     const { error } = await supabase
       .from("events")
-      .update({ ...values, last_verified_at: new Date().toISOString() })
+      .update({ ...values, ...(tagsEdited ? { tags_locked: true } : {}), last_verified_at: new Date().toISOString() })
       .eq("id", eventId);
     if (error) return { error: friendlyDbError(error) };
     await logAdminAction(supabase, "event.update", "event", eventId, { title: values.title });

@@ -54,6 +54,8 @@ function ev(over: Partial<RankableEvent> = {}): RankableEvent {
     source_url: null,
     published_at: null,
     created_at: "2026-10-01T00:00:00Z",
+    series_key: null,
+    series_label: null,
     organiser: { id: "org-other", slug: "other", name: "Other Org", logo_url: null, is_verified: false, kind: "society" },
     category: null,
     ...over,

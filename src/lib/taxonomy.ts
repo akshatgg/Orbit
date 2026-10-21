@@ -13,6 +13,10 @@ export const CAREER_INTERESTS = [
   { value: "public-sector", label: "Public sector & policy" },
   { value: "law", label: "Law" },
   { value: "creative", label: "Creative industries" },
+  { value: "ai", label: "AI" },
+  { value: "crypto", label: "Crypto & Web3" },
+  { value: "careers", label: "Career growth" },
+  { value: "science", label: "Science & research" },
 ] as const;
 
 export const PERSONAL_INTERESTS = [
@@ -26,6 +30,9 @@ export const PERSONAL_INTERESTS = [
   { value: "wellbeing", label: "Wellbeing" },
   { value: "volunteering", label: "Volunteering" },
   { value: "gaming", label: "Gaming" },
+  { value: "books", label: "Books & writing" },
+  { value: "growth", label: "Personal growth" },
+  { value: "hobbies", label: "Hobbies & crafts" },
 ] as const;
 
 /** Every interest once (sustainability is in both lists): what events are tagged with and filtered by. */
@@ -36,6 +43,15 @@ export const ALL_INTERESTS = [...CAREER_INTERESTS, ...PERSONAL_INTERESTS].filter
 /** Free-text tags that mean the same thing as an interest value. */
 export const TAG_SYNONYMS: Record<string, string> = {
   tech: "technology",
+  "artificial intelligence": "ai",
+  "machine learning": "ai",
+  web3: "crypto",
+  blockchain: "crypto",
+  career: "careers",
+  jobs: "careers",
+  reading: "books",
+  "book club": "books",
+  writing: "books",
   startups: "entrepreneurship",
   startup: "entrepreneurship",
   banking: "finance",

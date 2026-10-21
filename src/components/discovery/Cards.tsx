@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { RegistrationStatus } from "@/types/database";
 import { type EventCardData, type EventCounts } from "@/lib/events/queries";
 import { FORMAT_LABELS, formatDeadline, formatEventDate, formatPrice } from "@/lib/format";
+import { seriesHint } from "@/lib/events/series";
 import { Avatar } from "@/components/ui/Avatar";
 import { reasonSegments, reasonTag } from "@/lib/discovery/feed-display";
 import { EventCard } from "@/components/events/EventCard";
@@ -78,7 +79,7 @@ export function HeroCard({ event, counts, saved, reason, dismissible }: CardProp
             <p className="text-[13px] text-white/75 light:hidden">{formatHeroDate(event.starts_at)}</p>
             <h2 className="mt-1 mb-2.5 line-clamp-3 text-[22px] font-semibold leading-tight tracking-tight lg:text-[28px] light:mb-1.5 light:mt-2 light:text-xl light:font-bold">{event.title}</h2>
             <p className="mb-3 hidden text-[13px] text-muted light:block">
-              {formatEventDate(event.starts_at)} · {venueLabel(event)}
+              {formatEventDate(event.starts_at)}{seriesHint(event)} · {venueLabel(event)}
             </p>
             <div className="flex items-center gap-2.5 light:justify-between">
               <div className="flex min-w-0 flex-1 items-center gap-2.5 light:hidden">
@@ -159,7 +160,7 @@ export function FeedRow({ event, dismissible }: { event: EventCardData; dismissi
           <span className="block text-[11.5px] font-normal text-muted">{rowTime.format(start)}</span>
         </div>
         <div className="min-w-0 flex-1 pr-7 light:pr-5">
-          <p className="text-xs font-medium text-accent light:hidden">{formatEventDate(event.starts_at)}</p>
+          <p className="text-xs font-medium text-accent light:hidden">{formatEventDate(event.starts_at)}{seriesHint(event)}</p>
           <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-tight">{event.title}</h3>
           <p className="mt-0.5 truncate text-[12.5px] text-muted">
             {meta}
@@ -194,7 +195,7 @@ export function PickCard({ event, counts, saved, reason, rank }: CardProps & { r
           </span>
         </div>
         <div className="space-y-1.5 p-3.5">
-          <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}</p>
+          <p className="text-xs font-medium text-accent">{formatEventDate(event.starts_at)}{seriesHint(event)}</p>
           <h3 className="line-clamp-2 min-h-[2.5rem] font-semibold leading-snug tracking-tight">{event.title}</h3>
           <p className="truncate text-xs text-muted">
             {event.organiser?.name ?? venueLabel(event)}

@@ -9,7 +9,7 @@ import { ENRICH_BUDGET_MS, RUN_ENRICH_DEADLINE_MS, type EnrichRunState } from ".
 import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
 import { withInterests } from "./interests";
 import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
-import { sourceKey, type EventSource, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
+import { sourceKey, type EventSource, type InterestHint, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
 
 // Trusted server code only: callers must have checked CRON_SECRET or requireAdmin() first.
 
@@ -37,26 +37,39 @@ async function selectAll<T>(build: (from: number, to: number) => PromiseLike<{ d
   }
 }
 
-type TaggableEvent = { id: string; title: string; summary: string | null; description: string | null; tags: string[] | null };
+type TaggableEvent = {
+  id: string; source_event_id: string | null; title: string; summary: string | null; description: string | null;
+  tags: string[] | null; tags_locked: boolean;
+};
 
 /**
- * Adds the interests each of this source's events is about to its tags (the Interest filter and
- * For-you ranking match on them). Runs every sync, so new events, events whose text changed and
- * events imported before this existed all get tagged. Only adds — tags are never removed.
+ * Adds the source's own tags (what the admin picked for this link) and the interests each event is
+ * about to its tags; the Interest filter and For-you ranking match on them. Interests come from the
+ * event's text plus what the platform says about it (`hints`, from this run's fetch). Runs every
+ * sync, so new events, changed events and older imports all get tagged. Only adds, and never
+ * touches an event whose tags an admin edited by hand.
  * Never throws: a tagging failure is recorded and the sync carries on.
  */
-async function tagInterests(db: SupabaseClient, key: string, errors: RunError[]) {
+async function tagInterests(
+  db: SupabaseClient,
+  key: string,
+  errors: RunError[],
+  { sourceTags, hints }: { sourceTags: readonly string[]; hints: ReadonlyMap<string, InterestHint[]> },
+) {
   let events: TaggableEvent[];
   try {
     events = await selectAll<TaggableEvent>((from, to) =>
-      db.from("events").select("id, title, summary, description, tags").eq("source", key).order("id").range(from, to),
+      db.from("events").select("id, source_event_id, title, summary, description, tags, tags_locked").eq("source", key).order("id").range(from, to),
     );
   } catch (e) {
     errors.push({ message: `Couldn't load events to tag interests: ${message(e)}` });
     return;
   }
   for (const event of events) {
-    const tags = withInterests(event);
+    if (event.tags_locked) continue;
+    const current = event.tags ?? [];
+    const withSource = [...current, ...sourceTags.filter((t) => !current.includes(t))];
+    const tags = withInterests({ ...event, tags: withSource }, hints.get(event.source_event_id ?? "") ?? []);
     if (tags.length === (event.tags ?? []).length) continue;
     const { error } = await db.from("events").update({ tags }).eq("id", event.id).eq("source", key);
     if (error) errors.push({ event: event.id, message: `Couldn't tag interests: ${error.message}` });
@@ -169,7 +182,8 @@ export async function runSource(
       else summary.flaggedMissing += ids.length;
     }
 
-    await tagInterests(db, key, errors);
+    const hints = new Map(fetched.events.map((e) => [e.sourceEventId, e.interestHints ?? []]));
+    await tagInterests(db, key, errors, { sourceTags: source.default_tags, hints });
 
     if (source.kind === "luma" || source.kind === "luma-discover") {
       summary.enriched = await enrichLumaEvents(source, { db, now, errors, run });

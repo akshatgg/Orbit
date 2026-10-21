@@ -7,7 +7,8 @@
 import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
 import { firstJsonLdEvent } from "./jsonld";
 import { isValidTimezone } from "./timezone";
-import type { NormalizedEvent } from "./types";
+import { HINT_WEIGHT } from "./interests";
+import type { InterestHint, NormalizedEvent } from "./types";
 
 export type MeetupPageDetails = {
   venueName: string | null;
@@ -16,6 +17,7 @@ export type MeetupPageDetails = {
   latitude: number | null;
   longitude: number | null;
   coverUrl: string | null;
+  interestHints?: InterestHint[];
 };
 
 const IMAGE_HOSTS = new Set(["secure.meetupstatic.com", "secure-content.meetupstatic.com"]);
@@ -93,19 +95,41 @@ function findVenueState(html: string, name: string | null): VenueState | null {
     : null;
 }
 
-/**
- * The event's full description (Markdown) from the page's __NEXT_DATA__. The JSON-LD copy is cut
- * at about 155 characters, often mid-word and mid-`**bold**`.
- */
-function pageDescription(html: string): string | null {
+/** The event record in the page's __NEXT_DATA__ (`props.pageProps.event`). */
+function pageEvent(html: string): Record<string, unknown> | null {
   const raw = html.match(/<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i)?.[1];
   if (!raw) return null;
   try {
-    const description = JSON.parse(raw)?.props?.pageProps?.event?.description;
-    return typeof description === "string" && description.trim() ? description : null;
+    const event = JSON.parse(raw)?.props?.pageProps?.event;
+    return event && typeof event === "object" ? (event as Record<string, unknown>) : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * The event's full description (Markdown) from the page data. The JSON-LD copy is cut at about
+ * 155 characters, often mid-word and mid-`**bold**`.
+ */
+function pageDescription(page: Record<string, unknown> | null): string | null {
+  return typeof page?.description === "string" && page.description.trim() ? page.description : null;
+}
+
+/** The group's Meetup category (medium evidence) and topics (weak: they cover the whole group). */
+function pageHints(page: Record<string, unknown> | null): InterestHint[] {
+  const group = page?.group as { topicCategory?: { name?: unknown } | null; topics?: { name?: unknown }[] | null } | undefined;
+  const hints: InterestHint[] = [];
+  if (typeof group?.topicCategory?.name === "string") hints.push({ label: group.topicCategory.name, weight: HINT_WEIGHT.groupCategory });
+  for (const topic of Array.isArray(group?.topics) ? group.topics : []) {
+    if (typeof topic?.name === "string") hints.push({ label: topic.name, weight: HINT_WEIGHT.groupTopic });
+  }
+  return hints;
+}
+
+/** "Every week on Wednesday until …" when the event is one date of a recurring series. */
+function pageSeriesLabel(page: Record<string, unknown> | null): string | null {
+  const series = page?.series as { description?: unknown } | null | undefined;
+  return typeof series?.description === "string" ? orNull(clamp(oneLine(series.description), LIMITS.summary)) : null;
 }
 
 function validPoint(latitude: number | null, longitude: number | null) {
@@ -122,7 +146,9 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
   const event = firstJsonLdEvent(html);
   if (!event) return null;
 
-  const idMatch = pageUrl.match(/\/events\/(\d+)/) ?? (typeof event.url === "string" ? event.url.match(/\/events\/(\d+)/) : null);
+  // Unannounced dates of a series have a lowercase-letter id until Meetup gives them a number.
+  const idPattern = /\/events\/(\d+|[a-z]{10,})(?:\/|$)/;
+  const idMatch = pageUrl.match(idPattern) ?? (typeof event.url === "string" ? event.url.match(idPattern) : null);
   const eventId = idMatch?.[1];
   const title = clamp(oneLine(text(event.name) ?? ""), LIMITS.title);
   const starts = typeof event.startDate === "string" ? new Date(event.startDate) : null;
@@ -139,7 +165,8 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
 
   const organizer = Array.isArray(event.organizer) ? event.organizer[0] : event.organizer;
   const organizerName = organizer && typeof organizer === "object" ? text((organizer as Record<string, unknown>).name) : null;
-  const description = orNull(clamp(cleanProse(stripHtml(pageDescription(html) ?? text(event.description) ?? ""), { keepEmphasis: true }), LIMITS.description));
+  const page = pageEvent(html);
+  const description = orNull(clamp(cleanProse(stripHtml(pageDescription(page) ?? text(event.description) ?? ""), { keepEmphasis: true }), LIMITS.description));
   const mode = text(event.eventAttendanceMode) ?? "";
   const status = text(event.eventStatus) ?? "";
 
@@ -160,6 +187,8 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
     longitude: point?.longitude ?? null,
     url,
     cancelled: status.includes("Cancelled"),
+    seriesLabel: pageSeriesLabel(page),
+    interestHints: pageHints(page),
   };
 }
 
@@ -176,8 +205,9 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
   const city = state?.city ?? text(address?.addressLocality);
   const point = validPoint(state?.latitude ?? null, state?.longitude ?? null);
   const coverUrl = coverImage(html);
+  const interestHints = pageHints(pageEvent(html));
 
-  if (!venueName && !street && !city && !point && !coverUrl) return null;
+  if (!venueName && !street && !city && !point && !coverUrl && interestHints.length === 0) return null;
 
   return {
     venueName: orNull(clamp(decodeEntities(venueName ?? ""), LIMITS.venue)),
@@ -186,5 +216,6 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
     coverUrl,
+    interestHints,
   };
 }
