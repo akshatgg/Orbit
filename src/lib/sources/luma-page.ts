@@ -246,6 +246,7 @@ export function parseLumaLinkedEvent(html: string, pageUrl: string): NormalizedE
     url,
     cancelled: status.includes("Cancelled"),
     interestHints: lumaHints(html),
+    imageUrl: (Array.isArray(event.image) ? event.image : [event.image]).map(safeImage).find((u): u is string => u !== null) ?? ogImage(html),
   };
 }
 

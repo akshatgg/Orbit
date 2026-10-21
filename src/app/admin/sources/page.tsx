@@ -4,7 +4,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { AdminHeader, Empty, TableSkeleton, table } from "@/components/admin/primitives";
-import { IconPlus } from "@/components/admin/icons";
+import { IconCheck, IconExternal, IconEyeOff, IconPencil, IconPlay, IconPlus, IconTrash } from "@/components/admin/icons";
+import { MenuLink, MenuSeparator, RowMenu } from "@/components/admin/RowMenu";
 import {
   eventCountsBySource, latestRunBySource, listHiddenDuplicates, listImportedEvents, listRecentRuns, listReviewQueue, listSources, sourceLabels,
   type SourceWithDefaults,
@@ -35,39 +36,48 @@ const runSummary = (run: SourceRun | undefined) =>
     ? `${run.found} found · ${run.inserted} new · ${run.updated} updated · ${run.unchanged} same${run.flagged_missing ? ` · ${run.flagged_missing} flagged` : ""}${run.enriched ? ` · ${run.enriched} with details` : ""}`
     : "—";
 
-/** Per-feed actions. Kept compact so a card never turns into a wall of full-width buttons. */
+/**
+ * Per-feed actions: Run now stays visible (it's the one used daily); edit, enable/disable and
+ * delete sit in the ⋯ menu so a row never turns into a wall of buttons.
+ */
 function SourceActions({ source, align = "end", className = "" }: {
   source: SourceWithDefaults; align?: "start" | "end"; className?: string;
 }) {
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${align === "end" ? "justify-end" : "justify-start"} ${className}`}>
-      <ButtonLink href={`/admin/sources/${source.id}/edit`} variant="secondary" size="sm">Edit</ButtonLink>
-      <ActionButton action={runSourceNow} fields={{ id: source.id }} pendingText="Running…" size="sm">Run now</ActionButton>
-      {source.enabled ? (
+    <div className={`flex items-start gap-1.5 ${align === "end" ? "justify-end" : "justify-start"} ${className}`}>
+      <ActionButton action={runSourceNow} fields={{ id: source.id }} pendingText="Running…" size="sm" resultClassName="max-w-40">
+        <IconPlay size={13} /> Run now
+      </ActionButton>
+      <RowMenu label={`More actions for ${source.name}`}>
+        <MenuLink href={`/admin/sources/${source.id}/edit`}><IconPencil size={15} /> Edit</MenuLink>
+        <MenuLink href={source.url} external><IconExternal size={15} /> Open feed link</MenuLink>
+        <MenuSeparator />
+        {source.enabled ? (
+          <ActionButton
+            menuItem action={setSourceEnabled} fields={{ id: source.id, enabled: "false" }}
+            confirm={{ title: `Disable ${source.name}?`, body: "It won't refresh any more. Its events stay in ORBIT.", confirmLabel: "Disable" }}
+          ><IconEyeOff size={15} /> Disable</ActionButton>
+        ) : (
+          <ActionButton
+            menuItem action={setSourceEnabled} fields={{ id: source.id, enabled: "true" }}
+            confirm={{ title: `Enable ${source.name}?`, body: "It will be fetched every night. Only enable feeds you have permission to use.", confirmLabel: "Enable" }}
+          ><IconCheck size={15} /> Enable</ActionButton>
+        )}
         <ActionButton
-          action={setSourceEnabled} fields={{ id: source.id, enabled: "false" }} variant="ghost" size="sm"
-          confirm={{ title: `Disable ${source.name}?`, body: "It won't refresh any more. Its events stay in ORBIT.", confirmLabel: "Disable" }}
-        >Disable</ActionButton>
-      ) : (
-        <ActionButton
-          action={setSourceEnabled} fields={{ id: source.id, enabled: "true" }} variant="ghost" size="sm"
-          confirm={{ title: `Enable ${source.name}?`, body: "It will be fetched every night. Only enable feeds you have permission to use.", confirmLabel: "Enable" }}
-        >Enable</ActionButton>
-      )}
-      <ActionButton
-        action={deleteSource} fields={{ id: source.id }} variant="danger" pendingText="Deleting…" size="sm"
-        confirm={{
-          title: `Delete ${source.name}?`,
-          body: "The feed and its run history are removed. If you tick the box, its upcoming events are permanently deleted, including their registrations and tickets. This cannot be undone.",
-          confirmLabel: "Delete source",
-        }}
-        extra={
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="remove_events" className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]" />
-            Also permanently delete its upcoming events
-          </label>
-        }
-      >Delete</ActionButton>
+          menuItem action={deleteSource} fields={{ id: source.id }} variant="danger" pendingText="Deleting…"
+          confirm={{
+            title: `Delete ${source.name}?`,
+            body: "The feed and its run history are removed. If you tick the box, its upcoming events are permanently deleted, including their registrations and tickets. This cannot be undone.",
+            confirmLabel: "Delete source",
+          }}
+          extra={
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" name="remove_events" className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]" />
+              Also permanently delete its upcoming events
+            </label>
+          }
+        ><IconTrash size={15} /> Delete…</ActionButton>
+      </RowMenu>
     </div>
   );
 }
@@ -264,14 +274,14 @@ async function SourcesContent() {
                     const run = latest.get(s.id);
                     return (
                       <tr key={s.id} className={table.tr}>
-                        <td className={`${table.td} font-medium`}>
+                        <td className={`${table.td} min-w-40 font-medium`}>
                           <Link href={`/admin/sources/${s.id}/edit`} className="transition-colors hover:text-accent">{s.name}</Link>
                           {!s.permission_confirmed && <div className="mt-1"><Badge tone="warning">No permission recorded</Badge></div>}
                         </td>
                         <td className={table.td}><Badge tone="brand">{SOURCE_KIND_LABELS[s.kind]}</Badge></td>
                         <td className={`${table.td} text-muted`}><a href={s.url} className="transition-colors hover:text-fg" rel="noreferrer" target="_blank" title={s.url}>{host(s.url)}</a></td>
                         <td className={table.td}>{s.enabled ? <Badge tone="success">Enabled</Badge> : <Badge>Disabled</Badge>}</td>
-                        <td className={`${table.td} text-muted`}>
+                        <td className={`${table.td} whitespace-nowrap text-muted tabular-nums`}>
                           {when(s.last_run_at)}
                           {s.last_status && <div className="mt-1"><Badge tone={s.last_status === "ok" ? "success" : "danger"}>{s.last_status}</Badge></div>}
                         </td>
@@ -280,7 +290,7 @@ async function SourcesContent() {
                           {s.last_error && <p className="mt-1 max-w-xs break-words text-red-300">{s.last_error}</p>}
                         </td>
                         <td className={table.td}>{counts.get(s.id) ?? 0}</td>
-                        <td className={table.td}>
+                        <td className={`${table.td} w-px whitespace-nowrap`}>
                           <SourceActions source={s} />
                         </td>
                       </tr>

@@ -4,6 +4,7 @@
 // and the event page can list them all.
 
 import { FetchHttpError, USER_AGENT } from "./fetch";
+import { meetupImage } from "./meetup-page";
 import { MEETUP_SEARCH_GQL } from "./meetup-search";
 import { LIMITS, clamp, oneLine, orNull, safeHttpUrl } from "./text";
 import type { NormalizedEvent, RunError } from "./types";
@@ -17,12 +18,14 @@ const SERIES_QUERY = `query eventSeries($id: ID!) {
   event(id: $id) {
     series {
       description
-      events { edges { node { id dateTime endTime eventUrl status } } }
+      events { edges { node { id dateTime endTime eventUrl status featuredEventPhoto { highResUrl } } } }
     }
   }
 }`;
 
-export type MeetupSeriesDate = { id: string; startsAt: string; endsAt: string | null; url: string; cancelled: boolean };
+export type MeetupSeriesDate = {
+  id: string; startsAt: string; endsAt: string | null; url: string; cancelled: boolean; imageUrl?: string | null;
+};
 export type MeetupSeries = { label: string | null; dates: MeetupSeriesDate[] };
 
 type SeriesResponse = {
@@ -30,7 +33,14 @@ type SeriesResponse = {
     event?: {
       series?: {
         description?: unknown;
-        events?: { edges?: { node?: { id?: unknown; dateTime?: unknown; endTime?: unknown; eventUrl?: unknown; status?: unknown } }[] };
+        events?: {
+          edges?: {
+            node?: {
+              id?: unknown; dateTime?: unknown; endTime?: unknown; eventUrl?: unknown; status?: unknown;
+              featuredEventPhoto?: { highResUrl?: unknown } | null;
+            };
+          }[];
+        };
       } | null;
     } | null;
   };
@@ -53,7 +63,11 @@ export function parseMeetupSeriesResponse(json: SeriesResponse | null): MeetupSe
     const startsAt = isoOrNull(node?.dateTime);
     const url = safeHttpUrl(typeof node?.eventUrl === "string" ? node.eventUrl : null);
     if (!id || !/^[a-z0-9]+$/i.test(id) || !startsAt || !url) continue;
-    dates.push({ id, startsAt, endsAt: isoOrNull(node?.endTime), url, cancelled: node?.status === "CANCELLED" });
+    const photo = node?.featuredEventPhoto?.highResUrl;
+    dates.push({
+      id, startsAt, endsAt: isoOrNull(node?.endTime), url, cancelled: node?.status === "CANCELLED",
+      imageUrl: meetupImage(typeof photo === "string" ? photo : null),
+    });
   }
   const label = typeof series.description === "string" ? orNull(clamp(oneLine(series.description), LIMITS.summary)) : null;
   return { label, dates };
@@ -108,6 +122,7 @@ export function expandSeries(base: NormalizedEvent, series: MeetupSeries, now: D
     endsAt: d.endsAt,
     url: d.url,
     cancelled: d.cancelled,
+    imageUrl: d.imageUrl ?? base.imageUrl ?? null,
     seriesKey,
     seriesLabel,
   }));

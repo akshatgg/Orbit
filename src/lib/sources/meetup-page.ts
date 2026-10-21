@@ -22,6 +22,20 @@ export type MeetupPageDetails = {
 
 const IMAGE_HOSTS = new Set(["secure.meetupstatic.com", "secure-content.meetupstatic.com"]);
 
+/** A Meetup-hosted image URL (https on Meetup's image hosts), or null. */
+export function meetupImage(value: string | null | undefined): string | null {
+  return safeImage(value ?? undefined);
+}
+
+/** True for a cover still hotlinked from Meetup (not yet copied into ORBIT's Cloudinary). */
+export function isMeetupHostedImage(url: string | null | undefined): boolean {
+  try {
+    return !!url && IMAGE_HOSTS.has(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 function safeImage(value: string | undefined): string | null {
   if (!value) return null;
   try {
@@ -189,6 +203,7 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
     cancelled: status.includes("Cancelled"),
     seriesLabel: pageSeriesLabel(page),
     interestHints: pageHints(page),
+    imageUrl: coverImage(html),
   };
 }
 

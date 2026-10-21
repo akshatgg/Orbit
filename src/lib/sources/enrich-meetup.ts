@@ -7,7 +7,7 @@ import {
   type EnrichCandidate, type EnrichRunState,
 } from "./enrich-plan";
 import { FetchHttpError, fetchFeedText } from "./fetch";
-import { parseMeetupEventPage } from "./meetup-page";
+import { isMeetupHostedImage, parseMeetupEventPage } from "./meetup-page";
 import { meetupPageUrl } from "./platforms";
 import { sourceKey, type DetailsStatus, type EventSource, type RunError, type SourceEventDetails } from "./types";
 
@@ -59,8 +59,10 @@ export async function enrichMeetupEvents(
     const coversPossible = getCloudinaryConfig() !== null;
     // Every date of a series has the same poster: import it once and share ORBIT's copy.
     const seriesCover = new Map<string, string>();
-    for (const e of events) if (e.series_key && e.cover_url) seriesCover.set(e.series_key, e.cover_url);
-    const needsCover = (event: EnrichCandidate) => coversPossible && !!meetupPageUrl(event) && !event.cover_url;
+    for (const e of events) if (e.series_key && e.cover_url && !isMeetupHostedImage(e.cover_url)) seriesCover.set(e.series_key, e.cover_url);
+    // A cover still hotlinked from Meetup (set on import) is replaced by ORBIT's own copy.
+    const needsCover = (event: EnrichCandidate) =>
+      coversPossible && !!meetupPageUrl(event) && (!event.cover_url || isMeetupHostedImage(event.cover_url));
 
     const details = new Map<string, SourceEventDetails>();
     for (let i = 0; i < events.length; i += 200) {
@@ -143,7 +145,7 @@ export async function enrichMeetupEvents(
         if ((event.latitude == null || event.longitude == null) && page.latitude != null && page.longitude != null) {
           wrote = (await apply({ latitude: page.latitude, longitude: page.longitude }, "latitude", event.latitude)) || wrote;
         }
-        if (cover) wrote = (await apply({ cover_url: cover }, "cover_url", null)) || wrote;
+        if (cover) wrote = (await apply({ cover_url: cover }, "cover_url", event.cover_url)) || wrote;
         const tags = hintedTags(event, page.interestHints);
         if (tags) {
           const { error: tagError } = await db.from("events").update({ tags }).eq("id", event.id).eq("source", key).eq("tags_locked", false);
@@ -167,6 +169,18 @@ export async function enrichMeetupEvents(
         await record("failed", message(e));
         errors.push({ event: event.source_event_id ?? event.id, message: `Meetup page details: ${message(e)}` });
       }
+    }
+
+    // Every date of a series has the same poster: give dates still without one the series' cover
+    // now, instead of waiting for each date's own page read (only a few run per refresh).
+    for (const [seriesKey, cover] of seriesCover) {
+      const { error: shareError } = await db
+        .from("events")
+        .update({ cover_url: cover })
+        .eq("source", key)
+        .eq("series_key", seriesKey)
+        .or("cover_url.is.null,cover_url.like.https://secure.meetupstatic.com/*,cover_url.like.https://secure-content.meetupstatic.com/*");
+      if (shareError) errors.push({ message: `Couldn't share a series cover: ${shareError.message}` });
     }
   } catch (e) {
     errors.push({ message: `Meetup page details: ${message(e)}` });

@@ -87,6 +87,11 @@ export type NormalizedEvent = {
   seriesLabel?: string | null;
   /** What the platform says the event is about (Luma categories, Meetup group category/topics). */
   interestHints?: InterestHint[];
+  /**
+   * The platform's own image for the event (hosted by Meetup or Luma). Shown straight away; page
+   * reads later swap Meetup's for ORBIT's own copy.
+   */
+  imageUrl?: string | null;
 };
 
 export type ConnectorResult = {

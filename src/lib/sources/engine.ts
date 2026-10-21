@@ -10,7 +10,7 @@ import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
 import { withInterests } from "./interests";
 import { groupRepeats } from "./repeats";
 import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
-import { sourceKey, type EventSource, type InterestHint, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
+import { sourceKey, type EventSource, type InterestHint, type NormalizedEvent, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
 
 // Trusted server code only: callers must have checked CRON_SECRET or requireAdmin() first.
 
@@ -74,6 +74,31 @@ async function tagInterests(
     if (tags.length === (event.tags ?? []).length) continue;
     const { error } = await db.from("events").update({ tags }).eq("id", event.id).eq("source", key);
     if (error) errors.push({ event: event.id, message: `Couldn't tag interests: ${error.message}` });
+  }
+}
+
+/**
+ * Gives events without a cover the platform's own image from this fetch, so every event shows its
+ * poster straight away instead of waiting for its page to be read (only a few are read per run).
+ * Never replaces a cover that's set. Never throws: failures are recorded.
+ */
+async function fillCovers(db: SupabaseClient, key: string, events: readonly NormalizedEvent[], errors: RunError[]) {
+  const images = new Map(events.filter((e) => e.imageUrl).map((e) => [e.sourceEventId, e.imageUrl!]));
+  if (images.size === 0) return;
+  let bare: { id: string; source_event_id: string | null }[];
+  try {
+    bare = await selectAll<{ id: string; source_event_id: string | null }>((from, to) =>
+      db.from("events").select("id, source_event_id").eq("source", key).is("cover_url", null).order("id").range(from, to),
+    );
+  } catch (e) {
+    errors.push({ message: `Couldn't load events to add images: ${message(e)}` });
+    return;
+  }
+  for (const event of bare) {
+    const image = images.get(event.source_event_id ?? "");
+    if (!image) continue;
+    const { error } = await db.from("events").update({ cover_url: image }).eq("id", event.id).eq("source", key).is("cover_url", null);
+    if (error) errors.push({ event: event.id, message: `Couldn't add the image: ${error.message}` });
   }
 }
 
@@ -187,6 +212,7 @@ export async function runSource(
 
     const hints = new Map(fetched.events.map((e) => [e.sourceEventId, e.interestHints ?? []]));
     await tagInterests(db, key, errors, { sourceTags: source.default_tags, hints });
+    await fillCovers(db, key, fetched.events, errors);
 
     if (source.kind === "luma" || source.kind === "luma-discover") {
       summary.enriched = await enrichLumaEvents(source, { db, now, errors, run });

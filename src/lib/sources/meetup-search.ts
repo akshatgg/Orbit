@@ -7,6 +7,7 @@ import { FetchHttpError, USER_AGENT } from "./fetch";
 import { LIMITS, clamp, cleanProse, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
 import { isValidTimezone } from "./timezone";
 import { HINT_WEIGHT } from "./interests";
+import { meetupImage } from "./meetup-page";
 import type { NormalizedEvent, RunError } from "./types";
 
 export const MEETUP_SEARCH_GQL = "https://www.meetup.com/gql2";
@@ -92,6 +93,7 @@ export const MEETUP_SEARCH_QUERY = `query meetupSearch(
 }
 fragment SearchEvent on Event {
   id title dateTime description eventType eventUrl
+  featuredEventPhoto { highResUrl }
   series { description }
   group { name urlname timezone topicCategory { name } }
   venue { name address city state country }
@@ -105,6 +107,7 @@ type SearchNode = {
   eventType?: unknown;
   eventUrl?: unknown;
   series?: { description?: unknown } | null;
+  featuredEventPhoto?: { highResUrl?: unknown } | null;
   group?: { name?: unknown; timezone?: unknown; topicCategory?: { name?: unknown } | null };
   venue?: { name?: unknown; address?: unknown; city?: unknown };
 };
@@ -190,6 +193,7 @@ export function parseMeetupSearchResponse(json: SearchResponse): MeetupSearchPag
       interestHints: typeof node.group?.topicCategory?.name === "string"
         ? [{ label: node.group.topicCategory.name, weight: HINT_WEIGHT.groupCategory }]
         : [],
+      imageUrl: meetupImage(typeof node.featuredEventPhoto?.highResUrl === "string" ? node.featuredEventPhoto.highResUrl : null),
     });
   }
 

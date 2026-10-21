@@ -9,7 +9,7 @@ import { EVENT_STATUS, sourceLabel, type Tone } from "@/lib/admin/labels";
 import type { EventStatus, RegistrationMode } from "@/types/database";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventMenu } from "./EventActions";
-import { IconEyeOff, IconStar, IconFlag, IconTrash } from "./icons";
+import { IconChevronDown, IconEyeOff, IconStar, IconFlag, IconTrash } from "./icons";
 import { table } from "./primitives";
 import { toast } from "./Toaster";
 
@@ -354,22 +354,21 @@ export function EventsTable({ rows, categories, sourceNames }: {
                     />
                   </td>
                   <td className={`${table.td} min-w-52 max-w-80`}>
-                    <button
-                      type="button"
-                      onClick={() => toggleOpen(block.key)}
-                      aria-expanded={expanded}
-                      className="group flex w-full items-start gap-2 text-left"
-                    >
-                      <span aria-hidden className={`mt-0.5 text-subtle transition-transform ${expanded ? "rotate-90" : ""}`}>▸</span>
-                      <span className="min-w-0">
-                        <span className="line-clamp-1 font-medium transition-colors group-hover:text-accent">{first.title}</span>
-                        <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-subtle">
-                          <Badge tone="brand">{ids.length} dates</Badge>
-                          {repeatSummary(block.rows)}
-                          {block.rows.some((r) => r.needsReview) && <Badge tone="warning"><IconFlag size={11} /> Needs review</Badge>}
-                        </span>
-                      </span>
-                    </button>
+                    <Link href={`/events/${first.id}`} target="_blank" className="line-clamp-1 font-medium transition-colors hover:text-accent">{first.title}</Link>
+                    <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-subtle">
+                      <button
+                        type="button"
+                        onClick={() => toggleOpen(block.key)}
+                        aria-expanded={expanded}
+                        aria-label={`${expanded ? "Hide" : "Show"} all ${ids.length} dates of ${first.title}`}
+                        className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent/20"
+                      >
+                        {ids.length} dates
+                        <IconChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+                      </button>
+                      <span className="line-clamp-1">{repeatSummary(block.rows)}</span>
+                      {block.rows.some((r) => r.needsReview) && <Badge tone="warning"><IconFlag size={11} /> Needs review</Badge>}
+                    </span>
                   </td>
                   <td className={`${table.td} whitespace-nowrap text-muted tabular-nums`}>
                     {first.when}
@@ -384,8 +383,15 @@ export function EventsTable({ rows, categories, sourceNames }: {
                     {first.registrationMode === "tickets" ? block.rows.reduce((n, r) => n + r.going, 0) : first.registrationMode === "external" ? "external" : "info"}
                   </td>
                   <td className={`${table.td} text-right`}>
-                    <button type="button" onClick={() => toggleOpen(block.key)} className="text-xs text-muted transition-colors hover:text-fg">
-                      {expanded ? "Hide dates" : "Show dates"}
+                    <button
+                      type="button"
+                      onClick={() => toggleOpen(block.key)}
+                      aria-expanded={expanded}
+                      aria-label={`${expanded ? "Hide" : "Show"} all ${ids.length} dates`}
+                      title={`${expanded ? "Hide" : "Show"} all ${ids.length} dates`}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/[0.08] hover:text-fg aria-expanded:bg-ink/[0.08] aria-expanded:text-fg"
+                    >
+                      <IconChevronDown size={18} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
                     </button>
                   </td>
                 </tr>,
