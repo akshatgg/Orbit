@@ -1,4 +1,4 @@
-// Reads a Meetup event page for its venue (name, street address, city, coordinates) and cover.
+// Reads a Meetup event page for its venue (name, street address, city, coordinates), cover and price.
 //
 // Meetup's iCal feed often omits LOCATION entirely, so this is the only automatic source for
 // where an imported Meetup event is. The public page carries schema.org JSON-LD plus a venue
@@ -17,8 +17,12 @@ export type MeetupPageDetails = {
   latitude: number | null;
   longitude: number | null;
   coverUrl: string | null;
+  /** The fee, `{ amount: 0 }` when Meetup says it's free; null when the page doesn't say. */
+  price?: MeetupPrice | null;
   interestHints?: InterestHint[];
 };
+
+export type MeetupPrice = { amount: number; currency: string | null };
 
 const IMAGE_HOSTS = new Set(["secure.meetupstatic.com", "secure-content.meetupstatic.com"]);
 
@@ -140,6 +144,20 @@ function pageHints(page: Record<string, unknown> | null): InterestHint[] {
   return hints;
 }
 
+/**
+ * The event's fee from the page data. Meetup sets `feeSettings` to null on a free event and to
+ * `{ amount, currency, … }` on a paid one; when the key is missing we can't tell, so null.
+ */
+export function pagePrice(page: Record<string, unknown> | null): MeetupPrice | null {
+  if (!page || !("feeSettings" in page)) return null;
+  const fee = page.feeSettings as { amount?: unknown; currency?: unknown } | null;
+  if (fee === null) return { amount: 0, currency: null };
+  const amount = typeof fee?.amount === "number" ? fee.amount : NaN;
+  const currency = typeof fee?.currency === "string" && /^[A-Za-z]{3}$/.test(fee.currency) ? fee.currency.toUpperCase() : null;
+  if (!Number.isFinite(amount) || amount < 0 || (amount > 0 && !currency)) return null;
+  return { amount, currency };
+}
+
 /** "Every week on Wednesday until …" when the event is one date of a recurring series. */
 function pageSeriesLabel(page: Record<string, unknown> | null): string | null {
   const series = page?.series as { description?: unknown } | null | undefined;
@@ -207,7 +225,7 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
   };
 }
 
-/** Venue details and cover from a Meetup event page, or null when the page has neither. */
+/** Venue details, cover and price from a Meetup event page, or null when the page has none of them. */
 export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
   const event = firstJsonLdEvent(html);
   const location = event && typeof event.location === "object" ? (event.location as Record<string, unknown>) : null;
@@ -220,9 +238,11 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
   const city = state?.city ?? text(address?.addressLocality);
   const point = validPoint(state?.latitude ?? null, state?.longitude ?? null);
   const coverUrl = coverImage(html);
-  const interestHints = pageHints(pageEvent(html));
+  const page = pageEvent(html);
+  const interestHints = pageHints(page);
+  const price = pagePrice(page);
 
-  if (!venueName && !street && !city && !point && !coverUrl && interestHints.length === 0) return null;
+  if (!venueName && !street && !city && !point && !coverUrl && !price && interestHints.length === 0) return null;
 
   return {
     venueName: orNull(clamp(decodeEntities(venueName ?? ""), LIMITS.venue)),
@@ -231,6 +251,7 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
     coverUrl,
+    price,
     interestHints,
   };
 }

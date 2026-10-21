@@ -37,7 +37,7 @@ const STATUS: Partial<Record<RegistrationStatus, { label: string; className: str
   awaiting_payment: { label: "Pay now", className: "bg-orange text-white" },
 };
 
-/** One short note beside the host, most important first: cancelled, full, nearly full, closing, price. */
+/** One short status note after the time, most important first: cancelled, full, nearly full, closing. */
 function flag(event: EventRowItem["event"]): { text: string; className: string } | null {
   if (event.status === "cancelled") return { text: "Cancelled", className: "text-red-400" };
   const left = event.counts ? spotsLeft(event, event.counts) : null;
@@ -47,8 +47,6 @@ function flag(event: EventRowItem["event"]): { text: string; className: string }
   if (deadline && event.registration_mode !== "none" && /hour|\b[1-3] days?\b/.test(deadline)) {
     return { text: deadline, className: "text-orange" };
   }
-  const price = formatPrice(event.price_min, event.price_max, event.currency);
-  if (price && price !== "Free") return { text: price, className: "text-emerald-400 light:text-emerald-600" };
   return null;
 }
 
@@ -60,8 +58,8 @@ function place(event: EventCardData) {
 }
 
 /**
- * An event as one list row (Luma style): cover on the left with the viewer's ticket status, then the host,
- * the title, the time and the place. `showDate` adds the day to the time (for lists not grouped by day).
+ * An event as one list row (Luma style): cover on the left with the viewer's ticket status, then the host
+ * (and the price, when known), the title, the time and the place. `showDate` adds the day to the time (for lists not grouped by day).
  */
 export function EventRow({ event, registration, showDate = true, dismissible }: EventRowItem & {
   showDate?: boolean;
@@ -70,6 +68,8 @@ export function EventRow({ event, registration, showDate = true, dismissible }: 
 }) {
   const status = registration ? STATUS[registration] : undefined;
   const note = flag(event);
+  // Shown only when we know it: "Free", "£70", "£5 – £15". Unknown prices stay blank.
+  const price = formatPrice(event.price_min, event.price_max, event.currency);
   const where = place(event);
   const cancelled = event.status === "cancelled";
   return (
@@ -98,7 +98,7 @@ export function EventRow({ event, registration, showDate = true, dismissible }: 
                 {event.organiser.is_verified && <VerifiedMark className="h-3.5 w-3.5 shrink-0 text-[8px]" />}
               </>
             )}
-            {note && <span className={`ml-auto shrink-0 pl-1 text-[11.5px] font-semibold ${note.className}`}>{note.text}</span>}
+            {price && <span className="ml-auto shrink-0 pl-1 text-[11.5px] font-semibold text-emerald-400 light:text-emerald-600">{price}</span>}
           </div>
           <h3 className={`mt-0.5 line-clamp-2 text-[15.5px] font-semibold leading-snug tracking-tight ${cancelled ? "text-muted line-through" : ""}`}>
             {event.title}
@@ -107,6 +107,7 @@ export function EventRow({ event, registration, showDate = true, dismissible }: 
             <Icon path={ICON.clock} />
             <span className="min-w-0 truncate">
               {showDate ? formatEventDate(event.starts_at) : formatTimeRange(event.starts_at)}
+              {note && <span className={`font-medium ${note.className}`}> · {note.text}</span>}
               {seriesHint(event)}
             </span>
           </p>

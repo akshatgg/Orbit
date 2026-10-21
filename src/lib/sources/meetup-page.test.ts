@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseMeetupEventPage, parseMeetupLinkedEvent } from "./meetup-page";
+import { pagePrice, parseMeetupEventPage, parseMeetupLinkedEvent } from "./meetup-page";
 import { meetupPageUrl } from "./platforms";
 
 const fixture = readFileSync(fileURLToPath(new URL("./__fixtures__/meetup-event.html", import.meta.url)), "utf8");
@@ -15,6 +15,7 @@ describe("parseMeetupEventPage", () => {
       latitude: 51.522907,
       longitude: -0.101072,
       coverUrl: null,
+      price: null,
       interestHints: [],
     });
   });
@@ -94,6 +95,7 @@ describe("parseMeetupLinkedEvent", () => {
     expect(parseMeetupEventPage(html)).toEqual({
       venueName: null, address: null, city: null, latitude: null, longitude: null,
       coverUrl: "https://secure.meetupstatic.com/photos/event/d/e/5/6/highres_533996918.jpeg",
+      price: null,
       interestHints: [
         { label: "Career & Business", weight: 2 },
         { label: "Business", weight: 1 },
@@ -110,6 +112,31 @@ describe("parseMeetupLinkedEvent", () => {
 
   it("returns null without event JSON-LD", () => {
     expect(parseMeetupLinkedEvent("<html></html>", "https://www.meetup.com/a/events/1/")).toBeNull();
+  });
+});
+
+describe("pagePrice", () => {
+  it("reads a paid event's fee", () => {
+    const feeSettings = { __typename: "EventFeeSettings", amount: 70, accepts: "PAYPAL", required: true, currency: "GBP" };
+    expect(pagePrice({ feeSettings })).toEqual({ amount: 70, currency: "GBP" });
+    expect(pagePrice({ feeSettings: { amount: 13.5, currency: "eur" } })).toEqual({ amount: 13.5, currency: "EUR" });
+  });
+
+  it("treats no fee settings as free", () => {
+    expect(pagePrice({ feeSettings: null })).toEqual({ amount: 0, currency: null });
+  });
+
+  it("says nothing when the page doesn't say", () => {
+    expect(pagePrice(null)).toBeNull();
+    expect(pagePrice({ title: "No fee data" })).toBeNull();
+    expect(pagePrice({ feeSettings: { amount: "70", currency: "GBP" } })).toBeNull();
+    expect(pagePrice({ feeSettings: { amount: 10 } })).toBeNull();
+  });
+
+  it("is read from the event page data", () => {
+    const next = (event: object) => `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { event } } })}</script>`;
+    expect(parseMeetupEventPage(next({ feeSettings: { amount: 70, currency: "GBP" } }))?.price).toEqual({ amount: 70, currency: "GBP" });
+    expect(parseMeetupEventPage(next({ feeSettings: null }))?.price).toEqual({ amount: 0, currency: null });
   });
 });
 
