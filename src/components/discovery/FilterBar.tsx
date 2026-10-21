@@ -219,7 +219,10 @@ function OptionList({ kind, options, selected, onPick }: {
             className={`flex w-full items-center justify-between gap-3 rounded-[14px] px-3.5 py-2.5 text-left text-sm transition-colors focus-visible:bg-ink/[0.1] focus-visible:outline-none hover:bg-ink/[0.07] ${on ? "font-medium text-fg" : "text-muted"}`}
           >
             <span className="truncate">{o.label}</span>
-            {on && <span className="text-accent"><Check /></span>}
+            <span className="flex shrink-0 items-center gap-2">
+              {o.count !== undefined && <span className="text-xs tabular-nums text-subtle">{o.count}</span>}
+              {on && <span className="text-accent"><Check /></span>}
+            </span>
           </button>
         );
       })}

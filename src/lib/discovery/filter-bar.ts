@@ -18,7 +18,7 @@ export const FILTER_TITLES: Record<FilterKey, string> = {
 export const MULTI_KEYS: readonly FilterKey[] = ["category", "interest", "format"];
 export const isMultiKey = (k: FilterKey) => MULTI_KEYS.includes(k);
 
-export type Option = { value: string; label: string };
+export type Option = { value: string; label: string; count?: number };
 
 export function optionsFor(key: FilterKey, categories: readonly Option[]): Option[] {
   switch (key) {
