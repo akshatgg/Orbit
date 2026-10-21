@@ -1,10 +1,8 @@
 import { INTRO_SEEN_KEY, shouldPlayIntro } from "./intro-decision";
-import { INTRO_LOGO } from "./logo-data";
 import { runIntro } from "./intro-runtime";
 
-const INTRO_EMBLEM_URL = "/brand/orbit-emblem.png";
-const MAX_MS = 7000;
-/** The logo on the launch screen (transparent PNG) and its on-screen width, close to Android's splash icon. */
+const MAX_MS = 4000;
+/** The logo on the launch screen and in the intro (transparent PNG), and its launch-screen width, close to Android's splash icon. */
 const LAUNCH_LOGO_URL = "/brand/orbit-mark.png";
 const LAUNCH_LOGO_PX = 128;
 
@@ -28,11 +26,11 @@ st.textContent="html[data-intro]{overflow:hidden}html[data-intro=cover]::after{c
 root.setAttribute("data-intro","cover");
 (document.head||root).appendChild(st);
 // Only preloaded when the intro actually plays, so repeat visits do not warn about an unused preload.
-var pl=document.createElement("link");pl.rel="preload";pl.as="image";pl.href=${JSON.stringify(INTRO_EMBLEM_URL)};(document.head||root).appendChild(pl);
+var pl=document.createElement("link");pl.rel="preload";pl.as="image";pl.href=${JSON.stringify(LAUNCH_LOGO_URL)};(document.head||root).appendChild(pl);
 function undo(){root.removeAttribute("data-intro");if(st.parentNode)st.parentNode.removeChild(st)}
 var run=(${runIntro.toString()});
 var started=false;
-function start(){if(started)return;started=true;try{run(${JSON.stringify(INTRO_LOGO)},{emblemUrl:${JSON.stringify(INTRO_EMBLEM_URL)},reducedMotion:reduced,fromIcon:fromIcon,launchLogoPx:${LAUNCH_LOGO_PX},maxMs:${MAX_MS}})}catch(e){undo()}}
+function start(){if(started)return;started=true;try{run({logoUrl:${JSON.stringify(LAUNCH_LOGO_URL)},reducedMotion:reduced,fromIcon:fromIcon,launchLogoPx:${LAUNCH_LOGO_PX},maxMs:${MAX_MS}})}catch(e){undo()}}
 setTimeout(function(){if(!started){started=true;undo()}},${MAX_MS});
 if(document.body)start();
 else{var mo=new MutationObserver(function(){if(document.body){mo.disconnect();start()}});mo.observe(root,{childList:true})}
