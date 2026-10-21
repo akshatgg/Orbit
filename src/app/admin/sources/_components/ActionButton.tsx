@@ -16,11 +16,11 @@ function Submit({ children, pendingText, variant, size, full }: { children: Reac
   );
 }
 
-function Result({ state }: { state: ActionState }) {
+function Result({ state, showSuccess }: { state: ActionState; showSuccess: boolean }) {
   if (!state) return null;
   return state.error ? (
     <p role="alert" className="text-xs text-red-300">{state.error}</p>
-  ) : state.message ? (
+  ) : state.message && showSuccess ? (
     <p role="status" className="text-xs text-emerald-300">{state.message}</p>
   ) : null;
 }
@@ -31,7 +31,7 @@ function Result({ state }: { state: ActionState }) {
  */
 export function ActionButton({
   action, fields, children, pendingText = "Working…", variant = "secondary", size = "sm", confirm, extra, resultClassName = "",
-  full = false, className = "",
+  full = false, className = "", showSuccess = true,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   fields: Record<string, string>;
@@ -45,6 +45,8 @@ export function ActionButton({
   /** Stretch the trigger to the width of its container (used by the mobile source cards). */
   full?: boolean;
   className?: string;
+  /** Success text inside a source action row can force wrapping; cards read the refreshed row instead. */
+  showSuccess?: boolean;
 }) {
   const [state, formAction] = useActionState(action, null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -63,7 +65,7 @@ export function ActionButton({
           {hidden}
           <Submit pendingText={pendingText} variant={variant} size={size} full={full}>{children}</Submit>
         </form>
-        <div className={resultClassName}><Result state={state} /></div>
+        <div className={resultClassName}><Result state={state} showSuccess={showSuccess} /></div>
       </div>
     );
   }
@@ -73,7 +75,7 @@ export function ActionButton({
       <button type="button" className={buttonClass({ variant, size, full })} onClick={() => dialogRef.current?.showModal()}>
         {children}
       </button>
-      <div className={resultClassName}><Result state={state} /></div>
+      <div className={resultClassName}><Result state={state} showSuccess={showSuccess} /></div>
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}

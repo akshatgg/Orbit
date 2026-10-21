@@ -41,20 +41,20 @@ function SourceActions({ source, align = "end", className = "" }: {
   return (
     <div className={`flex flex-wrap items-center gap-2 ${align === "end" ? "justify-end" : "justify-start"} ${className}`}>
       <ButtonLink href={`/admin/sources/${source.id}/edit`} variant="secondary" size="sm">Edit</ButtonLink>
-      <ActionButton action={runSourceNow} fields={{ id: source.id }} pendingText="Running…" size="sm">Run now</ActionButton>
+      <ActionButton action={runSourceNow} fields={{ id: source.id }} pendingText="Running…" size="sm" showSuccess={false}>Run now</ActionButton>
       {source.enabled ? (
         <ActionButton
-          action={setSourceEnabled} fields={{ id: source.id, enabled: "false" }} variant="ghost" size="sm"
+          action={setSourceEnabled} fields={{ id: source.id, enabled: "false" }} variant="ghost" size="sm" showSuccess={false}
           confirm={{ title: `Disable ${source.name}?`, body: "It won't refresh any more. Its events stay in ORBIT.", confirmLabel: "Disable" }}
         >Disable</ActionButton>
       ) : (
         <ActionButton
-          action={setSourceEnabled} fields={{ id: source.id, enabled: "true" }} variant="ghost" size="sm"
+          action={setSourceEnabled} fields={{ id: source.id, enabled: "true" }} variant="ghost" size="sm" showSuccess={false}
           confirm={{ title: `Enable ${source.name}?`, body: "It will be fetched every night. Only enable feeds you have permission to use.", confirmLabel: "Enable" }}
         >Enable</ActionButton>
       )}
       <ActionButton
-        action={deleteSource} fields={{ id: source.id }} variant="danger" pendingText="Deleting…" size="sm"
+        action={deleteSource} fields={{ id: source.id }} variant="danger" pendingText="Deleting…" size="sm" showSuccess={false}
         confirm={{
           title: `Delete ${source.name}?`,
           body: "The feed and its run history are removed. Imported events stay in ORBIT unless you tick the box below.",
@@ -104,15 +104,16 @@ function SectionHeading({ id, title, count, hint, action, tone = "neutral" }: {
 
 function FeedCard({ source, run, eventCount }: { source: SourceWithDefaults; run: SourceRun | undefined; eventCount: number }) {
   return (
-    <article className="glass rounded-[20px] p-4 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href={`/admin/sources/${source.id}/edit`} className="truncate text-[15px] font-semibold transition-colors hover:text-accent">
-              {source.name}
-            </Link>
-            <Badge tone="brand">{SOURCE_KIND_LABELS[source.kind]}</Badge>
-          </div>
+    <article className="glass flex h-full flex-col rounded-[20px] p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`/admin/sources/${source.id}/edit`}
+            title={source.name}
+            className="block truncate text-[15px] font-semibold transition-colors hover:text-accent"
+          >
+            {source.name}
+          </Link>
           <a
             href={source.url}
             target="_blank"
@@ -123,7 +124,8 @@ function FeedCard({ source, run, eventCount }: { source: SourceWithDefaults; run
             {host(source.url)}
           </a>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          <Badge tone="brand">{SOURCE_KIND_LABELS[source.kind]}</Badge>
           <Badge tone={source.enabled ? "success" : "neutral"}>{source.enabled ? "Enabled" : "Disabled"}</Badge>
           {source.last_status && <Badge tone={source.last_status === "ok" ? "success" : "danger"}>{source.last_status}</Badge>}
         </div>
@@ -156,7 +158,7 @@ function FeedCard({ source, run, eventCount }: { source: SourceWithDefaults; run
         </p>
       )}
 
-      <SourceActions source={source} align="start" className="mt-4 border-t border-line/70 pt-3" />
+      <SourceActions source={source} align="start" className="mt-auto border-t border-line/70 pt-3" />
     </article>
   );
 }
