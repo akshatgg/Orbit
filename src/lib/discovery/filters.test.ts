@@ -6,7 +6,7 @@ import {
 describe("parseSearchFilters", () => {
   it("defaults to an empty search", () => {
     const f = parseSearchFilters({});
-    expect(f).toEqual({ q: "", date: null, categories: [], interests: [], formats: [], price: null, location: "", sort: "relevance" });
+    expect(f).toEqual({ q: "", date: null, categories: [], interests: [], formats: [], location: "", sort: "relevance" });
     expect(isSearching(f)).toBe(false);
   });
 
@@ -17,7 +17,7 @@ describe("parseSearchFilters", () => {
       category: ["workshop", "Bad Slug!", "workshop"],
       interest: ["consulting", "astrology"],
       format: ["online", "teleport"],
-      price: "free",
+      price: "free", // no longer a filter: ignored
       location: "South Ken, (SW7)%",
       sort: "deadline",
     });
@@ -26,10 +26,10 @@ describe("parseSearchFilters", () => {
     expect(f.categories).toEqual(["workshop"]);
     expect(f.interests).toEqual(["consulting"]);
     expect(f.formats).toEqual(["online"]);
-    expect(f.price).toBe("free");
+    expect(f).not.toHaveProperty("price");
     expect(f.location).toBe("South Ken SW7");
     expect(f.sort).toBe("deadline");
-    expect(activeFilterCount(f)).toBe(6);
+    expect(activeFilterCount(f)).toBe(5);
   });
 
   it("accepts personal interests too, with readable chips", () => {
@@ -39,20 +39,19 @@ describe("parseSearchFilters", () => {
   });
 
   it("falls back on garbage", () => {
-    const f = parseSearchFilters({ date: "yesterday", price: "cheap", sort: "random", q: "x".repeat(500) });
+    const f = parseSearchFilters({ date: "yesterday", sort: "random", q: "x".repeat(500) });
     expect(f.date).toBeNull();
-    expect(f.price).toBeNull();
     expect(f.sort).toBe("relevance");
     expect(f.q).toBe("");
   });
 });
 
 describe("URLs", () => {
-  const f = parseSearchFilters({ q: "finance", category: ["networking", "workshop"], price: "paid", sort: "date" });
+  const f = parseSearchFilters({ q: "finance", category: ["networking", "workshop"], format: "online", sort: "date" });
 
   it("round-trips through the query string", () => {
     const href = searchHref(f);
-    expect(href).toBe("/search?q=finance&category=networking&category=workshop&price=paid&sort=date");
+    expect(href).toBe("/search?q=finance&category=networking&category=workshop&format=online&sort=date");
     const back = parseSearchFilters(Object.fromEntries(
       [...new URL(href, "http://x").searchParams.keys()].map((k) => [k, new URL(href, "http://x").searchParams.getAll(k)]),
     ));
@@ -61,8 +60,8 @@ describe("URLs", () => {
 
   it("builds removable chips", () => {
     const chips = activeFilterChips(f, new Map([["networking", "Networking"]]));
-    expect(chips.map((c) => c.label)).toEqual(["Networking", "workshop", "Paid"]);
-    expect(chips[0].href).toBe("/search?q=finance&category=workshop&price=paid&sort=date");
+    expect(chips.map((c) => c.label)).toEqual(["Networking", "workshop", "Online"]);
+    expect(chips[0].href).toBe("/search?q=finance&category=workshop&format=online&sort=date");
     expect(clearFiltersHref(f)).toBe("/search?q=finance&sort=date");
   });
 

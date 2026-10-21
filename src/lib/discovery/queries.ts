@@ -103,8 +103,6 @@ export async function searchEvents(
     // Quoted array literal: some synonyms have spaces ("net zero"), and postgrest-js doesn't quote.
     if (filters.interests.length) q = q.overlaps("tags", `{${filters.interests.flatMap(interestTags).map((t) => `"${t}"`).join(",")}}`);
     if (filters.formats.length) q = q.in("format", filters.formats);
-    if (filters.price === "free") q = q.eq("price_min", 0);
-    if (filters.price === "paid") q = q.gt("price_max", 0);
     if (filters.location) {
       const l = filters.location;
       q = q.or(`city.ilike.*${l}*,venue_name.ilike.*${l}*,address.ilike.*${l}*`);

@@ -12,11 +12,6 @@ export const DATE_PRESETS: { value: DatePreset; label: string }[] = [
   { value: "month", label: "Next 30 days" },
 ];
 
-export const PRICE_OPTIONS = [
-  { value: "free", label: "Free" },
-  { value: "paid", label: "Paid" },
-] as const;
-
 export const SORT_OPTIONS = [
   { value: "relevance", label: "Relevance" },
   { value: "date", label: "Date" },
@@ -24,7 +19,6 @@ export const SORT_OPTIONS = [
 ] as const;
 
 export type SortKey = (typeof SORT_OPTIONS)[number]["value"];
-export type PriceKey = (typeof PRICE_OPTIONS)[number]["value"];
 export type FormatKey = (typeof EVENT_FORMATS)[number]["value"];
 
 export type SearchFilters = {
@@ -33,7 +27,6 @@ export type SearchFilters = {
   categories: string[];
   interests: string[];
   formats: FormatKey[];
-  price: PriceKey | null;
   location: string;
   sort: SortKey;
 };
@@ -56,7 +49,6 @@ export function cleanLocation(raw: string) {
 const schema = z.object({
   q: z.string().trim().max(120).catch(""),
   date: z.enum(["today", "week", "weekend", "month"]).nullable().catch(null),
-  price: z.enum(["free", "paid"]).nullable().catch(null),
   location: z.string().transform(cleanLocation).catch(""),
   sort: z.enum(["relevance", "date", "deadline"]).catch("relevance"),
 });
@@ -72,7 +64,6 @@ export function parseSearchFilters(raw: RawSearchParams): SearchFilters {
   const parsed = schema.parse({
     q: first(raw.q) ?? "",
     date: first(raw.date) ?? null,
-    price: first(raw.price) ?? null,
     location: first(raw.location) ?? "",
     sort: first(raw.sort) ?? "relevance",
   });
@@ -93,7 +84,6 @@ export function toSearchParams(f: SearchFilters): URLSearchParams {
   for (const c of f.categories) p.append("category", c);
   for (const i of f.interests) p.append("interest", i);
   for (const fm of f.formats) p.append("format", fm);
-  if (f.price) p.set("price", f.price);
   if (f.location) p.set("location", f.location);
   if (f.sort !== "relevance") p.set("sort", f.sort);
   return p;
@@ -107,7 +97,7 @@ export function searchHref(f: SearchFilters): string {
 /** Number of active filters (the search text and sort don't count). */
 export function activeFilterCount(f: SearchFilters): number {
   return (
-    (f.date ? 1 : 0) + f.categories.length + f.interests.length + f.formats.length + (f.price ? 1 : 0) +
+    (f.date ? 1 : 0) + f.categories.length + f.interests.length + f.formats.length +
     (f.location ? 1 : 0)
   );
 }
@@ -135,12 +125,11 @@ export function activeFilterChips(f: SearchFilters, categoryNames: ReadonlyMap<s
   for (const fm of f.formats) {
     chips.push({ key: `format:${fm}`, label: labelFor(EVENT_FORMATS, fm), href: without({ formats: f.formats.filter((x) => x !== fm) }) });
   }
-  if (f.price) chips.push({ key: "price", label: f.price === "free" ? "Free" : "Paid", href: without({ price: null }) });
   if (f.location) chips.push({ key: "location", label: `Near “${f.location}”`, href: without({ location: "" }) });
   return chips;
 }
 
 /** Same search with every filter cleared (keeps the search text). */
 export function clearFiltersHref(f: SearchFilters): string {
-  return searchHref({ ...f, date: null, categories: [], interests: [], formats: [], price: null, location: "" });
+  return searchHref({ ...f, date: null, categories: [], interests: [], formats: [], location: "" });
 }
