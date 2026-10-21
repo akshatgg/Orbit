@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cloudinaryUrl, signParams } from "./cloudinary";
+import { cloudinaryUrl, signParams, orbitImagePublicId } from "./cloudinary";
 
 describe("signParams", () => {
   it("matches Cloudinary's documented example", () => {
@@ -30,5 +30,22 @@ describe("cloudinaryUrl", () => {
   it("leaves other URLs unchanged", () => {
     const u = "https://abc.supabase.co/storage/v1/object/public/event-covers/u/a.png";
     expect(cloudinaryUrl(u, { width: 800 })).toBe(u);
+  });
+});
+
+describe("orbitImagePublicId", () => {
+  const cloud = "deor01if5";
+  it("reads ORBIT's own images, with or without a version or transformations", () => {
+    expect(orbitImagePublicId("https://res.cloudinary.com/deor01if5/image/upload/v1792594780/orbit/event-covers/sources/qoeitvag0a4hzhcqeg5g.jpg", cloud))
+      .toBe("orbit/event-covers/sources/qoeitvag0a4hzhcqeg5g");
+    expect(orbitImagePublicId("https://res.cloudinary.com/deor01if5/image/upload/f_auto,q_auto,c_fill,w_800,dpr_auto/v1/orbit/event-covers/u1/abc.png", cloud))
+      .toBe("orbit/event-covers/u1/abc");
+  });
+  it("ignores anything ORBIT didn't store itself", () => {
+    expect(orbitImagePublicId("https://res.cloudinary.com/other/image/upload/v1/orbit/event-covers/x.jpg", cloud)).toBeNull();
+    expect(orbitImagePublicId("https://res.cloudinary.com/deor01if5/image/upload/v1/samples/beach.jpg", cloud)).toBeNull();
+    expect(orbitImagePublicId("https://secure.meetupstatic.com/photos/event/d/e/5/6/highres_1.jpeg", cloud)).toBeNull();
+    expect(orbitImagePublicId("https://abc.supabase.co/storage/v1/object/public/event-covers/u/x.jpg", cloud)).toBeNull();
+    expect(orbitImagePublicId(null, cloud)).toBeNull();
   });
 });

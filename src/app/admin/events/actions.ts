@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { adminEventSchema, fieldErrors, type FieldErrors } from "@/lib/admin/event-form";
 import { adminContext, friendlyDbError, logAdminAction, revalidateEverywhere, type ActionResult } from "@/lib/admin/server";
+import { releaseImages } from "@/lib/cloudinary-release";
 import { notifyEventChanged } from "@/lib/notifications";
 
 const id = z.uuid();
@@ -134,7 +135,7 @@ export async function restoreEvent(eventId: string): Promise<ActionResult> {
  */
 async function hardDeleteEvents(ids: string[]): Promise<ActionResult> {
   const { supabase } = await adminContext();
-  const { data, error: readError } = await supabase.from("events").select("id, title").in("id", ids);
+  const { data, error: readError } = await supabase.from("events").select("id, title, cover_url").in("id", ids);
   if (readError) return { ok: false, error: friendlyDbError(readError) };
   const doomed = data ?? [];
   if (doomed.length === 0) return { ok: false, error: "Those events no longer exist" };
@@ -147,6 +148,8 @@ async function hardDeleteEvents(ids: string[]): Promise<ActionResult> {
 
   const { error } = await supabase.from("events").delete().in("id", eventIds);
   if (error) return { ok: false, error: friendlyDbError(error) };
+  // Their Cloudinary covers go too, unless another event (e.g. another date of a series) uses them.
+  const images = await releaseImages(doomed.map((e) => e.cover_url as string | null));
 
   await Promise.all(
     doomed.map((e) => logAdminAction(supabase, "event.delete", "event", e.id, { title: e.title, permanent: true })),
@@ -155,7 +158,8 @@ async function hardDeleteEvents(ids: string[]): Promise<ActionResult> {
 
   const what = doomed.length === 1 ? `“${doomed[0].title}”` : `${doomed.length} events`;
   const guests = registrations ? ` and ${registrations} registration${registrations === 1 ? "" : "s"}` : "";
-  return { ok: true, message: `Deleted ${what}${guests} permanently` };
+  const pictures = images ? ` · ${images} image${images === 1 ? "" : "s"} removed` : "";
+  return { ok: true, message: `Deleted ${what}${guests} permanently${pictures}` };
 }
 
 export async function deleteEvent(eventId: string): Promise<ActionResult> {
