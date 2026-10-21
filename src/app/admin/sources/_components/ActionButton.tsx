@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, type ReactNode } from "react";
-import { useFormStatus } from "react-dom";
+import { useActionState, useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal, useFormStatus } from "react-dom";
 import { Button, buttonClass } from "@/components/ui/Button";
 import type { ActionState } from "../actions";
 
@@ -27,11 +27,12 @@ function Result({ state }: { state: ActionState }) {
 
 /**
  * A server action behind one button. With `confirm`, the button opens a dialog first
- * (used for destructive actions); `extra` renders inside the dialog's form.
+ * (used for destructive actions); `extra` renders inside the dialog's form. `menuItem` renders the
+ * trigger as a row of a RowMenu; the dialog is portalled to <body> so closing the menu doesn't hide it.
  */
 export function ActionButton({
   action, fields, children, pendingText = "Working…", variant = "secondary", size = "sm", confirm, extra, resultClassName = "",
-  full = false, className = "",
+  full = false, className = "", menuItem = false,
 }: {
   action: (state: ActionState, formData: FormData) => Promise<ActionState>;
   fields: Record<string, string>;
@@ -45,8 +46,10 @@ export function ActionButton({
   /** Stretch the trigger to the width of its container (used by the mobile source cards). */
   full?: boolean;
   className?: string;
+  menuItem?: boolean;
 }) {
   const [state, formAction] = useActionState(action, null);
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -68,12 +71,7 @@ export function ActionButton({
     );
   }
 
-  return (
-    <div className={`space-y-1 ${className}`}>
-      <button type="button" className={buttonClass({ variant, size, full })} onClick={() => dialogRef.current?.showModal()}>
-        {children}
-      </button>
-      <div className={resultClassName}><Result state={state} /></div>
+  const dialog = (
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
@@ -92,6 +90,35 @@ export function ActionButton({
           </div>
         </form>
       </dialog>
+  );
+
+  if (menuItem) {
+    return (
+      <>
+        <button
+          type="button"
+          role="menuitem"
+          onClick={() => dialogRef.current?.showModal()}
+          className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors ${
+            variant === "danger" ? "text-red-300 hover:bg-red-500/10" : "text-fg hover:bg-ink/[0.08]"
+          } ${className}`}
+        >
+          {children}
+        </button>
+        {mounted ? createPortal(dialog, document.body) : null}
+      </>
+    );
+  }
+
+  return (
+    <div className={`space-y-1 ${className}`}>
+      <button type="button" className={buttonClass({ variant, size, full })} onClick={() => dialogRef.current?.showModal()}>
+        {children}
+      </button>
+      <div className={resultClassName}><Result state={state} /></div>
+      {dialog}
     </div>
   );
 }
+
+const noopSubscribe = () => () => {};

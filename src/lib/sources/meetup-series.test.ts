@@ -23,6 +23,7 @@ describe("parseMeetupSeriesResponse", () => {
     expect(series.dates).toHaveLength(7);
     expect(series.dates[0]).toEqual({
       id: "316894987", startsAt: "2026-10-28T11:30:00.000Z", endsAt: "2026-10-28T12:30:00.000Z", url: URL_, cancelled: false,
+      imageUrl: "https://secure.meetupstatic.com/photos/event/d/e/5/6/highres_533996918.jpeg",
     });
     expect(series.dates[1]).toMatchObject({ id: "fbrkztyjcpbgb", startsAt: "2026-11-04T11:30:00.000Z" });
   });
@@ -92,5 +93,26 @@ describe("ids and keys", () => {
     expect(meetupEventId("event_fbrkztyjcpbgb@meetup.com")).toBe("fbrkztyjcpbgb");
     expect(meetupEventId("uid-123@luma.com")).toBeNull();
     expect(meetupSeriesKey(base)).toBe(KEY);
+  });
+});
+
+describe("photos on import", () => {
+  it("a single Meetup link carries the event photo (real page)", () => {
+    expect(base.imageUrl).toBe("https://secure.meetupstatic.com/photos/event/d/e/5/6/highres_533996918.jpeg");
+  });
+
+  it("each series date carries its own photo, else the first date's", () => {
+    const parsed = parseMeetupSeriesResponse({
+      data: { event: { series: { description: "Weekly", events: { edges: [
+        { node: { id: "1", dateTime: "2026-11-04T17:00:00+05:30", eventUrl: URL_.replace("316894987", "1"), featuredEventPhoto: { highResUrl: "https://secure.meetupstatic.com/photos/event/a/b/highres_1.jpeg" } } },
+        { node: { id: "2", dateTime: "2026-11-11T17:00:00+05:30", eventUrl: URL_.replace("316894987", "2"), featuredEventPhoto: null } },
+        { node: { id: "3", dateTime: "2026-11-18T17:00:00+05:30", eventUrl: URL_.replace("316894987", "3"), featuredEventPhoto: { highResUrl: "https://evil.example/x.jpg" } } },
+      ] } } } },
+    })!;
+    expect(expandSeries(base, parsed, NOW).map((d) => d.imageUrl)).toEqual([
+      "https://secure.meetupstatic.com/photos/event/a/b/highres_1.jpeg",
+      base.imageUrl,
+      base.imageUrl,
+    ]);
   });
 });
