@@ -45,11 +45,11 @@ const STOPWORDS = new Set([
 /** A hit in the title says more than one buried in the description. */
 const WEIGHT = { title: 3, tags: 2, summary: 1, description: 1 } as const;
 
-const normalize = (value: string) =>
+export const normalize = (value: string) =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 
 /** Whole-word (or whole-phrase) match: "run" must not fire on "running". */
-const contains = (haystack: string, term: string) => ` ${haystack} `.includes(` ${term} `);
+export const contains = (haystack: string, term: string) => ` ${haystack} `.includes(` ${term} `);
 
 /** True when an already-counted phrase contains this shorter term ("case competition" covers "competition"). */
 const covers = (phrase: string, term: string) =>

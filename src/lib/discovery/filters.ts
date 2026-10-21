@@ -2,7 +2,7 @@
 // rebuilds them. Pure — safe for tests and for both server and client code.
 
 import { z } from "zod";
-import { CAREER_INTERESTS, EVENT_FORMATS, labelFor } from "@/lib/taxonomy";
+import { ALL_INTERESTS, EVENT_FORMATS, labelFor } from "@/lib/taxonomy";
 import type { DatePreset } from "./dates";
 
 export const DATE_PRESETS: { value: DatePreset; label: string }[] = [
@@ -45,7 +45,7 @@ const MAX_LIST = 12;
 const list = (v: unknown) => (Array.isArray(v) ? v : v === undefined ? [] : [v]).filter((x): x is string => typeof x === "string");
 const first = (v: unknown) => list(v)[0];
 
-const careerValues = CAREER_INTERESTS.map((c) => c.value) as [string, ...string[]];
+const interestValues: string[] = ALL_INTERESTS.map((i) => i.value);
 const formatValues = EVENT_FORMATS.map((f) => f.value) as [FormatKey, ...FormatKey[]];
 
 /** Letters, numbers, spaces and a little punctuation — safe inside a PostgREST filter. */
@@ -80,7 +80,7 @@ export function parseSearchFilters(raw: RawSearchParams): SearchFilters {
   return {
     ...parsed,
     categories: validOnly(list(raw.category), (x): x is string => slug.test(x) && x.length <= 60),
-    interests: validOnly(list(raw.interest), (x): x is string => careerValues.includes(x)),
+    interests: validOnly(list(raw.interest), (x): x is string => interestValues.includes(x)),
     formats: validOnly(list(raw.format), (x): x is FormatKey => (formatValues as string[]).includes(x)),
   };
 }
@@ -130,7 +130,7 @@ export function activeFilterChips(f: SearchFilters, categoryNames: ReadonlyMap<s
     chips.push({ key: `category:${c}`, label: categoryNames.get(c) ?? c, href: without({ categories: f.categories.filter((x) => x !== c) }) });
   }
   for (const i of f.interests) {
-    chips.push({ key: `interest:${i}`, label: labelFor(CAREER_INTERESTS, i), href: without({ interests: f.interests.filter((x) => x !== i) }) });
+    chips.push({ key: `interest:${i}`, label: labelFor(ALL_INTERESTS, i), href: without({ interests: f.interests.filter((x) => x !== i) }) });
   }
   for (const fm of f.formats) {
     chips.push({ key: `format:${fm}`, label: labelFor(EVENT_FORMATS, fm), href: without({ formats: f.formats.filter((x) => x !== fm) }) });

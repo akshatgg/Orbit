@@ -1,7 +1,7 @@
 // Pure helpers for the Explore dropdown filter bar: which pills exist, what each shows when
 // active, and the next URL after picking / clearing a value. Same URL params as filters.ts.
 
-import { CAREER_INTERESTS, EVENT_FORMATS, labelFor } from "@/lib/taxonomy";
+import { ALL_INTERESTS, EVENT_FORMATS, labelFor } from "@/lib/taxonomy";
 import {
   DATE_PRESETS, PRICE_OPTIONS, SORT_OPTIONS, activeFilterCount, cleanLocation, searchHref, type SearchFilters,
 } from "./filters";
@@ -24,7 +24,7 @@ export function optionsFor(key: FilterKey, categories: readonly Option[]): Optio
   switch (key) {
     case "date": return DATE_PRESETS;
     case "category": return [...categories];
-    case "interest": return [...CAREER_INTERESTS];
+    case "interest": return [...ALL_INTERESTS];
     case "format": return [...EVENT_FORMATS];
     case "price": return [...PRICE_OPTIONS];
     case "sort": return [...SORT_OPTIONS];

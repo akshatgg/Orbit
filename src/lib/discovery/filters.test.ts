@@ -32,6 +32,12 @@ describe("parseSearchFilters", () => {
     expect(activeFilterCount(f)).toBe(6);
   });
 
+  it("accepts personal interests too, with readable chips", () => {
+    const f = parseSearchFilters({ interest: ["socialising", "fitness", "consulting"] });
+    expect(f.interests).toEqual(["socialising", "fitness", "consulting"]);
+    expect(activeFilterChips(f, new Map()).map((c) => c.label)).toEqual(["Socialising", "Fitness & sport", "Consulting"]);
+  });
+
   it("falls back on garbage", () => {
     const f = parseSearchFilters({ date: "yesterday", price: "cheap", sort: "random", q: "x".repeat(500) });
     expect(f.date).toBeNull();
