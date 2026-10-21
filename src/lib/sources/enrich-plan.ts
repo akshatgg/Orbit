@@ -3,6 +3,7 @@
 import type { LumaPageDetails } from "./luma-page";
 import { lumaPageUrl } from "./platforms";
 import { withInterests } from "./interests";
+import { normaliseCountry, placeOf } from "@/lib/places";
 import type { InterestHint, SourceEventDetails } from "./types";
 
 export const ENRICH_LIMIT = 25; // pages per source per run
@@ -35,6 +36,8 @@ export type EnrichCandidate = {
   venue_name?: string | null;
   address?: string | null;
   city?: string | null;
+  country?: string | null;
+  format?: string;
   latitude?: number | null;
   longitude?: number | null;
   /** Dates of one recurring series share it (and their cover). */
@@ -93,6 +96,7 @@ export type DetailsPatch = {
   venue_name?: string;
   address?: string;
   city?: string;
+  country?: string;
   latitude?: number;
   longitude?: number;
 };
@@ -104,12 +108,28 @@ export type DetailsPatch = {
  */
 export const FORMATTED_DESCRIPTIONS_SINCE = Date.parse("2026-10-24T00:00:00Z");
 
+/** Pages read before countries were saved (for the Location filter) are read once more for it. */
+export const COUNTRIES_SINCE = Date.parse("2026-10-23T00:00:00Z");
+
+/**
+ * An event in a place we can't put in a country yet: not online, no stored country, and a city
+ * ORBIT doesn't recognise (or none).
+ */
+export function needsCountry(event: Pick<EnrichCandidate, "format" | "country" | "city">): boolean {
+  return event.format !== "online" && !event.country && !placeOf(event.city, null).country;
+}
+
+/** A page read before countries were saved, for an event that still needs one: read it once more. */
+export function rereadForCountry(event: Pick<EnrichCandidate, "format" | "country" | "city">, fetchedAt: string): boolean {
+  return needsCountry(event) && new Date(fetchedAt).getTime() < COUNTRIES_SINCE;
+}
+
 /**
  * Only fills fields that are empty, so admin edits always win. The one exception: a description
  * that is still exactly the flattened copy an older import saved is upgraded to the formatted one.
  */
 export function detailsPatch(
-  current: Pick<EnrichCandidate, "cover_url" | "description" | "price_min" | "venue_name" | "address" | "city" | "latitude" | "longitude">,
+  current: Pick<EnrichCandidate, "cover_url" | "description" | "price_min" | "venue_name" | "address" | "city" | "country" | "latitude" | "longitude">,
   page: LumaPageDetails,
   importedCover: string | null,
 ): DetailsPatch {
@@ -127,6 +147,8 @@ export function detailsPatch(
   if (!current.venue_name && page.venueName) patch.venue_name = page.venueName;
   if (!current.address && page.address) patch.address = page.address;
   if (!current.city && page.city) patch.city = page.city;
+  const country = normaliseCountry(page.country);
+  if (!current.country && country) patch.country = country;
   if (current.latitude == null && page.latitude !== null && page.longitude !== null) {
     patch.latitude = page.latitude;
     patch.longitude = page.longitude;

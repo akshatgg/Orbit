@@ -5,7 +5,7 @@
 // object in its app data (which includes lat/lng).
 
 import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
-import { firstJsonLdEvent } from "./jsonld";
+import { addressCountry, firstJsonLdEvent } from "./jsonld";
 import { isValidTimezone } from "./timezone";
 import { HINT_WEIGHT } from "./interests";
 import type { InterestHint, NormalizedEvent } from "./types";
@@ -14,6 +14,8 @@ export type MeetupPageDetails = {
   venueName: string | null;
   address: string | null;
   city: string | null;
+  /** The venue's country as the page gives it ("gb"); normalised when saved. */
+  country?: string | null;
   latitude: number | null;
   longitude: number | null;
   coverUrl: string | null;
@@ -67,7 +69,9 @@ function number(value: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-type VenueState = { name: string | null; address: string | null; city: string | null; latitude: number | null; longitude: number | null };
+type VenueState = {
+  name: string | null; address: string | null; city: string | null; country: string | null; latitude: number | null; longitude: number | null;
+};
 
 function parseVenueObject(object: string): VenueState {
   const string = (key: string) => object.match(new RegExp(`"${key}":\\s*"([^"]*)"`))?.[1] ?? null;
@@ -76,6 +80,7 @@ function parseVenueObject(object: string): VenueState {
     name: string("name"),
     address: string("address"),
     city: string("city"),
+    country: string("country") || null,
     latitude: numeric("lat"),
     longitude: numeric("lng") ?? numeric("lon"),
   };
@@ -109,7 +114,7 @@ function findVenueState(html: string, name: string | null): VenueState | null {
   // Last resort: the page may keep the coordinates outside the venue object.
   const pair = html.match(/"lat":\s*(-?\d+(?:\.\d+)?)[^}]{0,100}?"(?:lng|lon)":\s*(-?\d+(?:\.\d+)?)/);
   return pair
-    ? { name: null, address: null, city: null, latitude: number(pair[1]), longitude: number(pair[2]) }
+    ? { name: null, address: null, city: null, country: null, latitude: number(pair[1]), longitude: number(pair[2]) }
     : null;
 }
 
@@ -215,6 +220,7 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
     venueName: orNull(clamp(state?.name ?? venueName ?? "", LIMITS.venue)),
     address: orNull(clamp(state?.address ?? text(address?.streetAddress) ?? "", LIMITS.address)),
     city: orNull(clamp(state?.city ?? text(address?.addressLocality) ?? "", LIMITS.venue)),
+    country: state?.country ?? addressCountry(address),
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
     url,
@@ -236,6 +242,7 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
   const venueName = jsonLdName ?? state?.name ?? null;
   const street = state?.address ?? text(address?.streetAddress);
   const city = state?.city ?? text(address?.addressLocality);
+  const country = state?.country ?? addressCountry(address);
   const point = validPoint(state?.latitude ?? null, state?.longitude ?? null);
   const coverUrl = coverImage(html);
   const page = pageEvent(html);
@@ -248,6 +255,7 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
     venueName: orNull(clamp(decodeEntities(venueName ?? ""), LIMITS.venue)),
     address: orNull(clamp(decodeEntities(street ?? ""), LIMITS.address)),
     city: orNull(clamp(decodeEntities(city ?? ""), LIMITS.venue)),
+    country,
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
     coverUrl,

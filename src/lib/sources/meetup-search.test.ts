@@ -45,6 +45,7 @@ describe("parseMeetupSearchResponse", () => {
       format: "in_person",
       venueName: "DevOn Software Services",
       address: "Embassy Tech Village, Outer Ring Road",
+      country: "in",
       latitude: null,
       longitude: null,
       url: "https://www.meetup.com/softwarearchitectsbangalore/events/316719692/",

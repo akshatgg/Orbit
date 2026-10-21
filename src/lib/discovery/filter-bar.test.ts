@@ -14,7 +14,8 @@ describe("pillLabel", () => {
     expect(pillLabel(f({ date: "weekend" }), "date", cats)).toBe("This weekend");
     expect(pillLabel(f({ category: "workshop" }), "category", cats)).toBe("Workshop");
     expect(pillLabel(f({ category: ["workshop", "talk", "social"] }), "category", cats)).toBe("Workshop +2");
-    expect(pillLabel(f({ location: "Kensington" }), "location", cats)).toBe("Kensington");
+    expect(pillLabel(f({ country: "IN", city: "Bengaluru" }), "location", cats)).toBe("Bengaluru");
+    expect(pillLabel(f({ country: "GB" }), "location", cats)).toBe("United Kingdom");
     expect(pillLabel(f({ sort: "date" }), "sort", cats)).toBe("Date");
   });
 });
@@ -31,7 +32,11 @@ describe("pickHref", () => {
   it("sort and location", () => {
     expect(pickHref(f({}), "sort", "date")).toBe("/search?sort=date");
     expect(pickHref(f({ sort: "date" }), "sort", "relevance")).toBe("/search");
-    expect(pickHref(f({}), "location", " South  Ken!! ")).toBe("/search?location=South+Ken");
+    expect(pickHref(f({}), "location", "IN")).toBe("/search?country=IN");
+    expect(pickHref(f({}), "location", "IN|Bengaluru")).toBe("/search?country=IN&city=Bengaluru");
+    expect(pickHref(f({}), "location", "|Some Town")).toBe("/search?city=Some+Town");
+    expect(pickHref(f({ country: "IN", city: "Bengaluru" }), "location", "IN|Bengaluru")).toBe("/search");
+    expect(clearKeyHref(f({ q: "ai", country: "IN", city: "Delhi" }), "location")).toBe("/search?q=ai");
   });
 });
 

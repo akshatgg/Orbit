@@ -2,7 +2,7 @@
 // plus the host's formatted description from the page's app data.
 
 import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
-import { firstJsonLdEvent } from "./jsonld";
+import { addressCountry, firstJsonLdEvent } from "./jsonld";
 import { isValidTimezone } from "./timezone";
 import { HINT_WEIGHT } from "./interests";
 import type { InterestHint, NormalizedEvent } from "./types";
@@ -16,6 +16,8 @@ export type LumaPageDetails = {
   venueName: string | null;
   address: string | null;
   city: string | null;
+  /** The address's country as the page gives it ("IN"); normalised when saved. */
+  country?: string | null;
   latitude: number | null;
   longitude: number | null;
   /**
@@ -241,6 +243,7 @@ export function parseLumaLinkedEvent(html: string, pageUrl: string): NormalizedE
     venueName: orNull(clamp(oneLine(typeof location?.name === "string" ? location.name : ""), LIMITS.venue)),
     address: orNull(clamp(oneLine(typeof address?.streetAddress === "string" ? address.streetAddress : ""), LIMITS.address)),
     city: orNull(clamp(oneLine(typeof address?.addressLocality === "string" ? address.addressLocality : ""), LIMITS.venue)),
+    country: addressCountry(address),
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
     url,
@@ -284,6 +287,7 @@ export function parseLumaEventPage(html: string): LumaPageDetails | null {
     venueName,
     address: street,
     city,
+    country: addressCountry(address),
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
     flatDescription: jsonLdDescription(event),

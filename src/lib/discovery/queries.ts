@@ -10,6 +10,7 @@ import { datePresetRange } from "./dates";
 import type { SearchFilters } from "./filters";
 import { interestTags } from "@/lib/taxonomy";
 import { countEventsByCategory, nextOfEachSeries } from "@/lib/events/series";
+import { cityVariants, groupPlaces, knownCityNames, type PlaceGroup } from "@/lib/places";
 
 /** Card columns plus what ranking needs to judge "full without a waitlist". */
 const DISCOVERY_SELECT = `${EVENT_CARD_SELECT}, waitlist_enabled`;
@@ -75,6 +76,8 @@ export async function getRankedFeed(viewer: Viewer, { days, now }: { days: numbe
 // ─── Explore ────────────────────────────────────────────────────────────────
 
 const escapeLike = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`);
+/** A value double-quoted for a PostgREST filter (city names can have spaces). */
+const quoted = (s: string) => `"${s.replace(/["\\]/g, (m) => `\\${m}`)}"`;
 
 export type SearchResult = { results: RankedEvent[]; truncated: boolean };
 
@@ -103,9 +106,14 @@ export async function searchEvents(
     // Quoted array literal: some synonyms have spaces ("net zero"), and postgrest-js doesn't quote.
     if (filters.interests.length) q = q.overlaps("tags", `{${filters.interests.flatMap(interestTags).map((t) => `"${t}"`).join(",")}}`);
     if (filters.formats.length) q = q.in("format", filters.formats);
-    if (filters.location) {
-      const l = filters.location;
-      q = q.or(`city.ilike.*${l}*,venue_name.ilike.*${l}*,address.ilike.*${l}*`);
+    if (filters.city) {
+      // Any spelling of the city (Bangalore / Bengaluru), in the picked country or one we inferred.
+      q = q.or(cityVariants(filters.city).map((c) => `city.ilike.${quoted(c)}`).join(","));
+      if (filters.country) q = q.or(`country.eq.${filters.country},country.is.null`);
+    } else if (filters.country) {
+      // Events stored with the country, plus city-only events in its known cities.
+      const known = knownCityNames(filters.country).map((c) => quoted(c)).join(",");
+      q = q.or(known ? `country.eq.${filters.country},and(country.is.null,city.in.(${known}))` : `country.eq.${filters.country}`);
     }
     return q.order("starts_at", { ascending: true }).limit(SEARCH_LIMIT);
   };
@@ -178,6 +186,20 @@ export async function countUpcomingByCategory(now: Date): Promise<Map<string, nu
     .or(notEndedFilter(now))
     .limit(2000);
   return countEventsByCategory((data ?? []) as { id: string; category_id: string | null; series_key: string | null }[]);
+}
+
+/** Places upcoming in-person events are in, as country → city lists (for the Location filter). */
+export async function listUpcomingPlaces(now: Date): Promise<PlaceGroup[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("events")
+    .select("id, city, country, series_key")
+    .eq("status", "published")
+    .is("duplicate_of", null)
+    .neq("format", "online")
+    .or(notEndedFilter(now))
+    .limit(2000);
+  return groupPlaces((data ?? []) as { id: string; city: string | null; country: string | null; series_key: string | null }[]);
 }
 
 // ─── Calendar ───────────────────────────────────────────────────────────────

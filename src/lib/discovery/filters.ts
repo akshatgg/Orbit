@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 import { ALL_INTERESTS, EVENT_FORMATS, labelFor } from "@/lib/taxonomy";
+import { countryName } from "@/lib/places";
 import type { DatePreset } from "./dates";
 
 export const DATE_PRESETS: { value: DatePreset; label: string }[] = [
@@ -27,7 +28,9 @@ export type SearchFilters = {
   categories: string[];
   interests: string[];
   formats: FormatKey[];
-  location: string;
+  /** Location: a country (ISO code) and/or a city, picked from the places events are in. */
+  country: string | null;
+  city: string;
   sort: SortKey;
 };
 
@@ -41,7 +44,7 @@ const first = (v: unknown) => list(v)[0];
 const interestValues: string[] = ALL_INTERESTS.map((i) => i.value);
 const formatValues = EVENT_FORMATS.map((f) => f.value) as [FormatKey, ...FormatKey[]];
 
-/** Letters, numbers, spaces and a little punctuation — safe inside a PostgREST filter. */
+/** Letters, numbers, spaces and a little punctuation — safe inside a PostgREST filter (city names). */
 export function cleanLocation(raw: string) {
   return raw.replace(/[^\p{L}\p{N} '&-]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 60);
 }
@@ -49,7 +52,8 @@ export function cleanLocation(raw: string) {
 const schema = z.object({
   q: z.string().trim().max(120).catch(""),
   date: z.enum(["today", "week", "weekend", "month"]).nullable().catch(null),
-  location: z.string().transform(cleanLocation).catch(""),
+  country: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/).nullable().catch(null),
+  city: z.string().transform(cleanLocation).catch(""),
   sort: z.enum(["relevance", "date", "deadline"]).catch("relevance"),
 });
 
@@ -64,7 +68,8 @@ export function parseSearchFilters(raw: RawSearchParams): SearchFilters {
   const parsed = schema.parse({
     q: first(raw.q) ?? "",
     date: first(raw.date) ?? null,
-    location: first(raw.location) ?? "",
+    country: first(raw.country) ?? null,
+    city: first(raw.city) ?? "",
     sort: first(raw.sort) ?? "relevance",
   });
   const slug = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -84,7 +89,8 @@ export function toSearchParams(f: SearchFilters): URLSearchParams {
   for (const c of f.categories) p.append("category", c);
   for (const i of f.interests) p.append("interest", i);
   for (const fm of f.formats) p.append("format", fm);
-  if (f.location) p.set("location", f.location);
+  if (f.country) p.set("country", f.country);
+  if (f.city) p.set("city", f.city);
   if (f.sort !== "relevance") p.set("sort", f.sort);
   return p;
 }
@@ -98,13 +104,18 @@ export function searchHref(f: SearchFilters): string {
 export function activeFilterCount(f: SearchFilters): number {
   return (
     (f.date ? 1 : 0) + f.categories.length + f.interests.length + f.formats.length +
-    (f.location ? 1 : 0)
+    (f.country || f.city ? 1 : 0)
   );
 }
 
 /** True when the page should show results rather than the browse view. */
 export function isSearching(f: SearchFilters): boolean {
   return f.q.length > 0 || activeFilterCount(f) > 0;
+}
+
+/** "Bengaluru", or "India" when only a country is picked. */
+export function placeLabel(f: Pick<SearchFilters, "country" | "city">): string {
+  return f.city || (f.country ? countryName(f.country) : "");
 }
 
 export type FilterChip = { key: string; label: string; href: string };
@@ -125,11 +136,11 @@ export function activeFilterChips(f: SearchFilters, categoryNames: ReadonlyMap<s
   for (const fm of f.formats) {
     chips.push({ key: `format:${fm}`, label: labelFor(EVENT_FORMATS, fm), href: without({ formats: f.formats.filter((x) => x !== fm) }) });
   }
-  if (f.location) chips.push({ key: "location", label: `Near “${f.location}”`, href: without({ location: "" }) });
+  if (f.country || f.city) chips.push({ key: "location", label: placeLabel(f), href: without({ country: null, city: "" }) });
   return chips;
 }
 
 /** Same search with every filter cleared (keeps the search text). */
 export function clearFiltersHref(f: SearchFilters): string {
-  return searchHref({ ...f, date: null, categories: [], interests: [], formats: [], location: "" });
+  return searchHref({ ...f, date: null, categories: [], interests: [], formats: [], country: null, city: "" });
 }

@@ -6,7 +6,7 @@ import {
 describe("parseSearchFilters", () => {
   it("defaults to an empty search", () => {
     const f = parseSearchFilters({});
-    expect(f).toEqual({ q: "", date: null, categories: [], interests: [], formats: [], location: "", sort: "relevance" });
+    expect(f).toEqual({ q: "", date: null, categories: [], interests: [], formats: [], country: null, city: "", sort: "relevance" });
     expect(isSearching(f)).toBe(false);
   });
 
@@ -18,7 +18,8 @@ describe("parseSearchFilters", () => {
       interest: ["consulting", "astrology"],
       format: ["online", "teleport"],
       price: "free", // no longer a filter: ignored
-      location: "South Ken, (SW7)%",
+      country: "in",
+      city: "Navi Mumbai, (MH)%",
       sort: "deadline",
     });
     expect(f.q).toBe("case interview");
@@ -27,7 +28,8 @@ describe("parseSearchFilters", () => {
     expect(f.interests).toEqual(["consulting"]);
     expect(f.formats).toEqual(["online"]);
     expect(f).not.toHaveProperty("price");
-    expect(f.location).toBe("South Ken SW7");
+    expect(f.country).toBe("IN");
+    expect(f.city).toBe("Navi Mumbai MH");
     expect(f.sort).toBe("deadline");
     expect(activeFilterCount(f)).toBe(5);
   });
@@ -56,6 +58,15 @@ describe("URLs", () => {
       [...new URL(href, "http://x").searchParams.keys()].map((k) => [k, new URL(href, "http://x").searchParams.getAll(k)]),
     ));
     expect(back).toEqual(f);
+  });
+
+  it("keeps a picked place in the URL and names it on the chip", () => {
+    const place = parseSearchFilters({ country: "IN", city: "Bengaluru" });
+    expect(searchHref(place)).toBe("/search?country=IN&city=Bengaluru");
+    expect(activeFilterChips(place, new Map()).map((c) => c.label)).toEqual(["Bengaluru"]);
+    expect(activeFilterChips(parseSearchFilters({ country: "IN" }), new Map()).map((c) => c.label)).toEqual(["India"]);
+    expect(activeFilterCount(place)).toBe(1);
+    expect(parseSearchFilters({ country: "India!", location: "Soho" })).toMatchObject({ country: null, city: "" });
   });
 
   it("builds removable chips", () => {

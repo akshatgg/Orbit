@@ -17,6 +17,13 @@ describe("parseLumaEventPage", () => {
     expect(details).toMatchObject({ priceMin: 0, priceMax: 0, currency: "USD" });
   });
 
+  it("reads the venue's country, as a code or a Country object", () => {
+    const formatted = readFileSync(fileURLToPath(new URL("./__fixtures__/luma-event-formatted.html", import.meta.url)), "utf8");
+    expect(parseLumaEventPage(formatted)?.country).toBe("IN");
+    const named = ld({ "@type": "Event", description: "x", location: { address: { addressCountry: { "@type": "Country", name: "India" } } } });
+    expect(parseLumaEventPage(named)?.country).toBe("India");
+  });
+
   it("falls back to og:image when there is no JSON-LD", () => {
     const html = page.replace(/<script[^>]*application\/ld\+json[\s\S]*?<\/script>/, "");
     const details = parseLumaEventPage(html);

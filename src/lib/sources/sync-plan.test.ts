@@ -41,6 +41,7 @@ const existingFrom = (n: NormalizedEvent, over: Partial<ExistingSourceEvent> = {
     venue_name: f.venue_name,
     address: f.address,
     city: f.city,
+    country: f.country ?? null,
     latitude: f.latitude,
     longitude: f.longitude,
     registration_mode: f.registration_mode!,
@@ -119,6 +120,14 @@ describe("changedFields", () => {
       latitude: 51.52, longitude: -0.09,
     });
     expect(changedFields(existingFrom(withGeo), syncedFields(withGeo, FEED))).toEqual({});
+  });
+
+  it("stores the feed's country as a code, and never clears it when the feed has none", () => {
+    expect(syncedFields(incoming("a", { country: "gb" }), FEED).country).toBe("GB");
+    expect(syncedFields(incoming("a", { country: "United Kingdom" }), FEED).country).toBe("GB");
+    expect(syncedFields(incoming("a", { country: "Narnia" }), FEED)).not.toHaveProperty("country");
+    expect(changedFields(existingFrom(incoming("a")), syncedFields(incoming("a", { country: "in" }), FEED))).toEqual({ country: "IN" });
+    expect(changedFields(existingFrom(incoming("a", { country: "IN" })), syncedFields(incoming("a"), FEED))).toEqual({});
   });
 });
 

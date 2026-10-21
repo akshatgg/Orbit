@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, useTransition, type KeyboardEvent } from "react";
-import { Input } from "@/components/ui/Field";
 import {
-  FILTER_KEYS, FILTER_TITLES, clearKeyHref, isActive, isMultiKey, optionsFor, pickHref, pillLabel, selectedValues,
+  FILTER_KEYS, FILTER_TITLES, clearKeyHref, isActive, isMultiKey, optionsFor, pickHref, pillLabel, placeValue, selectedValues,
   showClearAll, type FilterKey, type Option,
 } from "@/lib/discovery/filter-bar";
 import { clearFiltersHref, type SearchFilters } from "@/lib/discovery/filters";
+import type { PlaceGroup } from "@/lib/places";
 
 const PANEL_W = 264;
 
@@ -21,7 +21,7 @@ const Check = () => (
 );
 
 /** Compact filter bar: one pill per filter, each opening a popover (desktop) or bottom sheet (mobile). */
-export function FilterBar({ filters, categories }: { filters: SearchFilters; categories: Option[] }) {
+export function FilterBar({ filters, categories, places }: { filters: SearchFilters; categories: Option[]; places: PlaceGroup[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [openKey, setOpenKey] = useState<FilterKey | null>(null);
@@ -177,10 +177,10 @@ export function FilterBar({ filters, categories }: { filters: SearchFilters; cat
               </div>
             </div>
             {openKey === "location" ? (
-              <LocationPanel
-                value={filters.location}
-                onApply={(v) => { go(pickHref(filters, "location", v)); close(); }}
-                onClear={() => { go(clearKeyHref(filters, "location")); close(); }}
+              <PlaceList
+                places={places}
+                selected={selectedValues(filters, "location")[0] ?? null}
+                onPick={(v) => { go(pickHref(filters, "location", v)); close(); }}
               />
             ) : (
               <OptionList
@@ -230,19 +230,48 @@ function OptionList({ kind, options, selected, onPick }: {
   );
 }
 
-function LocationPanel({ value, onApply, onClear }: { value: string; onApply: (v: string) => void; onClear: () => void }) {
-  const [text, setText] = useState(value);
+/** Countries (flag, name, count), each followed by its cities. Picking a country covers all of it. */
+function PlaceList({ places, selected, onPick }: { places: PlaceGroup[]; selected: string | null; onPick: (v: string) => void }) {
+  if (!places.length) return <p className="px-5 py-6 text-center text-sm text-muted">No places yet: upcoming events are all online.</p>;
+  const row = "flex w-full items-center justify-between gap-3 rounded-[14px] py-2.5 pr-3.5 text-left text-sm transition-colors focus-visible:bg-ink/[0.1] focus-visible:outline-none hover:bg-ink/[0.07]";
+  const item = (value: string, label: React.ReactNode, count: number, className: string) => {
+    const on = selected === value;
+    return (
+      <button
+        key={value}
+        type="button"
+        role="menuitemradio"
+        aria-checked={on}
+        tabIndex={-1}
+        onClick={() => onPick(value)}
+        className={`${row} ${className} ${on ? "font-medium text-fg" : "text-muted"}`}
+      >
+        <span className="flex min-w-0 items-center gap-2 truncate">{label}</span>
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="text-xs tabular-nums text-subtle">{count}</span>
+          {on && <span className="text-accent"><Check /></span>}
+        </span>
+      </button>
+    );
+  };
   return (
-    <form
-      onSubmit={(e) => { e.preventDefault(); onApply(text); }}
-      className="space-y-3 p-4"
-    >
-      <label htmlFor="filter-location" className="sr-only">Location</label>
-      <Input id="filter-location" value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. South Kensington" maxLength={60} />
-      <div className="flex items-center justify-between gap-3">
-        {value ? <button type="button" onClick={onClear} className="text-sm text-muted hover:text-fg">Clear</button> : <span />}
-        <button type="submit" className="bg-gradient rounded-full px-5 py-2 text-sm font-semibold text-bg active:scale-[0.97]">Apply</button>
-      </div>
-    </form>
+    <div className="overflow-y-auto overscroll-contain p-1.5">
+      {places.map((group) => (
+        <div key={group.country ?? "other"} role="group" aria-label={group.name} className="pb-1">
+          {group.country
+            ? item(
+              placeValue(group.country, ""),
+              <>
+                <span aria-hidden className="text-base leading-none">{group.flag}</span>
+                <span className="truncate font-semibold text-fg">{group.name}</span>
+              </>,
+              group.count,
+              "pl-3.5",
+            )
+            : <p className="px-3.5 pb-1 pt-2.5 text-xs font-medium text-subtle">{group.name}</p>}
+          {group.cities.map((c) => item(placeValue(group.country, c.city), <span className="truncate">{c.city}</span>, c.count, "pl-10"))}
+        </div>
+      ))}
+    </div>
   );
 }

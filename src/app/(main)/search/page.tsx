@@ -13,7 +13,7 @@ import {
   clearFiltersHref, isSearching, parseSearchFilters, SORT_OPTIONS, toSearchParams, type SearchFilters,
 } from "@/lib/discovery/filters";
 import {
-  countUpcomingByCategory, getViewer, listHappeningSoon, searchEvents, type RankedEvent, type Viewer,
+  countUpcomingByCategory, getViewer, listHappeningSoon, listUpcomingPlaces, searchEvents, type RankedEvent, type Viewer,
 } from "@/lib/discovery/queries";
 import { listCategories } from "@/lib/events/queries";
 
@@ -43,7 +43,7 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
   const categories = (await listCategories()) as Category[];
   const now = new Date();
   const searching = isSearching(filters);
-  const categoryCounts = await countUpcomingByCategory(now);
+  const [categoryCounts, places] = await Promise.all([countUpcomingByCategory(now), listUpcomingPlaces(now)]);
 
   return (
     <div className="space-y-6 lg:space-y-10">
@@ -56,6 +56,7 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
             label: c.name,
             count: categoryCounts.get(c.id) ?? 0,
           }))}
+          places={places}
         />
       </div>
       {searching ? (

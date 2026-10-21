@@ -1,9 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCloudinaryConfig } from "@/lib/cloudinary";
+import { normaliseCountry } from "@/lib/places";
 import { importRemoteImage } from "./cloudinary-import";
 import {
-  ENRICH_BUDGET_MS, ENRICH_LIMIT, PAUSE_MS, hasTimeFor, hintedTags, isBlockedStatus, pickEventsToEnrich,
+  ENRICH_BUDGET_MS, ENRICH_LIMIT, PAUSE_MS, hasTimeFor, hintedTags, isBlockedStatus, needsCountry, pickEventsToEnrich, rereadForCountry,
   type EnrichCandidate, type EnrichRunState,
 } from "./enrich-plan";
 import { FetchHttpError, fetchFeedText } from "./fetch";
@@ -14,7 +15,7 @@ import { sourceKey, type DetailsStatus, type EventSource, type RunError, type So
 // Trusted server code only (called from the sync engine with the service-role client).
 
 const CANDIDATE_SELECT =
-  "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude, series_key, title, summary, tags, tags_locked";
+  "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min, venue_name, address, city, country, format, latitude, longitude, series_key, title, summary, tags, tags_locked";
 
 const COVER_FOLDER = "orbit/event-covers/sources";
 const NO_COVER = "No cover image on the page.";
@@ -82,15 +83,16 @@ export async function enrichMeetupEvents(
     // A location can be lost if an older sync cleared it. Treat an "ok" row whose location is
     // now missing as unread so this run can put it back (the retry limits then apply). Pages read
     // before covers or prices were imported are read once more for them; a page known to have no
-    // image or no price isn't.
+    // image or no price isn't. Those read before countries were saved are read once more for it.
     for (const [eventId, row] of details) {
       const event = events.find((e) => e.id === eventId);
       const coverPending = event && needsCover(event) && !row.last_error?.includes(NO_COVER);
       const pricePending = event && needsPrice(event) && !row.last_error?.includes(NO_PRICE);
-      if (row.status === "ok" && event && (needsLocation(event) || coverPending || pricePending)) details.delete(eventId);
+      const countryPending = event && rereadForCountry(event, row.fetched_at);
+      if (row.status === "ok" && event && (needsLocation(event) || coverPending || pricePending || countryPending)) details.delete(eventId);
     }
 
-    const picked = pickEventsToEnrich(events, details, now, ENRICH_LIMIT, (e) => needsLocation(e) || needsCover(e) || needsPrice(e));
+    const picked = pickEventsToEnrich(events, details, now, ENRICH_LIMIT, (e) => needsLocation(e) || needsCover(e) || needsPrice(e) || needsCountry(e));
     const limit = Math.min(Date.now() + ENRICH_BUDGET_MS, run.deadline);
 
     for (const [i, event] of picked.entries()) {
@@ -146,6 +148,10 @@ export async function enrichMeetupEvents(
         }
         if ((!event.city || event.city === "London") && page.city && page.city !== event.city) {
           wrote = (await apply({ city: page.city }, "city", event.city)) || wrote;
+        }
+        const country = normaliseCountry(page.country);
+        if (!event.country && country) {
+          wrote = (await apply({ country }, "country", event.country)) || wrote;
         }
         if ((event.latitude == null || event.longitude == null) && page.latitude != null && page.longitude != null) {
           wrote = (await apply({ latitude: page.latitude, longitude: page.longitude }, "latitude", event.latitude)) || wrote;

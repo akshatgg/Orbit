@@ -3,7 +3,7 @@
 
 import { ALL_INTERESTS, EVENT_FORMATS, labelFor } from "@/lib/taxonomy";
 import {
-  DATE_PRESETS, SORT_OPTIONS, activeFilterCount, cleanLocation, searchHref, type SearchFilters,
+  DATE_PRESETS, SORT_OPTIONS, activeFilterCount, cleanLocation, placeLabel, searchHref, type SearchFilters,
 } from "./filters";
 
 export type FilterKey = "date" | "category" | "interest" | "format" | "location" | "sort";
@@ -19,6 +19,16 @@ export const MULTI_KEYS: readonly FilterKey[] = ["category", "interest", "format
 export const isMultiKey = (k: FilterKey) => MULTI_KEYS.includes(k);
 
 export type Option = { value: string; label: string; count?: number };
+
+/** A Location pick as one option value: "IN" (a whole country), "IN|Bengaluru", or "|Some Town". */
+export function placeValue(country: string | null, city: string): string {
+  return city ? `${country ?? ""}|${city}` : (country ?? "");
+}
+
+export function parsePlaceValue(value: string): Pick<SearchFilters, "country" | "city"> {
+  const [country, city = ""] = value.split("|");
+  return { country: /^[A-Z]{2}$/.test(country) ? country : null, city: cleanLocation(city) };
+}
 
 export function optionsFor(key: FilterKey, categories: readonly Option[]): Option[] {
   switch (key) {
@@ -38,7 +48,7 @@ export function selectedValues(f: SearchFilters, key: FilterKey): string[] {
     case "category": return f.categories;
     case "interest": return f.interests;
     case "format": return f.formats;
-    case "location": return f.location ? [f.location] : [];
+    case "location": return f.country || f.city ? [placeValue(f.country, f.city)] : [];
     case "sort": return [f.sort];
   }
 }
@@ -48,11 +58,11 @@ export function isActive(f: SearchFilters, key: FilterKey): boolean {
   return key === "sort" ? f.sort !== "relevance" : selectedValues(f, key).length > 0;
 }
 
-/** Pill text: the plain title, or the chosen value ("Workshop", "Workshop +2", "Near X"). */
+/** Pill text: the plain title, or the chosen value ("Workshop", "Workshop +2", "Bengaluru", "India"). */
 export function pillLabel(f: SearchFilters, key: FilterKey, categories: readonly Option[]): string {
   if (!isActive(f, key)) return FILTER_TITLES[key];
   const vals = selectedValues(f, key);
-  if (key === "location") return f.location;
+  if (key === "location") return placeLabel(f);
   const opts = optionsFor(key, categories);
   const first = labelFor(opts, vals[0]);
   return vals.length > 1 ? `${first} +${vals.length - 1}` : first;
@@ -67,7 +77,11 @@ export function pickHref(f: SearchFilters, key: FilterKey, value: string): strin
     case "interest": return searchHref({ ...f, interests: toggle(f.interests) });
     case "format": return searchHref({ ...f, formats: toggle(f.formats) });
     case "sort": return searchHref({ ...f, sort: value as SearchFilters["sort"] });
-    case "location": return searchHref({ ...f, location: cleanLocation(value) });
+    case "location": {
+      const picked = parsePlaceValue(value);
+      const same = picked.country === f.country && picked.city === f.city;
+      return searchHref({ ...f, ...(same ? { country: null, city: "" } : picked) });
+    }
   }
 }
 
@@ -78,7 +92,7 @@ export function clearKeyHref(f: SearchFilters, key: FilterKey): string {
     case "category": return searchHref({ ...f, categories: [] });
     case "interest": return searchHref({ ...f, interests: [] });
     case "format": return searchHref({ ...f, formats: [] });
-    case "location": return searchHref({ ...f, location: "" });
+    case "location": return searchHref({ ...f, country: null, city: "" });
     case "sort": return searchHref({ ...f, sort: "relevance" });
   }
 }
