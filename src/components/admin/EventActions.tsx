@@ -1,7 +1,7 @@
-import { cancelEvent, markReviewed, removeEvent, restoreEvent, setFeatured } from "@/app/admin/events/actions";
+import { cancelEvent, deleteEvent, markReviewed, removeEvent, restoreEvent, setFeatured } from "@/app/admin/events/actions";
 import type { OrbitEvent } from "@/types/database";
 import { ActionButton } from "./ActionButton";
-import { IconBan, IconCheck, IconExternal, IconEye, IconPencil, IconStar, IconTrash, IconUndo } from "./icons";
+import { IconBan, IconCheck, IconExternal, IconEye, IconEyeOff, IconPencil, IconStar, IconTrash, IconUndo } from "./icons";
 import { MenuLink, MenuSeparator, RowMenu } from "./RowMenu";
 
 type Ev = Pick<OrbitEvent, "id" | "title" | "status" | "is_featured" | "needs_review" | "organiser_id" | "registration_mode" | "source_url">;
@@ -63,15 +63,34 @@ export function EventMenu({ event }: { event: Ev }) {
           action={removeEvent.bind(null, event.id)}
           confirm={{
             title: `Remove “${event.title}”?`,
-            body: "Hides it from ORBIT completely (spam, duplicates, wrong info). You can restore it later.",
+            body: "Hides it from ORBIT completely (spam, duplicates, wrong info). It stays in the database and you can restore it later.",
             confirmLabel: "Remove event",
             danger: true,
             reason: { label: "Internal note", placeholder: "Optional — e.g. duplicate of the Careers Fair listing" },
           }}
         >
-          <IconTrash size={15} /> Remove…
+          <IconEyeOff size={15} /> Remove (hide)…
         </ActionButton>
       )}
+      <ActionButton
+        menuItem
+        variant="danger"
+        action={deleteEvent.bind(null, event.id)}
+        confirm={{
+          title: `Delete “${event.title}” permanently?`,
+          body: (
+            <>
+              This erases the event and everything attached to it — registrations, tickets, questions, saved items and
+              check-in history. It leaves ORBIT&rsquo;s database entirely and <b>cannot be undone</b>. Use Remove instead
+              if you only want it hidden.
+            </>
+          ),
+          confirmLabel: "Delete permanently",
+          danger: true,
+        }}
+      >
+        <IconTrash size={15} /> Delete permanently…
+      </ActionButton>
     </RowMenu>
   );
 }
