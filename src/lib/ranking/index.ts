@@ -8,7 +8,7 @@
 
 import type { Profile, RegistrationStatus } from "@/types/database";
 import type { EventCardData, EventCounts } from "@/lib/events/queries";
-import { CAREER_INTERESTS, DAY_PARTS, PERSONAL_INTERESTS } from "@/lib/taxonomy";
+import { CAREER_INTERESTS, DAY_PARTS, PERSONAL_INTERESTS, TAG_SYNONYMS } from "@/lib/taxonomy";
 import { effectiveUserType, usesUniversitySignals } from "@/lib/profile/user-type";
 
 // ─── Inputs ─────────────────────────────────────────────────────────────────
@@ -134,30 +134,6 @@ const CATEGORY_TOPICS: Record<string, string[]> = {
   "arts-culture": ["arts"],
   sustainability: ["sustainability"],
   entrepreneurship: ["entrepreneurship"],
-};
-
-/** Free-text tags that mean the same thing as a taxonomy value. */
-const TAG_SYNONYMS: Record<string, string> = {
-  tech: "technology",
-  startups: "entrepreneurship",
-  startup: "entrepreneurship",
-  banking: "finance",
-  "investment banking": "finance",
-  esg: "sustainability",
-  "net zero": "sustainability",
-  analytics: "data",
-  "data science": "data",
-  "product management": "product",
-  policy: "public-sector",
-  running: "fitness",
-  sport: "fitness",
-  sports: "fitness",
-  social: "socialising",
-  art: "arts",
-  "arts & culture": "arts",
-  culture: "arts",
-  "food & drink": "food",
-  nightlife: "music",
 };
 
 const FORMAT_PHRASE = { in_person: "it's in person", online: "it's online", hybrid: "it's hybrid" } as const;

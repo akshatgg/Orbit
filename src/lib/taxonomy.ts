@@ -28,6 +28,38 @@ export const PERSONAL_INTERESTS = [
   { value: "gaming", label: "Gaming" },
 ] as const;
 
+/** Every interest once (sustainability is in both lists): what events are tagged with and filtered by. */
+export const ALL_INTERESTS = [...CAREER_INTERESTS, ...PERSONAL_INTERESTS].filter(
+  (o, i, all) => all.findIndex((x) => x.value === o.value) === i,
+);
+
+/** Free-text tags that mean the same thing as an interest value. */
+export const TAG_SYNONYMS: Record<string, string> = {
+  tech: "technology",
+  startups: "entrepreneurship",
+  startup: "entrepreneurship",
+  banking: "finance",
+  "investment banking": "finance",
+  esg: "sustainability",
+  "net zero": "sustainability",
+  analytics: "data",
+  "data science": "data",
+  "product management": "product",
+  policy: "public-sector",
+  running: "fitness",
+  sport: "fitness",
+  sports: "fitness",
+  social: "socialising",
+  art: "arts",
+  "arts & culture": "arts",
+  culture: "arts",
+  "food & drink": "food",
+  nightlife: "music",
+};
+
+/** The tags that count as an interest: its own value plus every synonym of it. */
+export const interestTags = (value: string) => [value, ...Object.keys(TAG_SYNONYMS).filter((t) => TAG_SYNONYMS[t] === value)];
+
 export const EVENT_FORMATS = [
   { value: "in_person", label: "In person" },
   { value: "online", label: "Online" },

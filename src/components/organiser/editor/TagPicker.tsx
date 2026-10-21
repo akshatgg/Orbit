@@ -3,11 +3,9 @@
 import { useState } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import { inputClass } from "@/components/ui/Field";
-import { CAREER_INTERESTS, PERSONAL_INTERESTS } from "@/lib/taxonomy";
+import { ALL_INTERESTS } from "@/lib/taxonomy";
 
-const SUGGESTIONS = [...CAREER_INTERESTS, ...PERSONAL_INTERESTS].filter(
-  (o, i, all) => all.findIndex((x) => x.value === o.value) === i,
-);
+const SUGGESTIONS = ALL_INTERESTS;
 
 const MAX_TAGS = 10;
 

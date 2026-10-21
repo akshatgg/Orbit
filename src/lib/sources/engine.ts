@@ -7,6 +7,7 @@ import { enrichLumaEvents } from "./enrich";
 import { enrichMeetupEvents } from "./enrich-meetup";
 import { ENRICH_BUDGET_MS, RUN_ENRICH_DEADLINE_MS, type EnrichRunState } from "./enrich-plan";
 import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
+import { withInterests } from "./interests";
 import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
 import { sourceKey, type EventSource, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
 
@@ -33,6 +34,32 @@ async function selectAll<T>(build: (from: number, to: number) => PromiseLike<{ d
     const page = (data ?? []) as T[];
     rows.push(...page);
     if (page.length < PAGE) return rows;
+  }
+}
+
+type TaggableEvent = { id: string; title: string; summary: string | null; description: string | null; tags: string[] | null };
+
+/**
+ * Adds the interests each of this source's events is about to its tags (the Interest filter and
+ * For-you ranking match on them). Runs every sync, so new events, events whose text changed and
+ * events imported before this existed all get tagged. Only adds — tags are never removed.
+ * Never throws: a tagging failure is recorded and the sync carries on.
+ */
+async function tagInterests(db: SupabaseClient, key: string, errors: RunError[]) {
+  let events: TaggableEvent[];
+  try {
+    events = await selectAll<TaggableEvent>((from, to) =>
+      db.from("events").select("id, title, summary, description, tags").eq("source", key).order("id").range(from, to),
+    );
+  } catch (e) {
+    errors.push({ message: `Couldn't load events to tag interests: ${message(e)}` });
+    return;
+  }
+  for (const event of events) {
+    const tags = withInterests(event);
+    if (tags.length === (event.tags ?? []).length) continue;
+    const { error } = await db.from("events").update({ tags }).eq("id", event.id).eq("source", key);
+    if (error) errors.push({ event: event.id, message: `Couldn't tag interests: ${error.message}` });
   }
 }
 
@@ -141,6 +168,8 @@ export async function runSource(
       if (error) errors.push({ message: `Couldn't flag missing events: ${error.message}` });
       else summary.flaggedMissing += ids.length;
     }
+
+    await tagInterests(db, key, errors);
 
     if (source.kind === "luma" || source.kind === "luma-discover") {
       summary.enriched = await enrichLumaEvents(source, { db, now, errors, run });

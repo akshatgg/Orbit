@@ -8,6 +8,7 @@ import { ACTIVE_REGISTRATION, rankEvents, type Scored } from "@/lib/ranking";
 import { createClient } from "@/lib/supabase/server";
 import { datePresetRange } from "./dates";
 import type { SearchFilters } from "./filters";
+import { interestTags } from "@/lib/taxonomy";
 
 /** Card columns plus what ranking needs to judge "full without a waitlist". */
 const DISCOVERY_SELECT = `${EVENT_CARD_SELECT}, waitlist_enabled`;
@@ -97,7 +98,8 @@ export async function searchEvents(
       .or(notEndedFilter(range?.from ?? now));
     if (range) q = q.lt("starts_at", range.to.toISOString());
     if (filters.categories.length) q = q.in("category_id", categoryIds.length ? categoryIds : ["00000000-0000-0000-0000-000000000000"]);
-    if (filters.interests.length) q = q.overlaps("tags", filters.interests);
+    // Quoted array literal: some synonyms have spaces ("net zero"), and postgrest-js doesn't quote.
+    if (filters.interests.length) q = q.overlaps("tags", `{${filters.interests.flatMap(interestTags).map((t) => `"${t}"`).join(",")}}`);
     if (filters.formats.length) q = q.in("format", filters.formats);
     if (filters.price === "free") q = q.eq("price_min", 0);
     if (filters.price === "paid") q = q.gt("price_max", 0);
