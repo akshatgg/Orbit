@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { datePresetRange } from "./dates";
 import type { SearchFilters } from "./filters";
 import { interestTags } from "@/lib/taxonomy";
-import { nextOfEachSeries } from "@/lib/events/series";
+import { countEventsByCategory, nextOfEachSeries } from "@/lib/events/series";
 
 /** Card columns plus what ranking needs to judge "full without a waitlist". */
 const DISCOVERY_SELECT = `${EVENT_CARD_SELECT}, waitlist_enabled`;
@@ -174,16 +174,12 @@ export async function countUpcomingByCategory(now: Date): Promise<Map<string, nu
   const supabase = await createClient();
   const { data } = await supabase
     .from("events")
-    .select("category_id")
+    .select("id, category_id, series_key")
     .eq("status", "published")
     .is("duplicate_of", null)
     .or(notEndedFilter(now))
-    .limit(1000);
-  const counts = new Map<string, number>();
-  for (const row of data ?? []) {
-    if (row.category_id) counts.set(row.category_id, (counts.get(row.category_id) ?? 0) + 1);
-  }
-  return counts;
+    .limit(2000);
+  return countEventsByCategory((data ?? []) as { id: string; category_id: string | null; series_key: string | null }[]);
 }
 
 // ─── Calendar ───────────────────────────────────────────────────────────────

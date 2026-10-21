@@ -11,6 +11,7 @@ import {
   type SourceWithDefaults,
 } from "@/lib/sources/queries";
 import { SOURCE_KIND_LABELS, type SourceRun } from "@/lib/sources/types";
+import type { SourceEventCount } from "@/lib/sources/queries";
 import { ActionButton } from "./_components/ActionButton";
 import { ImportedEventRow } from "./_components/ImportedEventRow";
 import { RefreshAllButton } from "./_components/RefreshAllButton";
@@ -45,7 +46,7 @@ function SourceActions({ source, align = "end", className = "" }: {
 }) {
   return (
     <div className={`flex items-start gap-1.5 ${align === "end" ? "justify-end" : "justify-start"} ${className}`}>
-      <ActionButton action={runSourceNow} fields={{ id: source.id }} pendingText="Running…" size="sm" resultClassName="max-w-40">
+      <ActionButton action={runSourceNow} fields={{ id: source.id }} pendingText="Running…" size="sm" resultClassName="max-w-44 whitespace-normal">
         <IconPlay size={13} /> Run now
       </ActionButton>
       <RowMenu label={`More actions for ${source.name}`}>
@@ -113,7 +114,18 @@ function SectionHeading({ id, title, count, hint, action, tone = "neutral" }: {
   );
 }
 
-function FeedCard({ source, run, eventCount }: { source: SourceWithDefaults; run: SourceRun | undefined; eventCount: number }) {
+/** "9" with "67 dates" under it when a source's events repeat; just the number otherwise. */
+function EventCount({ count }: { count: SourceEventCount | undefined }) {
+  const { events = 0, dates = 0 } = count ?? {};
+  return (
+    <span className="tabular-nums">
+      {events}
+      {dates > events && <span className="block whitespace-nowrap text-xs text-muted">{dates} dates</span>}
+    </span>
+  );
+}
+
+function FeedCard({ source, run, eventCount }: { source: SourceWithDefaults; run: SourceRun | undefined; eventCount: SourceEventCount | undefined }) {
   return (
     <article className="glass rounded-[20px] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -147,7 +159,7 @@ function FeedCard({ source, run, eventCount }: { source: SourceWithDefaults; run
         </div>
         <div>
           <dt className="text-subtle">Events</dt>
-          <dd className="mt-0.5 tabular-nums">{eventCount}</dd>
+          <dd className="mt-0.5"><EventCount count={eventCount} /></dd>
         </div>
         <div>
           <dt className="text-subtle">Permission</dt>
@@ -205,7 +217,7 @@ async function SourcesContent() {
   ]);
 
   const enabledCount = sources.filter((source) => source.enabled).length;
-  const totalEvents = [...counts.values()].reduce((sum, count) => sum + count, 0);
+  const totalEvents = [...counts.values()].reduce((sum, count) => sum + count.events, 0);
   const lastRefresh = sources
     .map((source) => source.last_run_at)
     .filter((value): value is string => !!value)
@@ -249,7 +261,7 @@ async function SourcesContent() {
             <ul className="grid gap-3 lg:grid-cols-2 2xl:hidden">
               {sources.map((s) => (
                 <li key={s.id}>
-                  <FeedCard source={s} run={latest.get(s.id)} eventCount={counts.get(s.id) ?? 0} />
+                  <FeedCard source={s} run={latest.get(s.id)} eventCount={counts.get(s.id)} />
                 </li>
               ))}
             </ul>
@@ -289,7 +301,7 @@ async function SourcesContent() {
                           {runSummary(run)}
                           {s.last_error && <p className="mt-1 max-w-xs break-words text-red-300">{s.last_error}</p>}
                         </td>
-                        <td className={table.td}>{counts.get(s.id) ?? 0}</td>
+                        <td className={table.td}><EventCount count={counts.get(s.id)} /></td>
                         <td className={`${table.td} w-px whitespace-nowrap`}>
                           <SourceActions source={s} />
                         </td>

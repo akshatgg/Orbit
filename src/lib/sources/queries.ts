@@ -58,14 +58,23 @@ export async function latestRunBySource(sourceIds: string[]) {
 }
 
 /** How many events each source has in ORBIT (any status). */
-export async function eventCountsBySource(sourceIds: string[]) {
+export type SourceEventCount = { events: number; dates: number };
+
+/** Per source: events (a recurring series counts once) and dates (every row). */
+export async function eventCountsBySource(sourceIds: string[]): Promise<Map<string, SourceEventCount>> {
   const supabase = await createClient();
   const counts = await Promise.all(
-    sourceIds.map((id) =>
-      supabase.from("events").select("id", { count: "exact", head: true }).eq("source", `source:${id}`),
-    ),
+    sourceIds.map(async (id) => {
+      const rows: { id: string; series_key: string | null }[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data } = await supabase.from("events").select("id, series_key").eq("source", `source:${id}`).order("id").range(from, from + 999);
+        rows.push(...((data ?? []) as typeof rows));
+        if ((data?.length ?? 0) < 1000) break;
+      }
+      return { events: new Set(rows.map((r) => r.series_key ?? r.id)).size, dates: rows.length };
+    }),
   );
-  return new Map(sourceIds.map((id, i) => [id, counts[i].count ?? 0]));
+  return new Map(sourceIds.map((id, i) => [id, counts[i]]));
 }
 
 export async function listFormOptions() {
