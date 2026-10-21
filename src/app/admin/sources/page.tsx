@@ -39,6 +39,7 @@ function SourceActions({ source, full = false, className = "" }: { source: Sourc
   const size = full ? "md" : "sm";
   return (
     <div className={`${full ? "grid grid-cols-2 gap-2" : "flex flex-wrap items-start justify-end gap-2"} ${className}`}>
+      <ButtonLink href={`/admin/sources/${source.id}/edit`} variant="secondary" size={size} full={full}>Edit</ButtonLink>
       <ActionButton action={runSourceNow} fields={{ id: source.id }} pendingText="Running…" full={full} size={size}>Run now</ActionButton>
       {source.enabled ? (
         <ActionButton
