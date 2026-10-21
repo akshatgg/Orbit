@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { OrbitEmblem } from "@/components/brand/OrbitEmblem";
+import { PlatformOrbit } from "@/components/brand/PlatformOrbit";
 import { EventCover } from "@/components/events/EventCover";
 import { InstallButton } from "@/components/pwa/InstallButton";
 import { JsonLd } from "@/components/seo/JsonLd";
@@ -83,9 +83,7 @@ export default function Welcome() {
             </div>
           </div>
           <div className="order-1 flex justify-center md:order-2">
-            <div className="origin-center scale-[0.8] sm:scale-100">
-              <OrbitEmblem size={150} />
-            </div>
+            <PlatformOrbit />
           </div>
         </section>
 
