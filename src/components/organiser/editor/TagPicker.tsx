@@ -10,7 +10,13 @@ const SUGGESTIONS = ALL_INTERESTS;
 const MAX_TAGS = 10;
 
 /** Interest chips (so events match students' interests) plus custom tags. */
-export function TagPicker({ value, onChange, error }: { value: string[]; onChange: (tags: string[]) => void; error?: string }) {
+export function TagPicker({ value, onChange, error, hint }: {
+  value: string[];
+  onChange: (tags: string[]) => void;
+  error?: string;
+  /** Replaces the default line under the picker (after the count). */
+  hint?: string;
+}) {
   const [custom, setCustom] = useState("");
   const selected = new Set(value);
   const full = value.length >= MAX_TAGS;
@@ -67,7 +73,7 @@ export function TagPicker({ value, onChange, error }: { value: string[]; onChang
         </button>
       </div>
       <p className={`text-xs ${error ? "text-red-300" : "text-muted"}`}>
-        {error ?? `${value.length}/${MAX_TAGS} — tags help ORBIT recommend your event to the right students.`}
+        {error ?? `${value.length}/${MAX_TAGS} — ${hint ?? "tags help ORBIT recommend your event to the right students."}`}
       </p>
     </div>
   );

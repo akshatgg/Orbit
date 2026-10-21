@@ -15,6 +15,7 @@ describe("parseMeetupEventPage", () => {
       latitude: 51.522907,
       longitude: -0.101072,
       coverUrl: null,
+      interestHints: [],
     });
   });
 
@@ -93,6 +94,17 @@ describe("parseMeetupLinkedEvent", () => {
     expect(parseMeetupEventPage(html)).toEqual({
       venueName: null, address: null, city: null, latitude: null, longitude: null,
       coverUrl: "https://secure.meetupstatic.com/photos/event/d/e/5/6/highres_533996918.jpeg",
+      interestHints: [
+        { label: "Career & Business", weight: 2 },
+        { label: "Business", weight: 1 },
+        { label: "Professional Networking", weight: 1 },
+        { label: "Entrepreneurship", weight: 1 },
+        { label: "Entrepreneur Networking", weight: 1 },
+        { label: "Startup Businesses", weight: 1 },
+        { label: "Business Referral Networking", weight: 1 },
+        { label: "Small Business", weight: 1 },
+        { label: "B2B Networking", weight: 1 },
+      ],
     });
   });
 

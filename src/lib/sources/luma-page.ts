@@ -4,7 +4,8 @@
 import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
 import { firstJsonLdEvent } from "./jsonld";
 import { isValidTimezone } from "./timezone";
-import type { NormalizedEvent } from "./types";
+import { HINT_WEIGHT } from "./interests";
+import type { InterestHint, NormalizedEvent } from "./types";
 
 export type LumaPageDetails = {
   coverUrl: string | null;
@@ -22,6 +23,7 @@ export type LumaPageDetails = {
    * it. A stored description equal to this was never edited, so it can be upgraded.
    */
   flatDescription?: string | null;
+  interestHints?: InterestHint[];
 };
 
 const IMAGE_HOSTS = new Set(["cdn.lu.ma", "images.lumacdn.com"]);
@@ -155,6 +157,15 @@ export function lumaMirrorDescription(html: string): string | null {
   return orNull(clamp(mirrorBlocks(mirror.content).join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), LIMITS.description));
 }
 
+/** Luma's own categories for the event ("Tech", "AI"…): set from its content, so strong evidence. */
+function lumaHints(html: string): InterestHint[] {
+  const categories = pageData(html)?.categories;
+  return (Array.isArray(categories) ? categories : [])
+    .map((c) => (typeof c?.name === "string" ? c.name : ""))
+    .filter(Boolean)
+    .map((label) => ({ label, weight: HINT_WEIGHT.eventCategory }));
+}
+
 /** The JSON-LD description, cleaned the way every Luma import used to store it. */
 function jsonLdDescription(event: Record<string, unknown> | null): string | null {
   return orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : ""), { keepEmphasis: true }), LIMITS.description));
@@ -234,6 +245,7 @@ export function parseLumaLinkedEvent(html: string, pageUrl: string): NormalizedE
     longitude: point?.longitude ?? null,
     url,
     cancelled: status.includes("Cancelled"),
+    interestHints: lumaHints(html),
   };
 }
 
@@ -260,7 +272,8 @@ export function parseLumaEventPage(html: string): LumaPageDetails | null {
   const street = orNull(clamp(text(address?.streetAddress), LIMITS.address));
   const city = orNull(clamp(text(address?.addressLocality), LIMITS.venue));
 
-  if (!coverUrl && !description && !price && !venueName && !street && !point) return null;
+  const interestHints = lumaHints(html);
+  if (!coverUrl && !description && !price && !venueName && !street && !point && interestHints.length === 0) return null;
   return {
     coverUrl,
     description,
@@ -273,5 +286,6 @@ export function parseLumaEventPage(html: string): LumaPageDetails | null {
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
     flatDescription: jsonLdDescription(event),
+    interestHints,
   };
 }

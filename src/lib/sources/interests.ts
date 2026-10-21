@@ -4,6 +4,9 @@
 
 import { ALL_INTERESTS } from "@/lib/taxonomy";
 import { contains, normalize, type ClassifiableEvent } from "./classify";
+import type { InterestHint } from "./types";
+
+export type { InterestHint };
 
 /** Words and phrases (already normalised: lower case, punctuation as spaces) that signal each interest. */
 export const INTEREST_KEYWORDS: Record<string, readonly string[]> = {
@@ -112,8 +115,66 @@ export const MAX_INTERESTS = 4;
 
 const VALUES = new Set<string>(ALL_INTERESTS.map((i) => i.value));
 
+/**
+ * What the platform itself says an event is about, and how much to trust it:
+ * Luma files each event under categories from its content (strong, 3); a Meetup group has one
+ * category (medium, 2) and a list of topics that cover the whole group, not each event (weak, 1).
+ * Hints only add evidence: the event's own words still decide most tags.
+ */
+export const HINT_WEIGHT = { eventCategory: 3, groupCategory: 2, groupTopic: 1 } as const;
+
+/** Platform category names (Meetup's topic categories, Luma's discover categories) → interests. */
+const PLATFORM_CATEGORIES: Record<string, string[]> = {
+  // Meetup
+  "art culture": ["arts"],
+  "career business": ["entrepreneurship", "careers"],
+  "community environment": ["sustainability", "volunteering"],
+  dancing: ["music", "fitness"],
+  games: ["gaming"],
+  "health wellbeing": ["wellbeing"],
+  "hobbies passions": ["hobbies"],
+  "identity language": ["arts"],
+  "movements politics": ["public-sector"],
+  music: ["music"],
+  "parents family": ["socialising"],
+  "religion spirituality": ["wellbeing"],
+  "science education": ["science"],
+  "social activities": ["socialising"],
+  "sports fitness": ["fitness"],
+  "support coaching": ["growth"],
+  technology: ["technology"],
+  "travel outdoor": ["travel"],
+  writing: ["books"],
+  // Luma
+  ai: ["ai", "technology"],
+  "arts culture": ["arts"],
+  books: ["books"],
+  climate: ["sustainability"],
+  crypto: ["crypto"],
+  family: ["socialising"],
+  fitness: ["fitness"],
+  "food drink": ["food"],
+  running: ["fitness"],
+  tech: ["technology"],
+  wellness: ["wellbeing"],
+};
+
+/** Interests one hint points to: a known platform category, else its words against the keywords. */
+function hintInterests(label: string): string[] {
+  const name = normalize(label);
+  if (!name) return [];
+  if (PLATFORM_CATEGORIES[name]) return PLATFORM_CATEGORIES[name];
+  return Object.entries(INTEREST_KEYWORDS)
+    .filter(([, terms]) => terms.some((term) => contains(name, term)))
+    .map(([value]) => value);
+}
+
 /** The interests an event is clearly about, best first. */
-export function inferInterests(event: ClassifiableEvent): string[] {
+export function inferInterests(event: ClassifiableEvent, hints: readonly InterestHint[] = []): string[] {
+  const fromHints = new Map<string, number>();
+  for (const hint of hints) {
+    for (const value of hintInterests(hint.label)) fromHints.set(value, (fromHints.get(value) ?? 0) + hint.weight);
+  }
   const fields = {
     title: normalize(event.title),
     tags: normalize((event.tags ?? []).join(" ")),
@@ -131,7 +192,7 @@ export function inferInterests(event: ClassifiableEvent): string[] {
           : contains(fields.description, term) ? WEIGHT.description
           : 0;
       }
-      return { value, score };
+      return { value, score: score + (fromHints.get(value) ?? 0) };
     })
     .filter((r) => VALUES.has(r.value) && r.score >= MIN_SCORE)
     // Ties keep the taxonomy order, so the result never depends on anything but the event.
@@ -141,7 +202,7 @@ export function inferInterests(event: ClassifiableEvent): string[] {
 }
 
 /** The event's tags plus any inferred interests it's missing (existing tags stay first and are never removed). */
-export function withInterests(event: ClassifiableEvent): string[] {
+export function withInterests(event: ClassifiableEvent, hints: readonly InterestHint[] = []): string[] {
   const tags = event.tags ?? [];
-  return [...tags, ...inferInterests(event).filter((i) => !tags.includes(i))];
+  return [...tags, ...inferInterests(event, hints).filter((i) => !tags.includes(i))];
 }

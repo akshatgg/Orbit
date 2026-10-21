@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_ATTEMPTS, PAGE_WORST_CASE_MS, detailsPatch, hasTimeFor, isBlockedStatus, pickEventsToEnrich,
+  MAX_ATTEMPTS, PAGE_WORST_CASE_MS, detailsPatch, hasTimeFor, hintedTags, isBlockedStatus, pickEventsToEnrich,
   type EnrichCandidate,
 } from "./enrich-plan";
 import type { SourceEventDetails } from "./types";
@@ -108,5 +108,17 @@ describe("hasTimeFor", () => {
   });
   it("refuses a page that could overrun the deadline", () => {
     expect(hasTimeFor(deadline - PAGE_WORST_CASE_MS + 1, deadline)).toBe(false);
+  });
+});
+
+describe("hintedTags", () => {
+  const tech = [{ label: "Tech", weight: 3 }];
+  it("adds what the page's platform hints point to", () => {
+    expect(hintedTags(event("a", { title: "Embedded Swift workshop", tags: ["workshop"] }), tech)).toEqual(["workshop", "technology"]);
+  });
+  it("leaves admin-edited tags and pages without hints alone", () => {
+    expect(hintedTags(event("a", { title: "Embedded Swift", tags: [], tags_locked: true }), tech)).toBeNull();
+    expect(hintedTags(event("a", { title: "Embedded Swift", tags: [] }), [])).toBeNull();
+    expect(hintedTags(event("a", { title: "Embedded Swift", tags: ["technology"] }), tech)).toBeNull();
   });
 });

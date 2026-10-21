@@ -7,7 +7,8 @@
 import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
 import { firstJsonLdEvent } from "./jsonld";
 import { isValidTimezone } from "./timezone";
-import type { NormalizedEvent } from "./types";
+import { HINT_WEIGHT } from "./interests";
+import type { InterestHint, NormalizedEvent } from "./types";
 
 export type MeetupPageDetails = {
   venueName: string | null;
@@ -16,6 +17,7 @@ export type MeetupPageDetails = {
   latitude: number | null;
   longitude: number | null;
   coverUrl: string | null;
+  interestHints?: InterestHint[];
 };
 
 const IMAGE_HOSTS = new Set(["secure.meetupstatic.com", "secure-content.meetupstatic.com"]);
@@ -113,6 +115,17 @@ function pageDescription(page: Record<string, unknown> | null): string | null {
   return typeof page?.description === "string" && page.description.trim() ? page.description : null;
 }
 
+/** The group's Meetup category (medium evidence) and topics (weak: they cover the whole group). */
+function pageHints(page: Record<string, unknown> | null): InterestHint[] {
+  const group = page?.group as { topicCategory?: { name?: unknown } | null; topics?: { name?: unknown }[] | null } | undefined;
+  const hints: InterestHint[] = [];
+  if (typeof group?.topicCategory?.name === "string") hints.push({ label: group.topicCategory.name, weight: HINT_WEIGHT.groupCategory });
+  for (const topic of Array.isArray(group?.topics) ? group.topics : []) {
+    if (typeof topic?.name === "string") hints.push({ label: topic.name, weight: HINT_WEIGHT.groupTopic });
+  }
+  return hints;
+}
+
 /** "Every week on Wednesday until …" when the event is one date of a recurring series. */
 function pageSeriesLabel(page: Record<string, unknown> | null): string | null {
   const series = page?.series as { description?: unknown } | null | undefined;
@@ -175,6 +188,7 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
     url,
     cancelled: status.includes("Cancelled"),
     seriesLabel: pageSeriesLabel(page),
+    interestHints: pageHints(page),
   };
 }
 
@@ -191,8 +205,9 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
   const city = state?.city ?? text(address?.addressLocality);
   const point = validPoint(state?.latitude ?? null, state?.longitude ?? null);
   const coverUrl = coverImage(html);
+  const interestHints = pageHints(pageEvent(html));
 
-  if (!venueName && !street && !city && !point && !coverUrl) return null;
+  if (!venueName && !street && !city && !point && !coverUrl && interestHints.length === 0) return null;
 
   return {
     venueName: orNull(clamp(decodeEntities(venueName ?? ""), LIMITS.venue)),
@@ -201,5 +216,6 @@ export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
     coverUrl,
+    interestHints,
   };
 }

@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCloudinaryConfig } from "@/lib/cloudinary";
 import { importRemoteImage } from "./cloudinary-import";
 import {
-  ENRICH_BUDGET_MS, FORMATTED_DESCRIPTIONS_SINCE, PAUSE_MS, detailsPatch, hasTimeFor, isBlockedStatus, pickEventsToEnrich,
+  ENRICH_BUDGET_MS, FORMATTED_DESCRIPTIONS_SINCE, PAUSE_MS, detailsPatch, hasTimeFor, hintedTags, isBlockedStatus, pickEventsToEnrich,
   type EnrichCandidate, type EnrichRunState,
 } from "./enrich-plan";
 import { FetchHttpError, fetchFeedText } from "./fetch";
@@ -14,7 +14,7 @@ import { sourceKey, type DetailsStatus, type EventSource, type RunError, type So
 // Trusted server code only (called from the sync engine with the service-role client).
 
 const CANDIDATE_SELECT =
-  "id, source_event_id, external_url, starts_at, created_at, updated_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude";
+  "id, source_event_id, external_url, starts_at, created_at, updated_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude, title, summary, tags, tags_locked";
 const COVER_FOLDER = "orbit/event-covers/sources";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -120,6 +120,11 @@ export async function enrichLumaEvents(
         try {
           if (patch.description) wrote = (await applyGroup(event, "description", { description: patch.description })) || wrote;
           if (patch.cover_url) wrote = (await applyGroup(event, "cover_url", { cover_url: patch.cover_url })) || wrote;
+          const tags = hintedTags(event, page.interestHints);
+          if (tags) {
+            const { error: tagError } = await db.from("events").update({ tags }).eq("id", event.id).eq("source", key).eq("tags_locked", false);
+            if (tagError) throw new Error(tagError.message);
+          }
           if (patch.price_min !== undefined) {
             const price = { price_min: patch.price_min, price_max: patch.price_max, currency: patch.currency };
             wrote = (await applyGroup(event, "price_min", price)) || wrote;

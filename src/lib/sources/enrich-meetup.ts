@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCloudinaryConfig } from "@/lib/cloudinary";
 import { importRemoteImage } from "./cloudinary-import";
 import {
-  ENRICH_BUDGET_MS, ENRICH_LIMIT, PAUSE_MS, hasTimeFor, isBlockedStatus, pickEventsToEnrich,
+  ENRICH_BUDGET_MS, ENRICH_LIMIT, PAUSE_MS, hasTimeFor, hintedTags, isBlockedStatus, pickEventsToEnrich,
   type EnrichCandidate, type EnrichRunState,
 } from "./enrich-plan";
 import { FetchHttpError, fetchFeedText } from "./fetch";
@@ -14,7 +14,7 @@ import { sourceKey, type DetailsStatus, type EventSource, type RunError, type So
 // Trusted server code only (called from the sync engine with the service-role client).
 
 const CANDIDATE_SELECT =
-  "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude, series_key";
+  "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude, series_key, title, summary, tags, tags_locked";
 
 const COVER_FOLDER = "orbit/event-covers/sources";
 const NO_COVER = "No cover image on the page.";
@@ -144,6 +144,11 @@ export async function enrichMeetupEvents(
           wrote = (await apply({ latitude: page.latitude, longitude: page.longitude }, "latitude", event.latitude)) || wrote;
         }
         if (cover) wrote = (await apply({ cover_url: cover }, "cover_url", null)) || wrote;
+        const tags = hintedTags(event, page.interestHints);
+        if (tags) {
+          const { error: tagError } = await db.from("events").update({ tags }).eq("id", event.id).eq("source", key).eq("tags_locked", false);
+          if (tagError) throw new Error(tagError.message);
+        }
         if (wrote) saved++;
         if (coverError) {
           // "failed" so the retry limits bring the image back on a later refresh.

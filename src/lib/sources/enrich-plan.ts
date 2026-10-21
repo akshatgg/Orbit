@@ -2,7 +2,8 @@
 
 import type { LumaPageDetails } from "./luma-page";
 import { lumaPageUrl } from "./platforms";
-import type { SourceEventDetails } from "./types";
+import { withInterests } from "./interests";
+import type { InterestHint, SourceEventDetails } from "./types";
 
 export const ENRICH_LIMIT = 25; // pages per source per run
 export const MAX_ATTEMPTS = 3;
@@ -38,7 +39,25 @@ export type EnrichCandidate = {
   longitude?: number | null;
   /** Dates of one recurring series share it (and their cover). */
   series_key?: string | null;
+  title?: string;
+  summary?: string | null;
+  tags?: string[] | null;
+  tags_locked?: boolean;
 };
+
+/**
+ * The event's tags with the interests its page's platform hints add, or null when nothing changes
+ * (or an admin owns the tags). The page is only read once, so this is when those hints count.
+ */
+export function hintedTags(event: EnrichCandidate, hints: readonly InterestHint[] | undefined): string[] | null {
+  if (event.tags_locked || !hints?.length) return null;
+  const current = event.tags ?? [];
+  const tags = withInterests(
+    { title: event.title ?? "", summary: event.summary, description: event.description, tags: current },
+    hints,
+  );
+  return tags.length > current.length ? tags : null;
+}
 
 /**
  * Upcoming events never read, or failed ones due a retry; newest first. `eligible` decides which
