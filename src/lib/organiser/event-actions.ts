@@ -6,8 +6,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { notifyEventChanged } from "@/lib/notifications";
 import { createClient } from "@/lib/supabase/server";
 import {
-  formToEventRow, formToPrivateRow, formToQuestionRows, formToTicketRows, logisticsChanged, type EventForm,
+  formForDate, formToEventRow, formToPrivateRow, formToQuestionRows, formToTicketRows, logisticsChanged, type EventForm,
 } from "./event-form";
+import { weeklyLabel } from "./repeat";
 import { validateEventForm, type EventIntent, type EventIssue } from "./schemas";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
@@ -20,7 +21,11 @@ export type SaveEventInput = {
 };
 
 export type SaveEventResult =
-  | { ok: true; id: string; status: string; notified: boolean; ticketIds: string[]; questionIds: string[] }
+  | {
+      ok: true; id: string; status: string; notified: boolean; ticketIds: string[]; questionIds: string[];
+      /** Extra dates created as their own events when this event was first published. */
+      datesCreated: number;
+    }
   | { ok: false; error: string; issues?: EventIssue[]; id?: string };
 
 type Fail = { ok: false; error: string; issues?: EventIssue[]; id?: string };
@@ -136,7 +141,15 @@ export async function saveEvent(input: SaveEventInput): Promise<SaveEventResult>
   const questions = await syncChildren(supabase, "event_questions", eventIdSaved, formToQuestionRows(form), false);
   if (!questions.ok) return { ...questions, id: eventIdSaved };
 
-  // 3. Go live.
+  // 3. More dates: on first publish, one more event per date, linked to this one as a series.
+  let datesCreated = 0;
+  if (intent === "publish" && !wasPublished && form.extra_dates.length > 0) {
+    const series = await createMoreDates(supabase, organiserId, eventIdSaved, form);
+    if (!series.ok) return { ...series, id: eventIdSaved };
+    datesCreated = series.count;
+  }
+
+  // 4. Go live.
   let status = existing?.status ?? "draft";
   if (intent === "publish" && !wasPublished) {
     const { error } = await supabase.from("events").update({ status: "published" }).eq("id", eventIdSaved);
@@ -144,7 +157,7 @@ export async function saveEvent(input: SaveEventInput): Promise<SaveEventResult>
     status = "published";
   }
 
-  // 4. Tell guests if the time or place moved.
+  // 5. Tell guests if the time or place moved.
   let notified = false;
   if (existing && wasPublished && logisticsChanged(existing, row)) {
     await notifyEventChanged(eventIdSaved, "updated");
@@ -152,7 +165,50 @@ export async function saveEvent(input: SaveEventInput): Promise<SaveEventResult>
   }
 
   revalidatePath("/", "layout");
-  return { ok: true, id: eventIdSaved, status, notified, ticketIds: tickets.ids, questionIds: questions.ids };
+  return { ok: true, id: eventIdSaved, status, notified, ticketIds: tickets.ids, questionIds: questions.ids, datesCreated };
+}
+
+/**
+ * Creates the event's other dates: each is its own event (own capacity, registrations, check-in)
+ * with the same details, tickets and questions, and all share one series key. They're written as
+ * drafts and only published together at the end, so a failure part-way never leaves dates live.
+ */
+async function createMoreDates(
+  supabase: Supabase,
+  organiserId: string,
+  firstId: string,
+  form: EventForm,
+): Promise<{ ok: true; count: number } | Fail> {
+  const series_key = `orbit:${firstId}`;
+  const series_label = weeklyLabel([form.starts_at, ...form.extra_dates.map((d) => d.starts_at)]);
+  const { error: linkError } = await supabase.from("events").update({ series_key, series_label }).eq("id", firstId);
+  if (linkError) return { ok: false, error: friendly(linkError, "We couldn't set up the other dates.") };
+
+  const created: string[] = [];
+  for (const slot of form.extra_dates) {
+    const dateForm = formForDate(form, slot);
+    const { data, error } = await supabase
+      .from("events")
+      .insert({ ...formToEventRow(dateForm), series_key, series_label, organiser_id: organiserId, status: "draft", source: "orbit" })
+      .select("id")
+      .single();
+    if (error || !data) return { ok: false, error: friendly(error, "We couldn't create one of the other dates. Please try again.") };
+    const id = data.id as string;
+    created.push(id);
+
+    const { error: privError } = await supabase
+      .from("event_private")
+      .upsert({ event_id: id, ...formToPrivateRow(dateForm) }, { onConflict: "event_id" });
+    if (privError) return { ok: false, error: friendly(privError, "We couldn't save the online link for one of the dates.") };
+    const tickets = await syncChildren(supabase, "ticket_types", id, formToTicketRows(dateForm), true);
+    if (!tickets.ok) return tickets;
+    const questions = await syncChildren(supabase, "event_questions", id, formToQuestionRows(dateForm), false);
+    if (!questions.ok) return questions;
+  }
+
+  const { error } = await supabase.from("events").update({ status: "published" }).in("id", created);
+  if (error) return { ok: false, error: friendly(error, "The other dates were saved as drafts, but we couldn't publish them.") };
+  return { ok: true, count: created.length };
 }
 
 type ChildRow = { id?: string; sort_order: number } & Record<string, unknown>;

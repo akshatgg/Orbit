@@ -8,6 +8,7 @@ import { enrichMeetupEvents } from "./enrich-meetup";
 import { ENRICH_BUDGET_MS, RUN_ENRICH_DEADLINE_MS, type EnrichRunState } from "./enrich-plan";
 import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
 import { withInterests } from "./interests";
+import { groupRepeats } from "./repeats";
 import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
 import { sourceKey, type EventSource, type InterestHint, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
 
@@ -121,6 +122,8 @@ export async function runSource(
     summary.found = fetched.events.length;
 
     const key = sourceKey(source.id);
+    // Same title at the same place on several dates = one series, even when the platform doesn't say so.
+    fetched.events = groupRepeats(fetched.events, key);
     const existing = await selectAll<ExistingSourceEvent>((from, to) =>
       db.from("events").select(EXISTING_EVENT_SELECT).eq("source", key).order("id").range(from, to),
     );

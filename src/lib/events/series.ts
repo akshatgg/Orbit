@@ -35,3 +35,25 @@ export function seriesDayLabel(startsAt: string, timezone: string | null | undef
     return new Intl.DateTimeFormat("en-GB", { ...options, timeZone: "Europe/London" }).format(new Date(startsAt));
   }
 }
+
+/**
+ * Events grouped for a list: one entry per one-off event or per series (led by its soonest date,
+ * placed where that date sits), with all of the series' dates in `dates`.
+ */
+export function seriesBlocks<T extends { series_key?: string | null; starts_at: string }>(events: T[]): { lead: T; dates: T[] }[] {
+  const byKey = new Map<string, T[]>();
+  for (const e of events) if (e.series_key) byKey.set(e.series_key, [...(byKey.get(e.series_key) ?? []), e]);
+  const blocks: { lead: T; dates: T[] }[] = [];
+  const placed = new Set<string>();
+  for (const e of events) {
+    if (!e.series_key) {
+      blocks.push({ lead: e, dates: [e] });
+      continue;
+    }
+    if (placed.has(e.series_key)) continue;
+    placed.add(e.series_key);
+    const dates = [...byKey.get(e.series_key)!].sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+    blocks.push({ lead: dates[0], dates });
+  }
+  return blocks;
+}

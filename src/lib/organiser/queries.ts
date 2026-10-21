@@ -99,13 +99,13 @@ export async function getEventForEdit(eventId: string) {
   const { data: event } = await supabase
     .from("events")
     .select(
-      "id, organiser_id, status, cancel_reason, title, summary, description, category_id, tags, cover_url, starts_at, ends_at, format, venue_name, address, city, registration_mode, requires_approval, external_url, external_label, capacity, waitlist_enabled, registration_deadline, price_min",
+      "id, organiser_id, status, cancel_reason, title, summary, description, category_id, tags, cover_url, starts_at, ends_at, format, venue_name, address, city, registration_mode, requires_approval, external_url, external_label, capacity, waitlist_enabled, registration_deadline, price_min, series_key",
     )
     .eq("id", eventId)
     .maybeSingle();
   if (!event) return null;
 
-  const [priv, tickets, questions, counts] = await Promise.all([
+  const [priv, tickets, questions, counts, series] = await Promise.all([
     supabase.from("event_private").select("online_url, guest_info").eq("event_id", eventId).maybeSingle(),
     supabase
       .from("ticket_types")
@@ -120,6 +120,9 @@ export async function getEventForEdit(eventId: string) {
       .order("sort_order")
       .order("created_at"),
     supabase.rpc("event_counts", { event_ids: [eventId] }),
+    event.series_key
+      ? supabase.from("events").select("id", { count: "exact", head: true }).eq("series_key", event.series_key).neq("status", "removed")
+      : Promise.resolve({ count: 1 }),
   ]);
 
   const c = ((counts.data ?? []) as { going: number; waitlisted: number; pending: number }[])[0];
@@ -129,5 +132,7 @@ export async function getEventForEdit(eventId: string) {
     tickets: (tickets.data ?? []) as { id: string; name: string; price: number; quantity: number | null; sales_end_at: string | null }[],
     questions: (questions.data ?? []) as { id: string; label: string; kind: string; options: string[]; required: boolean }[],
     registrations: c ? c.going + c.waitlisted + c.pending : 0,
+    /** How many dates the event's series has (1 for a one-off). */
+    seriesDates: series.count ?? 1,
   };
 }

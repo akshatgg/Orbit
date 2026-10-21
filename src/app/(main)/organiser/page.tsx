@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { EventCard } from "@/components/events/EventCard";
+import { seriesBlocks } from "@/lib/events/series";
+import { formatEventDate } from "@/lib/format";
 import { VerifiedMark } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -331,29 +333,30 @@ function EventGroup({ title, events, draft = false }: { title: string; events: E
         {title} <span className="rounded-full bg-ink/[0.07] px-2 py-0.5 text-[10px] tracking-normal text-muted">{events.length}</span>
       </h3>
       <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-        {events.map((e) => {
-          const editable = e.status === "draft" || e.status === "published";
-          return (
+        {/* A repeating event is one card (its next date), with every date listed underneath. */}
+        {seriesBlocks(events).map(({ lead: e, dates }) => (
+          <div key={e.id} className="space-y-2">
             <EventCard
-              key={e.id}
               event={e}
               counts={e.counts}
               href={draft ? `/organiser/events/${e.id}/edit` : `/organiser/events/${e.id}`}
-              actions={
-                <span className="flex shrink-0 items-center gap-3 font-medium">
-                  {!draft && (
-                    <span className="text-muted">
-                      {e.counts.going} going{e.counts.pending ? ` · ${e.counts.pending} pending` : ""}
-                    </span>
-                  )}
-                  {editable && <Link href={`/organiser/events/${e.id}/edit`} className="text-accent transition-colors hover:text-fg">Edit</Link>}
-                  {!draft && <Link href={`/organiser/events/${e.id}`} className="text-accent transition-colors hover:text-fg">Manage</Link>}
-                  {!draft && <Link href={`/events/${e.id}`} className="text-accent transition-colors hover:text-fg">View</Link>}
-                </span>
-              }
+              actions={<DateActions event={e} draft={draft} />}
             />
-          );
-        })}
+            {dates.length > 1 && (
+              <details className="glass rounded-[18px] px-4 py-3">
+                <summary className="cursor-pointer text-xs font-medium text-muted">All {dates.length} dates</summary>
+                <ul className="mt-2 divide-y divide-line text-xs">
+                  {dates.map((d) => (
+                    <li key={d.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 py-2">
+                      <span className="font-medium text-fg">{formatEventDate(d.starts_at)}</span>
+                      <DateActions event={d} draft={draft} />
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -384,5 +387,22 @@ function DashboardSkeleton() {
       <Skeleton className="h-12" />
       {[0, 1, 2].map((i) => <Skeleton key={i} className="h-28" />)}
     </div>
+  );
+}
+
+/** Going count plus Edit / Manage / View for one date of an event. */
+function DateActions({ event: e, draft }: { event: EventWithCounts; draft: boolean }) {
+  const editable = e.status === "draft" || e.status === "published";
+  return (
+    <span className="flex shrink-0 items-center gap-3 font-medium">
+      {!draft && (
+        <span className="text-muted">
+          {e.counts.going} going{e.counts.pending ? ` · ${e.counts.pending} pending` : ""}
+        </span>
+      )}
+      {editable && <Link href={`/organiser/events/${e.id}/edit`} className="text-accent transition-colors hover:text-fg">Edit</Link>}
+      {!draft && <Link href={`/organiser/events/${e.id}`} className="text-accent transition-colors hover:text-fg">Manage</Link>}
+      {!draft && <Link href={`/events/${e.id}`} className="text-accent transition-colors hover:text-fg">View</Link>}
+    </span>
   );
 }

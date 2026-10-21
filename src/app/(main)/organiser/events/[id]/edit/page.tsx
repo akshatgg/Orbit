@@ -63,6 +63,7 @@ async function Content({ params }: { params: PageProps<"/organiser/events/[id]/e
         status={data.event.status}
         originalStartsAt={data.event.starts_at}
         registrations={data.registrations}
+        seriesDates={data.seriesDates}
       />
     </>
   );

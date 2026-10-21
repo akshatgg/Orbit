@@ -1,5 +1,6 @@
 import type { EventFormat, QuestionKind } from "@/types/database";
 import { fromDbRegistration, ticketPriceRange, toDbRegistration, usesTickets, type RegistrationChoice } from "./registration";
+import { daysBetween, shiftLocalDays, type DateSlot } from "./repeat";
 import { EVENT_TZ, londonLocalToUtcIso, utcIsoToLondonLocal } from "./time";
 
 // The event editor works on plain strings (what inputs hold); these helpers convert to and
@@ -47,6 +48,11 @@ export type EventForm = {
   registration_deadline: string;
   tickets: TicketDraft[];
   questions: QuestionDraft[];
+  /**
+   * More dates for the same event (new events only). Publishing creates one event per date, each
+   * with these details, tickets and questions, linked as one series.
+   */
+  extra_dates: DateSlot[];
 };
 
 export const QUESTION_KINDS: { value: QuestionKind; label: string }[] = [
@@ -76,7 +82,7 @@ export function emptyEventForm(): EventForm {
     starts_at: "", ends_at: "", format: "in_person", venue_name: "", address: "", city: "London",
     online_url: "", guest_info: "", registration: "tickets", external_url: "", external_label: "Apply now",
     display_price: "", capacity: "", waitlist_enabled: true, registration_deadline: "",
-    tickets: [newTicket()], questions: [],
+    tickets: [newTicket()], questions: [], extra_dates: [],
   };
 }
 
@@ -212,6 +218,25 @@ export function eventToForm(
     questions: questions.map((q) => ({
       id: q.id, key: q.id, label: q.label, kind: q.kind as QuestionKind, options: q.options ?? [], required: q.required,
     })),
+    extra_dates: [],
+  };
+}
+
+/**
+ * The form for one more date of the event: same details, this date's times, and deadlines moved
+ * by the same number of days (so a later date's ticket sales don't close at the first date's
+ * deadline). Ticket and question ids are dropped: each date gets its own rows.
+ */
+export function formForDate(f: EventForm, slot: DateSlot): EventForm {
+  const days = daysBetween(f.starts_at, slot.starts_at);
+  return {
+    ...f,
+    starts_at: slot.starts_at,
+    ends_at: slot.ends_at,
+    registration_deadline: shiftLocalDays(f.registration_deadline, days),
+    tickets: f.tickets.map((t) => ({ ...t, id: undefined, sales_end: shiftLocalDays(t.sales_end, days) })),
+    questions: f.questions.map((q) => ({ ...q, id: undefined })),
+    extra_dates: [],
   };
 }
 
