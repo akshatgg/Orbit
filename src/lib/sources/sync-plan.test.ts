@@ -73,6 +73,13 @@ describe("provenance", () => {
     expect(noLink.registration_mode).toBe("none");
     expect(noLink.external_url).toBeNull();
   });
+
+  it("lets the classifier override the default category, including clearing it", () => {
+    const source = { id: "s1", url: FEED, default_organiser_id: null, default_category_id: "fallback", default_tags: [] };
+    expect(buildInsertRow(incoming("a"), source, NOW, "matched").category_id).toBe("matched");
+    expect(buildInsertRow(incoming("a"), source, NOW, null).category_id).toBeNull();
+    expect(buildInsertRow(incoming("a"), source, NOW).category_id).toBe("fallback");
+  });
 });
 
 describe("source kind metadata", () => {

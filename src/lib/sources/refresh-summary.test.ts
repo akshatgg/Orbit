@@ -19,6 +19,12 @@ describe("formatRefreshSummary", () => {
     expect(text).toBe("3 sources · 12 new · 4 updated · 20 unchanged · 9 with page details · 1 possible duplicate · 1 failed");
   });
 
+  it("mentions auto-classification when it ran", () => {
+    const text = formatRefreshSummary(summary([run({ inserted: 3, classified: 3 }), run({ inserted: 2, classified: 1 })]));
+    expect(text).toBe("2 sources · 5 new · 0 updated · 0 unchanged · 4 categorised");
+    expect(formatRefreshSummary(summary([run({ inserted: 2 })]))).not.toContain("categorised");
+  });
+
   it("keeps it short when nothing happened", () => {
     expect(formatRefreshSummary(summary([run()]))).toBe("1 source · 0 new · 0 updated · 0 unchanged");
     expect(formatRefreshSummary(summary([]))).toBe("0 sources · 0 new · 0 updated · 0 unchanged");

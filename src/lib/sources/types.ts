@@ -24,6 +24,8 @@ export type EventSource = {
   default_organiser_id: string | null;
   default_category_id: string | null;
   default_tags: string[];
+  /** Score each imported event against category keywords instead of forcing the default category. */
+  auto_category: boolean;
   attribution: string | null;
   permission_confirmed: boolean;
   permission_note: string | null;
@@ -108,6 +110,8 @@ export type RunSummary = {
   flaggedMissing: number;
   /** Events whose page details (cover, description, price) were saved this run. */
   enriched: number;
+  /** New events the keyword classifier categorised (rather than the source default). */
+  classified?: number;
   errors: RunError[];
 };
 

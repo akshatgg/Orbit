@@ -24,7 +24,7 @@ async function Content() {
   await requireAdmin();
   const supabase = await createClient();
   const [{ data: cats }, { data: used }] = await Promise.all([
-    supabase.from("categories").select("id, slug, name, group, sort_order").order("sort_order").order("name"),
+    supabase.from("categories").select("id, slug, name, group, sort_order, keywords").order("sort_order").order("name"),
     supabase.from("events").select("category_id").not("category_id", "is", null).limit(20000),
   ]);
   const counts = new Map<string, number>();

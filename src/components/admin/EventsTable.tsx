@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
-import { removeEvents } from "@/app/admin/events/actions";
+import { removeEvents, setEventsCategory } from "@/app/admin/events/actions";
 import { Badge, VerifiedMark } from "@/components/ui/Badge";
 import { buttonClass } from "@/components/ui/Button";
 import { EVENT_STATUS, sourceLabel, type Tone } from "@/lib/admin/labels";
@@ -38,12 +38,13 @@ const checkboxClass =
 
 /**
  * Admin events table with multi-select. Tick rows (or the header box) and the selection bar
- * lets you remove them all at once, behind the same confirm + audit trail as the row menu.
+ * lets you re-categorise or remove them all at once, behind the same confirm + audit trail as the row menu.
  */
-export function EventsTable({ rows }: { rows: EventTableRow[] }) {
+export function EventsTable({ rows, categories }: { rows: EventTableRow[]; categories: { id: string; name: string }[] }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [category, setCategory] = useState("");
   const [pending, startTransition] = useTransition();
   const allSelected = rows.length > 0 && selected.size === rows.length;
   const someSelected = selected.size > 0 && !allSelected;
@@ -83,6 +84,26 @@ export function EventsTable({ rows }: { rows: EventTableRow[] }) {
     });
   }
 
+  function applyCategory() {
+    if (!category) return;
+    const target = category === "__none" ? null : category;
+    startTransition(async () => {
+      let result;
+      try {
+        result = await setEventsCategory(chosen, target);
+      } catch {
+        result = { ok: false as const, error: "Couldn't reach the server. Try again." };
+      }
+      if (result.ok) {
+        setSelected(new Set());
+        setCategory("");
+        toast(result.message ?? "Category updated");
+      } else {
+        toast(result.error, "error");
+      }
+    });
+  }
+
   return (
     <>
       <div
@@ -97,7 +118,26 @@ export function EventsTable({ rows }: { rows: EventTableRow[] }) {
         <button type="button" onClick={toggleAll} className="text-xs text-muted underline-offset-2 hover:text-fg hover:underline">
           {allSelected ? "Clear selection" : `Select all ${rows.length} on this page`}
         </button>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <label htmlFor="bulk-category" className="sr-only">Category for selected events</label>
+          <select
+            id="bulk-category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className="h-[34px] rounded-[10px] border border-ink/12 bg-ink/[0.05] px-2 text-xs text-fg"
+          >
+            <option value="" disabled>Set category…</option>
+            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            <option value="__none">No category</option>
+          </select>
+          <button
+            type="button"
+            onClick={applyCategory}
+            disabled={!category || pending}
+            className={buttonClass({ variant: "secondary", size: "sm" })}
+          >
+            Apply
+          </button>
           <button type="button" onClick={() => setSelected(new Set())} className={buttonClass({ variant: "ghost", size: "sm" })}>
             Clear
           </button>

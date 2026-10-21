@@ -8,7 +8,7 @@ import { ActionButton } from "./ActionButton";
 import { IconTrash } from "./icons";
 import { toast } from "./Toaster";
 
-export type CategoryRow = { id: string; slug: string; name: string; group: string; sort_order: number; event_count: number };
+export type CategoryRow = { id: string; slug: string; name: string; group: string; sort_order: number; keywords: string[]; event_count: number };
 
 const GROUPS = [["career", "Career"], ["social", "Social"], ["other", "Other"]] as const;
 
@@ -39,6 +39,22 @@ function CategoryFields({ row, state, idp }: { row?: CategoryRow; state: Categor
         <label htmlFor={`${idp}-sort`} className="sr-only">Sort order</label>
         <Input id={`${idp}-sort`} name="sort_order" type="number" step={1} placeholder="Order" defaultValue={val("sort_order", row?.sort_order ?? 0)} className={cls("sort_order")} />
         {fe.sort_order && <p className="mt-1 text-xs text-red-300">{fe.sort_order}</p>}
+      </div>
+      <div className="sm:col-span-5">
+        <label htmlFor={`${idp}-keywords`} className="mb-1 block text-xs font-medium text-muted">
+          Keywords for automatic classification
+        </label>
+        <Input
+          id={`${idp}-keywords`}
+          name="keywords"
+          placeholder="hackathon, case competition, pitch contest"
+          defaultValue={state?.values?.keywords ?? row?.keywords?.join(", ") ?? ""}
+          className={cls("keywords")}
+        />
+        <p className="mt-1 text-xs text-subtle">
+          Comma separated. Matched as whole words in an imported event&rsquo;s title, tags and text — more words, more precise.
+        </p>
+        {fe.keywords && <p className="mt-1 text-xs text-red-300">{fe.keywords}</p>}
       </div>
     </>
   );

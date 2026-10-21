@@ -85,6 +85,44 @@ export async function removeEvents(eventIds: string[], reason?: string): Promise
   };
 }
 
+/** Bulk re-categorise picked events. A null category clears it. */
+export async function setEventsCategory(eventIds: string[], categoryId: string | null): Promise<ActionResult> {
+  const parsed = z.array(id).min(1, "Pick at least one event").max(200).safeParse(eventIds);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+  let value: string | null = null;
+  if (categoryId !== null) {
+    const parsedCategory = id.safeParse(categoryId);
+    if (!parsedCategory.success) return { ok: false, error: "That category no longer exists" };
+    value = parsedCategory.data;
+  }
+
+  const unique = [...new Set(parsed.data)];
+  const { supabase } = await adminContext();
+  const { data: category } = value
+    ? await supabase.from("categories").select("name").eq("id", value).maybeSingle()
+    : { data: null };
+  const { data, error } = await supabase
+    .from("events")
+    .update({ category_id: value })
+    .in("id", unique)
+    .select("id, title");
+  if (error) return { ok: false, error: friendlyDbError(error) };
+  const updated = data ?? [];
+  if (updated.length === 0) return { ok: false, error: "Those events no longer exist" };
+
+  await Promise.all(
+    updated.map((e) => logAdminAction(supabase, "event.category", "event", e.id, { title: e.title, bulk: true, category_id: value })),
+  );
+  revalidateEverywhere();
+  return {
+    ok: true,
+    message: value === null
+      ? `Cleared the category on ${updated.length} event${updated.length === 1 ? "" : "s"}`
+      : `Moved ${updated.length} event${updated.length === 1 ? "" : "s"} to “${category?.name ?? "another category"}”`,
+  };
+}
+
 export async function restoreEvent(eventId: string): Promise<ActionResult> {
   const r = await updateEvent(eventId, { status: "published", cancel_reason: null }, "event.restore");
   return r.ok ? { ok: true, message: `“${r.title}” is published again` } : r;

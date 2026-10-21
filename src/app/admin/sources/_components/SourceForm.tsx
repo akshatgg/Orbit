@@ -10,6 +10,9 @@ import { saveSource } from "../actions";
 
 type Option = { id: string; name: string };
 
+/** Kinds that pull unrelated events, so each one is worth classifying on its own. */
+const DISCOVERY_KINDS: SourceKind[] = ["luma-discover", "meetup-search"];
+
 const URL_COPY: Record<SourceKind, { label: string; hint: string; placeholder: string }> = {
   ical: {
     label: "iCal feed URL",
@@ -50,6 +53,14 @@ export function SourceForm({ source, organisers, categories }: {
   const [kind, setKind] = useState<SourceKind>(source?.kind ?? "ical");
   const copy = URL_COPY[kind];
   const canEnable = permission && note.trim().length > 0;
+  const [autoCategory, setAutoCategory] = useState(source?.auto_category ?? false);
+  // Until the admin touches it, the switch follows the kind: discovery feeds start classified.
+  const [autoTouched, setAutoTouched] = useState(Boolean(source));
+
+  const changeKind = (next: SourceKind) => {
+    setKind(next);
+    if (!autoTouched) setAutoCategory(DISCOVERY_KINDS.includes(next));
+  };
 
   return (
     <form action={formAction} onReset={() => setKind(source?.kind ?? "ical")} className="grid gap-5 lg:grid-cols-[1fr_22rem]">
@@ -61,7 +72,7 @@ export function SourceForm({ source, organisers, categories }: {
           <Input id="name" name="name" required minLength={2} maxLength={80} defaultValue={source?.name ?? ""} />
         </Field>
         <Field label="Type" htmlFor="kind" hint="Luma and Meetup sources link each event back to its page there.">
-          <Select id="kind" name="kind" value={kind} onChange={(e) => setKind(e.target.value as SourceKind)}>
+          <Select id="kind" name="kind" value={kind} onChange={(e) => changeKind(e.target.value as SourceKind)}>
             {SOURCE_KINDS.map((k) => <option key={k} value={k}>{SOURCE_KIND_LABELS[k]}</option>)}
           </Select>
         </Field>
@@ -85,6 +96,25 @@ export function SourceForm({ source, organisers, categories }: {
         <Field label="Tags" htmlFor="default_tags" hint="Comma separated, up to 10 — added to every imported event.">
           <Input id="default_tags" name="default_tags" placeholder="careers, consulting" defaultValue={source?.default_tags.join(", ") ?? ""} />
         </Field>
+        <label className="flex items-start gap-3 rounded-[14px] border border-line bg-ink/[0.03] p-3.5 text-sm">
+          <input
+            type="checkbox"
+            name="auto_category"
+            checked={autoCategory}
+            onChange={(e) => {
+              setAutoCategory(e.target.checked);
+              setAutoTouched(true);
+            }}
+            className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]"
+          />
+          <span>
+            <span className="font-medium">Categorise each event automatically</span>
+            <span className="block text-xs text-muted">
+              Scores each new event&rsquo;s title, tags and text against the category keywords (managed
+              under Categories). Anything unclear keeps the default category above.
+            </span>
+          </span>
+        </label>
         <Field label="Attribution" htmlFor="attribution" hint="Credit line the source asks for, if any.">
           <Input id="attribution" name="attribution" maxLength={200} placeholder={kind === "ical" ? "Events from Imperial Careers Service" : `Leave empty for “From ${kind.startsWith("luma") ? "Luma" : "Meetup"}”`} defaultValue={source?.attribution ?? ""} />
         </Field>

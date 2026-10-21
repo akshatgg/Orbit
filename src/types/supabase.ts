@@ -21,14 +21,14 @@ export type Database = {
                   ]
                 },"categories": {
                   Row: {
-                    "created_at": string,"group": string,"id": string,"name": string,"slug": string,"sort_order": number
+                    "created_at": string,"group": string,"id": string,"keywords": (string)[],"name": string,"slug": string,"sort_order": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"group": string,"id"?: string,"name": string,"slug": string,"sort_order"?: number
+                    "created_at"?: string,"group": string,"id"?: string,"keywords"?: (string)[],"name": string,"slug": string,"sort_order"?: number
                   }
                   Update: {
-                    "created_at"?: string,"group"?: string,"id"?: string,"name"?: string,"slug"?: string,"sort_order"?: number
+                    "created_at"?: string,"group"?: string,"id"?: string,"keywords"?: (string)[],"name"?: string,"slug"?: string,"sort_order"?: number
                   }
                   Relationships: [
                     
@@ -121,14 +121,14 @@ isOneToOne: false
                   ]
                 },"event_sources": {
                   Row: {
-                    "attribution": string | null,"created_at": string,"created_by": string | null,"default_category_id": string | null,"default_organiser_id": string | null,"default_tags": (string)[],"enabled": boolean,"id": string,"kind": string,"last_error": string | null,"last_run_at": string | null,"last_status": string | null,"name": string,"permission_confirmed": boolean,"permission_note": string | null,"updated_at": string,"url": string
+                    "attribution": string | null,"auto_category": boolean,"created_at": string,"created_by": string | null,"default_category_id": string | null,"default_organiser_id": string | null,"default_tags": (string)[],"enabled": boolean,"id": string,"kind": string,"last_error": string | null,"last_run_at": string | null,"last_status": string | null,"name": string,"permission_confirmed": boolean,"permission_note": string | null,"updated_at": string,"url": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "attribution"?: string | null,"created_at"?: string,"created_by"?: string | null,"default_category_id"?: string | null,"default_organiser_id"?: string | null,"default_tags"?: (string)[],"enabled"?: boolean,"id"?: string,"kind"?: string,"last_error"?: string | null,"last_run_at"?: string | null,"last_status"?: string | null,"name": string,"permission_confirmed"?: boolean,"permission_note"?: string | null,"updated_at"?: string,"url": string
+                    "attribution"?: string | null,"auto_category"?: boolean,"created_at"?: string,"created_by"?: string | null,"default_category_id"?: string | null,"default_organiser_id"?: string | null,"default_tags"?: (string)[],"enabled"?: boolean,"id"?: string,"kind"?: string,"last_error"?: string | null,"last_run_at"?: string | null,"last_status"?: string | null,"name": string,"permission_confirmed"?: boolean,"permission_note"?: string | null,"updated_at"?: string,"url": string
                   }
                   Update: {
-                    "attribution"?: string | null,"created_at"?: string,"created_by"?: string | null,"default_category_id"?: string | null,"default_organiser_id"?: string | null,"default_tags"?: (string)[],"enabled"?: boolean,"id"?: string,"kind"?: string,"last_error"?: string | null,"last_run_at"?: string | null,"last_status"?: string | null,"name"?: string,"permission_confirmed"?: boolean,"permission_note"?: string | null,"updated_at"?: string,"url"?: string
+                    "attribution"?: string | null,"auto_category"?: boolean,"created_at"?: string,"created_by"?: string | null,"default_category_id"?: string | null,"default_organiser_id"?: string | null,"default_tags"?: (string)[],"enabled"?: boolean,"id"?: string,"kind"?: string,"last_error"?: string | null,"last_run_at"?: string | null,"last_status"?: string | null,"name"?: string,"permission_confirmed"?: boolean,"permission_note"?: string | null,"updated_at"?: string,"url"?: string
                   }
                   Relationships: [
                     {

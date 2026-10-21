@@ -40,6 +40,7 @@ const sourceSchema = z
     permission_confirmed: z.boolean(),
     permission_note: z.string().trim().max(1000, "Keep the note under 1000 characters").transform((v) => v || null),
     enabled: z.boolean(),
+    auto_category: z.boolean(),
   })
   .transform((s, ctx) => {
     const resolved = resolveFeedUrl(s.kind, s.url);
@@ -76,6 +77,7 @@ export async function saveSource(_prev: ActionState, formData: FormData): Promis
     permission_confirmed: formData.get("permission_confirmed") === "on",
     permission_note: formData.get("permission_note") ?? "",
     enabled: formData.get("enabled") === "on",
+    auto_category: formData.get("auto_category") === "on",
   });
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
 

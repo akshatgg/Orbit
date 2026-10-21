@@ -14,6 +14,11 @@ export const categorySchema = z.object({
     (v) => (v === "" || v === null || v === undefined ? 0 : Number(v)),
     z.number({ error: "Enter a whole number" }).int("Enter a whole number").min(-1000).max(100000),
   ),
+  // Comma separated in the form; stored as text[] for the keyword classifier.
+  keywords: z.preprocess(
+    (v) => [...new Set(String(v ?? "").toLowerCase().split(",").map((t) => t.trim().replace(/\s+/g, " ")).filter(Boolean))].slice(0, 30),
+    z.array(z.string().min(2, "Keep each keyword at least 2 characters").max(40, "Keep each keyword under 40 characters")),
+  ),
 });
 
 export type CategoryInput = z.output<typeof categorySchema>;

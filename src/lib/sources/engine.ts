@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { classifyEvent, type ClassifyCategory } from "./classify";
 import { CONNECTORS } from "./connectors";
 import { enrichLumaEvents } from "./enrich";
 import { enrichMeetupEvents } from "./enrich-meetup";
@@ -88,9 +89,25 @@ export async function runSource(
     });
     const verifiedAt = now.toISOString();
 
+    // Discovery feeds bring unrelated events. Classify each new one by its own title/tags/prose,
+    // falling back to the source's default category when nothing is clear.
+    const categoryFor = new Map<string, string | null>();
+    let classified = 0;
+    if (source.auto_category && plan.inserts.length) {
+      const { data: rows, error: categoryError } = await db.from("categories").select("id, name, keywords").order("sort_order");
+      if (categoryError) errors.push({ message: `Couldn't load category keywords: ${categoryError.message}` });
+      const rules = (rows ?? []) as ClassifyCategory[];
+      for (const event of plan.inserts) {
+        const match = classifyEvent(event, rules).categoryId;
+        if (match) classified++;
+        categoryFor.set(event.sourceEventId, match ?? source.default_category_id);
+      }
+    }
+    summary.classified = classified;
+
     // New events — a batch at a time; if a batch fails, retry row by row to isolate bad data.
     for (const batch of chunks(plan.inserts)) {
-      const rows = batch.map((e) => buildInsertRow(e, source, now));
+      const rows = batch.map((e) => buildInsertRow(e, source, now, categoryFor.get(e.sourceEventId)));
       const { error, count } = await db.from("events").insert(rows, { count: "exact" });
       if (!error) {
         summary.inserted += count ?? rows.length;

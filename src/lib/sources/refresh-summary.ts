@@ -14,6 +14,8 @@ export function formatRefreshSummary(summary: RefreshSummary): string {
   ];
   const enriched = total("enriched");
   if (enriched) parts.push(`${enriched} with page details`);
+  const categorised = summary.sources.reduce((n, s: RunSummary) => n + (s.classified ?? 0), 0);
+  if (categorised) parts.push(`${categorised} categorised`);
   if (summary.duplicatesFlagged) parts.push(plural(summary.duplicatesFlagged, "possible duplicate"));
   const failed = summary.sources.filter((s) => s.status === "error").length;
   if (failed) parts.push(`${failed} failed`);

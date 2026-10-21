@@ -41,6 +41,7 @@ export const AUDIT_ACTIONS: Record<string, string> = {
   "event.reviewed": "marked as reviewed",
   "event.create": "added event",
   "event.update": "edited event",
+  "event.category": "changed the category of",
   "user.verify_student": "verified student",
   "user.unverify_student": "removed student badge from",
   "user.add_admin": "made admin",
