@@ -1,4 +1,5 @@
-// Reads a Luma event page's schema.org Event data (the JSON-LD Luma publishes for search engines).
+// Reads a Luma event page's schema.org Event data (the JSON-LD Luma publishes for search engines),
+// plus the host's formatted description from the page's app data.
 
 import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
 import { isValidTimezone } from "./timezone";
@@ -44,6 +45,131 @@ function firstEvent(html: string): Record<string, unknown> | null {
     }
   }
   return null;
+}
+
+type MirrorNode = {
+  type?: string;
+  text?: string;
+  attrs?: Record<string, unknown>;
+  marks?: { type?: string; attrs?: Record<string, unknown> }[];
+  content?: MirrorNode[];
+};
+
+/** The record in the page's __NEXT_DATA__ that holds `description_mirror`. */
+function pageData(html: string): Record<string, unknown> | null {
+  const raw = html.match(/<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i)?.[1];
+  if (!raw) return null;
+  let root: unknown;
+  try {
+    root = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const find = (value: unknown, depth: number): Record<string, unknown> | null => {
+    if (!value || typeof value !== "object" || depth > 12) return null;
+    const record = value as Record<string, unknown>;
+    if ("description_mirror" in record) return record;
+    for (const child of Object.values(record)) {
+      const found = find(child, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  };
+  return find(root, 0);
+}
+
+const tidy = (s: string) => s.replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\u00A0/g, " ");
+
+/**
+ * Inline content in the stored description format: `**bold**`, `*italic*`, links as "label (url)".
+ * Neighbouring text with the same emphasis is merged first so markers pair up cleanly, and spaces
+ * stay outside the markers (RichText only reads `**x**` with no space inside).
+ */
+function mirrorInline(nodes: MirrorNode[] = [], { plain = false } = {}): string {
+  const runs: { text: string; bold: boolean; italic: boolean }[] = [];
+  for (const node of nodes) {
+    if (node.type === "hard_break") {
+      runs.push({ text: "\n", bold: false, italic: false });
+      continue;
+    }
+    if (typeof node.text !== "string") {
+      if (node.content) runs.push({ text: mirrorInline(node.content, { plain }), bold: false, italic: false });
+      continue;
+    }
+    const marks = node.marks ?? [];
+    const href = marks.find((m) => m.type === "link")?.attrs?.href;
+    const link = typeof href === "string" ? safeHttpUrl(href) : null;
+    const text = tidy(node.text);
+    const value = link && text.trim() !== link && text.trim() !== href ? `${text} (${link})` : text;
+    const bold = !plain && marks.some((m) => m.type === "bold" || m.type === "strong");
+    const italic = !plain && marks.some((m) => m.type === "italic" || m.type === "em");
+    const last = runs[runs.length - 1];
+    if (last && last.bold === bold && last.italic === italic && last.text !== "\n") last.text += value;
+    else runs.push({ text: value, bold, italic });
+  }
+  return runs
+    .map(({ text, bold, italic }) => {
+      const marker = bold ? "**" : italic ? "*" : "";
+      if (!marker || !text.trim()) return text;
+      const [, lead, core, trail] = text.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
+      return `${lead}${marker}${core}${marker}${trail}`;
+    })
+    .join("");
+}
+
+/** Block content as stored-description text: blank lines between blocks, `•` / `1.` list lines. */
+function mirrorBlocks(nodes: MirrorNode[] = []): string[] {
+  const blocks: string[] = [];
+  for (const node of nodes) {
+    switch (node.type) {
+      case "heading": {
+        const text = mirrorInline(node.content, { plain: true }).replace(/\s+/g, " ").trim();
+        if (text) blocks.push(`**${text}**`);
+        break;
+      }
+      case "paragraph": {
+        const text = mirrorInline(node.content).replace(/[ \t]+\n/g, "\n").trim();
+        if (text) blocks.push(text);
+        break;
+      }
+      case "bullet_list":
+      case "ordered_list": {
+        const start = Number(node.attrs?.order ?? node.attrs?.start ?? 1);
+        const lines = (node.content ?? []).map((item, i) => {
+          const text = mirrorBlocks(item.content).join(" ").replace(/\s*\n\s*/g, " ").trim();
+          const bullet = node.type === "ordered_list" ? `${(Number.isFinite(start) ? start : 1) + i}.` : "•";
+          return text ? `${bullet} ${text}` : "";
+        });
+        const list = lines.filter(Boolean).join("\n");
+        if (list) blocks.push(list);
+        break;
+      }
+      case "horizontal_rule":
+        break;
+      default:
+        // blockquote, list_item and anything new: keep its text.
+        blocks.push(...mirrorBlocks(node.content));
+    }
+  }
+  return blocks;
+}
+
+/**
+ * The host's formatted description (headings, paragraphs, bold, lists) from Luma's page data.
+ * The JSON-LD copy flattens all of that into bare lines, so this is preferred when present.
+ */
+export function lumaMirrorDescription(html: string): string | null {
+  const mirror = pageData(html)?.description_mirror as MirrorNode | undefined;
+  if (!mirror || typeof mirror !== "object" || mirror.type !== "doc") return null;
+  return orNull(clamp(mirrorBlocks(mirror.content).join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), LIMITS.description));
+}
+
+/** Formatted description when the page has one, else the flattened JSON-LD copy. */
+function pageDescription(html: string, event: Record<string, unknown> | null): string | null {
+  return (
+    lumaMirrorDescription(html) ??
+    orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : ""), { keepEmphasis: true }), LIMITS.description))
+  );
 }
 
 function ogImage(html: string): string | null {
@@ -93,7 +219,7 @@ export function parseLumaLinkedEvent(html: string, pageUrl: string): NormalizedE
 
   const mode = typeof event.eventAttendanceMode === "string" ? event.eventAttendanceMode : "";
   const status = typeof event.eventStatus === "string" ? event.eventStatus : "";
-  const description = orNull(clamp(cleanProse(stripHtml(typeof event.description === "string" ? event.description : ""), { keepEmphasis: true }), LIMITS.description));
+  const description = pageDescription(html, event);
   const timezone = html.match(/"timezone":"([^"]+)"/)?.[1] ?? null;
   const slug = new URL(url).pathname.split("/").filter(Boolean).pop() ?? null;
   const apiId = html.match(/"api_id":"(evt-[^"]+)"/)?.[1] ?? null;
@@ -123,7 +249,7 @@ export function parseLumaEventPage(html: string): LumaPageDetails | null {
   const event = firstEvent(html);
   const images = event ? (Array.isArray(event.image) ? event.image : [event.image]) : [];
   const coverUrl = images.map(safeImage).find((u): u is string => u !== null) ?? ogImage(html);
-  const description = orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : ""), { keepEmphasis: true }), LIMITS.description));
+  const description = pageDescription(html, event);
   const price = event ? prices(event.offers) : null;
 
   const location = event?.location && typeof event.location === "object" ? (event.location as Record<string, unknown>) : null;

@@ -67,6 +67,16 @@ describe("parseMeetupLinkedEvent", () => {
     });
   });
 
+  it("takes the full description from the page data, not the cut-off JSON-LD copy (real page)", () => {
+    const full = readFileSync(fileURLToPath(new URL("./__fixtures__/meetup-event-full.html", import.meta.url)), "utf8");
+    const description = parseMeetupLinkedEvent(full, "https://www.meetup.com/chennai-artificial-intelligence-meetup-group/events/316428279/")!.description!;
+    expect(description.length).toBeGreaterThan(3000);
+    expect(description).toContain("**Please note that only those who complete the payment through Luma would be considered as confirmed registrations.**");
+    expect(description).toContain("Steps:\n1. Choose the workshop cohort for your preferred date on the Luma calendar.\n2. Complete registration and payment.");
+    expect(description).toContain("**Workshop Details:**\n\n• **Date:** **New Cohort every Tuesday**\n• **Time:** 12:30 pm - 2:30 pm IST");
+    expect(description).toContain("**Santosh Rout** - is the founder of navan.ai (https://navan.ai/)");
+  });
+
   it("returns null without event JSON-LD", () => {
     expect(parseMeetupLinkedEvent("<html></html>", "https://www.meetup.com/a/events/1/")).toBeNull();
   });

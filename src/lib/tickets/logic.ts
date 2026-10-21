@@ -333,6 +333,58 @@ export function paragraphs(text: string | null | undefined) {
     .filter(Boolean);
 }
 
+export type TextBlock =
+  | { type: "heading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "bullets"; items: string[] }
+  | { type: "numbered"; start: number; items: string[] };
+
+const BULLET_LINE = /^[•*-][ \t]+(.*)$/;
+const NUMBERED_LINE = /^(\d{1,3})[.)][ \t]+(.*)$/;
+/** A short line that is bold from end to end ("**What to bring**") reads as a heading. */
+const HEADING_LINE = /^\*\*(?!\s)((?:(?!\*\*)[^\n]){1,80}?[^\s*])\*\*:?$/;
+
+/**
+ * Description text as blocks: headings, paragraphs, bullet and numbered lists. Paragraphs are
+ * separated by blank lines; inside one, consecutive "• item" / "1. item" lines become a list, and
+ * the remaining lines stay one paragraph (single newlines kept).
+ */
+export function textBlocks(text: string | null | undefined): TextBlock[] {
+  const blocks: TextBlock[] = [];
+  for (const para of paragraphs(text)) {
+    // Lists only continue within one paragraph: a blank line starts a new list.
+    const paraStart = blocks.length;
+    let lines: string[] = [];
+    const flush = () => {
+      if (lines.length === 0) return;
+      const joined = lines.join("\n");
+      const heading = lines.length === 1 ? joined.match(HEADING_LINE) : null;
+      blocks.push(heading ? { type: "heading", text: heading[1] } : { type: "paragraph", text: joined });
+      lines = [];
+    };
+    for (const raw of para.split("\n")) {
+      const line = raw.trim();
+      const bullet = line.match(BULLET_LINE);
+      const numbered = bullet ? null : line.match(NUMBERED_LINE);
+      if (!bullet && !numbered) {
+        if (line) lines.push(line);
+        continue;
+      }
+      flush();
+      const last = paraStart < blocks.length ? blocks[blocks.length - 1] : undefined;
+      if (bullet) {
+        if (last?.type === "bullets") last.items.push(bullet[1]);
+        else blocks.push({ type: "bullets", items: [bullet[1]] });
+      } else if (numbered) {
+        if (last?.type === "numbered") last.items.push(numbered[2]);
+        else blocks.push({ type: "numbered", start: Number(numbered[1]), items: [numbered[2]] });
+      }
+    }
+    flush();
+  }
+  return blocks;
+}
+
 /** Google Maps search link for a venue. */
 export function mapsUrl(parts: (string | null | undefined)[]) {
   const query = parts.map((p) => p?.trim()).filter(Boolean).join(", ");

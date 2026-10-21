@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseLumaEventPage, parseLumaLinkedEvent } from "./luma-page";
+import { lumaMirrorDescription, parseLumaEventPage, parseLumaLinkedEvent } from "./luma-page";
 
 const page = readFileSync(fileURLToPath(new URL("./__fixtures__/luma-event.html", import.meta.url)), "utf8");
 
@@ -77,5 +77,50 @@ describe("parseLumaLinkedEvent", () => {
 
   it("returns null without event JSON-LD", () => {
     expect(parseLumaLinkedEvent("<html></html>", "https://luma.com/van-dweb-social")).toBeNull();
+  });
+});
+
+describe("lumaMirrorDescription", () => {
+  const formatted = readFileSync(fileURLToPath(new URL("./__fixtures__/luma-event-formatted.html", import.meta.url)), "utf8");
+  const withDoc = (doc: unknown) =>
+    `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify({ props: { pageProps: { initialData: { data: { description_mirror: doc } } } } })}</script>`;
+  const text = (value: string, marks?: unknown[]) => ({ type: "text", text: value, ...(marks ? { marks } : {}) });
+  const para = (...content: unknown[]) => ({ type: "paragraph", content });
+
+  it("keeps the host's headings, paragraphs, bold and lists (real Luma page)", () => {
+    const description = lumaMirrorDescription(formatted)!;
+    expect(description.startsWith("**Embedded Swift: From Code to Hardware**\n\nJoin us for a hands-on **Embedded Swift workshop** where")).toBe(true);
+    expect(description).toContain("**Saturday, 24 October 2026**\n**9:30 AM – 1:00 PM**");
+    expect(description).toContain("What we’ll cover\n\n• Introduction to Embedded Swift\n• Setting up the Embedded Swift development environment on macOS\n");
+    expect(description).toContain("This workshop is suitable for:\n\n• Swift and iOS developers curious about embedded systems\n");
+    expect(description.endsWith("Organized by **SwiftBengaluru**.")).toBe(true);
+  });
+
+  it("is what both page readers store, instead of the flattened JSON-LD copy", () => {
+    expect(parseLumaEventPage(formatted)?.description).toBe(lumaMirrorDescription(formatted));
+    expect(parseLumaLinkedEvent(formatted, "https://luma.com/lbm2afcr")?.description).toBe(lumaMirrorDescription(formatted));
+  });
+
+  it("numbers ordered lists, keeps links and line breaks, merges split bold and keeps spaces outside markers", () => {
+    const doc = {
+      type: "doc",
+      content: [
+        para(text("Hello "), text("big ", [{ type: "bold" }]), text("world", [{ type: "bold" }]), text(" and "), text("soft", [{ type: "italic" }])),
+        para(text("Line one"), { type: "hard_break" }, text("Line two")),
+        para(text("Tickets", [{ type: "link", attrs: { href: "https://example.com/t" } }]), text(" · "), text("https://example.com", [{ type: "link", attrs: { href: "https://example.com" } }])),
+        { type: "ordered_list", attrs: { order: 1 }, content: [{ type: "list_item", content: [para(text("First"))] }, { type: "list_item", content: [para(text("Second"))] }] },
+        { type: "horizontal_rule" },
+        { type: "blockquote", content: [para(text("Quoted"))] },
+      ],
+    };
+    expect(lumaMirrorDescription(withDoc(doc))).toBe(
+      "Hello **big world** and *soft*\n\nLine one\nLine two\n\nTickets (https://example.com/t) · https://example.com\n\n1. First\n2. Second\n\nQuoted",
+    );
+  });
+
+  it("falls back to the JSON-LD description without page data", () => {
+    expect(lumaMirrorDescription("<html></html>")).toBeNull();
+    expect(lumaMirrorDescription(withDoc({ type: "not-a-doc" }))).toBeNull();
+    expect(parseLumaEventPage(page)?.description).toBeTruthy();
   });
 });

@@ -100,6 +100,21 @@ function venueState(html: string, name: string | null): VenueState | null {
     : null;
 }
 
+/**
+ * The event's full description (Markdown) from the page's __NEXT_DATA__. The JSON-LD copy is cut
+ * at about 155 characters, often mid-word and mid-`**bold**`.
+ */
+function pageDescription(html: string): string | null {
+  const raw = html.match(/<script[^>]*id=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i)?.[1];
+  if (!raw) return null;
+  try {
+    const description = JSON.parse(raw)?.props?.pageProps?.event?.description;
+    return typeof description === "string" && description.trim() ? description : null;
+  } catch {
+    return null;
+  }
+}
+
 function validPoint(latitude: number | null, longitude: number | null) {
   if (latitude === null || longitude === null) return null;
   if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
@@ -131,7 +146,7 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
 
   const organizer = Array.isArray(event.organizer) ? event.organizer[0] : event.organizer;
   const organizerName = organizer && typeof organizer === "object" ? text((organizer as Record<string, unknown>).name) : null;
-  const description = orNull(clamp(cleanProse(stripHtml(text(event.description) ?? ""), { keepEmphasis: true }), LIMITS.description));
+  const description = orNull(clamp(cleanProse(stripHtml(pageDescription(html) ?? text(event.description) ?? ""), { keepEmphasis: true }), LIMITS.description));
   const mode = text(event.eventAttendanceMode) ?? "";
   const status = text(event.eventStatus) ?? "";
 
