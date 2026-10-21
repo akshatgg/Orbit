@@ -85,6 +85,11 @@ export function pickHref(f: SearchFilters, key: FilterKey, value: string): strin
   }
 }
 
+/** A category tab: just this category (other filters kept), or every category for null. */
+export function categoryTabHref(f: SearchFilters, category: string | null): string {
+  return searchHref({ ...f, categories: category ? [category] : [] });
+}
+
 /** The search with just this one filter cleared. */
 export function clearKeyHref(f: SearchFilters, key: FilterKey): string {
   switch (key) {

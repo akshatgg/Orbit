@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clearKeyHref, isActive, pickHref, pillLabel, showClearAll } from "./filter-bar";
+import { categoryTabHref, clearKeyHref, isActive, pickHref, pillLabel, showClearAll } from "./filter-bar";
 import { parseSearchFilters } from "./filters";
 
 const cats = [{ value: "workshop", label: "Workshop" }, { value: "talk", label: "Talk" }, { value: "social", label: "Social" }];
@@ -17,6 +17,15 @@ describe("pillLabel", () => {
     expect(pillLabel(f({ country: "IN", city: "Bengaluru" }), "location", cats)).toBe("Bengaluru");
     expect(pillLabel(f({ country: "GB" }), "location", cats)).toBe("United Kingdom");
     expect(pillLabel(f({ sort: "date" }), "sort", cats)).toBe("Date");
+  });
+});
+
+describe("categoryTabHref", () => {
+  it("shows just the picked category and keeps the other filters", () => {
+    expect(categoryTabHref(f({ q: "ai", category: ["workshop", "talk"], date: "week" }), "social")).toBe("/search?q=ai&date=week&category=social");
+  });
+  it("clears the category for All events", () => {
+    expect(categoryTabHref(f({ category: "workshop", format: "online" }), null)).toBe("/search?format=online");
   });
 });
 

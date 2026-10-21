@@ -20,8 +20,16 @@ const Check = () => (
   <svg aria-hidden viewBox="0 0 16 16" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3.5 8.5l3 3 6-7" /></svg>
 );
 
-/** Compact filter bar: one pill per filter, each opening a popover (desktop) or bottom sheet (mobile). */
-export function FilterBar({ filters, categories, places }: { filters: SearchFilters; categories: Option[]; places: PlaceGroup[] }) {
+/**
+ * Compact filter bar: one pill per filter, each opening a popover (desktop) or bottom sheet (mobile).
+ * `keys` picks which pills to show (Explore leaves out Category: its CategoryRail does that job).
+ */
+export function FilterBar({ filters, categories, places, keys = FILTER_KEYS }: {
+  filters: SearchFilters;
+  categories: Option[];
+  places: PlaceGroup[];
+  keys?: readonly FilterKey[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [openKey, setOpenKey] = useState<FilterKey | null>(null);
@@ -112,7 +120,7 @@ export function FilterBar({ filters, categories, places }: { filters: SearchFilt
         onKeyDown={(e) => { if (e.key === "Escape" && openKey) close(); }}
         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0 [&::-webkit-scrollbar]:hidden"
       >
-        {FILTER_KEYS.map((key) => {
+        {keys.map((key) => {
           const active = isActive(filters, key);
           const open = openKey === key;
           return (

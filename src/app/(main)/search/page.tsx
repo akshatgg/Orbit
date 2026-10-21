@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { RankedCard } from "@/components/discovery/Cards";
 import { EventRows } from "@/components/events/EventRow";
+import { CategoryRail } from "@/components/discovery/CategoryRail";
 import { FilterBar } from "@/components/discovery/FilterBar";
 import { ICONS, SearchSkeleton, SectionHeading } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
@@ -15,6 +16,7 @@ import {
 import {
   countUpcomingByCategory, getViewer, listHappeningSoon, listUpcomingPlaces, searchEvents, type RankedEvent, type Viewer,
 } from "@/lib/discovery/queries";
+import { FILTER_KEYS } from "@/lib/discovery/filter-bar";
 import { listCategories } from "@/lib/events/queries";
 
 export const metadata: Metadata = { title: "Explore" };
@@ -49,8 +51,10 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
     <div className="space-y-6 lg:space-y-10">
       <div className="space-y-3 lg:space-y-4">
         <SearchBox filters={filters} />
+        <CategoryRail filters={filters} categories={categories.map((c) => ({ value: c.slug, label: c.name }))} />
         <FilterBar
           filters={filters}
+          keys={FILTER_KEYS.filter((k) => k !== "category")}
           categories={categories.map((c) => ({
             value: c.slug,
             label: c.name,
