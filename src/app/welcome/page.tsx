@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { PlatformOrbit } from "@/components/brand/PlatformOrbit";
@@ -11,6 +10,7 @@ import { FORMAT_LABELS, formatEventDate, formatPrice } from "@/lib/format";
 import { buildSiteJsonLd } from "@/lib/seo/jsonld";
 import { listLandingEvents } from "@/lib/seo/public-data";
 import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo/site";
+import { OrbitLogo } from "@/components/brand/OrbitLogo";
 
 // Served at "/" for signed-out visitors (the proxy rewrites "/" here). Canonical is always "/".
 export const metadata: Metadata = {
@@ -56,7 +56,7 @@ export default function Welcome() {
       <JsonLd data={buildSiteJsonLd()} />
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 pt-[max(env(safe-area-inset-top),1.25rem)]">
         <Link href="/" className="flex items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
-          <Image src="/brand/orbit-mark.png" alt="ORBIT logo" width={30} height={30} />
+          <OrbitLogo size={30} alt="ORBIT logo" />
           <span className="font-display text-sm font-semibold tracking-[0.34em]">ORBIT</span>
         </Link>
         <nav aria-label="Primary" className="flex items-center gap-1">

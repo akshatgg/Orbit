@@ -1,11 +1,11 @@
 // ORBIT service worker: offline fallback + push notifications.
-const CACHE = "orbit-v1";
+const CACHE = "orbit-v2";
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
-      cache.addAll([OFFLINE_URL, "/icons/icon-192.png", "/brand/orbit-mark.png"]),
+      cache.addAll([OFFLINE_URL, "/icons/icon-192.png", "/brand/orbit-logo.png"]),
     ),
   );
   self.skipWaiting();

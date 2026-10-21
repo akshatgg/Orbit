@@ -1,4 +1,5 @@
 import { absoluteUrl, SITE_DESCRIPTION, SITE_NAME } from "./site";
+import { LOGO_SRC } from "@/lib/brand";
 
 export type JsonLd = Record<string, unknown>;
 
@@ -148,7 +149,7 @@ export function buildSiteJsonLd(): JsonLd[] {
       "@type": "Organization",
       name: SITE_NAME,
       url: absoluteUrl("/"),
-      logo: absoluteUrl("/brand/orbit-emblem.png"),
+      logo: absoluteUrl(LOGO_SRC),
     },
   ];
 }

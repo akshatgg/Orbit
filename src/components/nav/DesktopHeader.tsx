@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { parsePlaceValue, placeValue } from "@/lib/discovery/filter-bar";
 import type { PlaceGroup } from "@/lib/places";
+import { OrbitLogo } from "@/components/brand/OrbitLogo";
 
 const LINKS = [
   { href: "/search", label: "Explore", match: (p: string) => p.startsWith("/search") },
@@ -94,7 +94,7 @@ export function DesktopHeaderFrame({ children }: { children?: ReactNode }) {
     <header className="fixed inset-x-0 top-0 z-40 hidden border-b border-line bg-bg/80 backdrop-blur-xl md:block">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-6 lg:gap-6">
         <Link href="/" aria-label="ORBIT home" className="flex shrink-0 items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
-          <Image src="/brand/orbit-mark.png" alt="" width={30} height={30} priority className="h-[30px] w-[30px]" />
+          <OrbitLogo size={30} priority className="h-[30px] w-[30px]" />
           <span className="hidden text-[14px] font-semibold tracking-[0.2em] lg:inline">ORBIT</span>
         </Link>
         {children}

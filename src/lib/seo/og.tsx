@@ -4,14 +4,15 @@ import path from "node:path";
 import { ImageResponse } from "next/og";
 import { formatEventDate } from "@/lib/format";
 import { SITE_TAGLINE } from "./site";
+import { LOGO_SRC } from "@/lib/brand";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 
 let markPromise: Promise<string> | undefined;
-/** The ORBIT mark as a data URI (read once). */
+/** The ORBIT logo as a data URI (read once). */
 function mark() {
-  markPromise ??= readFile(path.join(process.cwd(), "public/brand/orbit-mark.png")).then(
+  markPromise ??= readFile(path.join(process.cwd(), "public", LOGO_SRC)).then(
     (b) => `data:image/png;base64,${b.toString("base64")}`,
   );
   return markPromise;
