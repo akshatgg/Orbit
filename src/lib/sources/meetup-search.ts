@@ -160,7 +160,7 @@ export function parseMeetupSearchResponse(json: SearchResponse): MeetupSearchPag
       continue;
     }
 
-    const description = orNull(clamp(cleanProse(stripHtml(typeof node.description === "string" ? node.description : "")), LIMITS.description));
+    const description = orNull(clamp(cleanProse(stripHtml(typeof node.description === "string" ? node.description : ""), { keepEmphasis: true }), LIMITS.description));
     const groupName = oneLine(typeof node.group?.name === "string" ? node.group.name : "");
     const timezone = typeof node.group?.timezone === "string" && isValidTimezone(node.group.timezone) ? node.group.timezone : "Europe/London";
 

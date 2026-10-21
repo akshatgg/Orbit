@@ -67,6 +67,50 @@ describe("cleanProse", () => {
   it("unescapes iCal punctuation and collapses long blank runs", () => {
     expect(cleanProse("Hello\\, world\\!\n\n\n\nNext")).toBe("Hello, world!\n\nNext");
   });
+
+  it("renumbers ordered-list items written as repeated 1. markers", () => {
+    const input = [
+      "Journaling Session Ground Rules",
+      "",
+      "1. **This is a journaling-focused session.** *Keep it on topic.*",
+      "",
+      "1. **No work discussions.** *Reconnect with yourself.*",
+      "",
+      "1. **Respect everyone's time.** *Stay on topic.*",
+    ].join("\n");
+    expect(cleanProse(input)).toBe([
+      "Journaling Session Ground Rules",
+      "",
+      "1. This is a journaling-focused session. Keep it on topic.",
+      "",
+      "2. No work discussions. Reconnect with yourself.",
+      "",
+      "3. Respect everyone's time. Stay on topic.",
+    ].join("\n"));
+  });
+
+  it("keeps a correctly numbered list and resets after the list ends", () => {
+    expect(cleanProse("1. One\n2. Two\n\nAfter the list.\n\n1. New list")).toBe(
+      "1. One\n2. Two\n\nAfter the list.\n\n1. New list",
+    );
+  });
+
+  it("can keep bold and italic markers for the event page", () => {
+    expect(cleanProse("**Bold** and *italic*, but ~~gone~~.", { keepEmphasis: true })).toBe(
+      "**Bold** and *italic*, but gone.",
+    );
+  });
+
+  it("strips emphasis markers from short summaries", () => {
+    expect(summarise("**Journaling Session Ground Rules**\nSecond line")).toBe("Journaling Session Ground Rules");
+  });
+
+  it("does not reset numbering on an indented wrapped line", () => {
+    const result = cleanProse("1. First line\n   continues here\n1. Second");
+    expect(result).toContain("continues here");
+    expect(result).toContain("2. Second");
+    expect(result).not.toContain("1. Second");
+  });
 });
 
 describe("zonedTimeToUtc", () => {

@@ -275,7 +275,15 @@ export function safeHttpUrl(value: string | null | undefined) {
 
 export type TextPart = { type: "text"; value: string } | { type: "link"; value: string; href: string };
 
+export type InlinePart =
+  | TextPart
+  | { type: "bold"; children: InlinePart[] }
+  | { type: "italic"; children: InlinePart[] };
+
 const URL_RE = /\b(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+
+/** Bold/italic markers left by the source importer. */
+const EMPHASIS_RE = /\*\*(?!\s)([\s\S]*?[^\s*])\*\*|\*(?!\s)([^*\n]*?[^\s*])\*/g;
 
 /** Splits plain text into text and link parts. Only http(s) links; trailing punctuation stays text. */
 export function linkify(text: string): TextPart[] {
@@ -296,6 +304,23 @@ export function linkify(text: string): TextPart[] {
     last = start + raw.length;
   }
   if (last < text.length) parts.push({ type: "text", value: text.slice(last) });
+  return parts;
+}
+
+/** Plain text + links + safe bold/italic. Markers without a pair stay as plain text. */
+export function inlineParts(text: string): InlinePart[] {
+  const parts: InlinePart[] = [];
+  let last = 0;
+
+  for (const match of text.matchAll(EMPHASIS_RE)) {
+    const start = match.index ?? 0;
+    if (start > last) parts.push(...linkify(text.slice(last, start)));
+    if (match[1] !== undefined) parts.push({ type: "bold", children: inlineParts(match[1]) });
+    else parts.push({ type: "italic", children: inlineParts(match[2]) });
+    last = start + match[0].length;
+  }
+
+  if (last < text.length) parts.push(...linkify(text.slice(last)));
   return parts;
 }
 
