@@ -4,12 +4,12 @@ import type { ThemePreference } from "./theme";
 import { useTheme } from "./useTheme";
 
 const OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: "system", label: "System" },
+  { value: "system", label: "Auto" },
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
 ];
 
-/** Appearance: System / Light / Dark segmented control (Profile). */
+/** Appearance: Auto (light by day, dark at night) / Light / Dark segmented control (Profile). */
 export function AppearanceControl() {
   const { preference, setPreference } = useTheme();
   return (
