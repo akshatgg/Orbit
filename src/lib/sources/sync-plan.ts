@@ -101,11 +101,12 @@ export function syncedFields(event: NormalizedEvent, feedUrl: string): SyncedFie
   };
 }
 
-/** Row to insert for an event we haven't seen before. */
+/** Row to insert for an event we haven't seen before. `categoryId` overrides the source default. */
 export function buildInsertRow(
   event: NormalizedEvent,
   source: Pick<EventSource, "id" | "url" | "default_organiser_id" | "default_category_id" | "default_tags"> & { kind?: SourceKind },
   now: Date,
+  categoryId?: string | null,
 ) {
   return {
     ...syncedFields(event, source.url),
@@ -113,7 +114,7 @@ export function buildInsertRow(
     source_event_id: event.sourceEventId,
     external_label: EXTERNAL_LABELS[source.kind ?? "ical"],
     organiser_id: source.default_organiser_id,
-    category_id: source.default_category_id,
+    category_id: categoryId === undefined ? source.default_category_id : categoryId,
     tags: source.default_tags,
     status: "published" as const,
     last_verified_at: now.toISOString(),

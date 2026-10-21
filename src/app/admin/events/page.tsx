@@ -86,15 +86,17 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
   if (f.when === "past") query = query.or(`ends_at.lt.${nowIso},and(ends_at.is.null,starts_at.lt.${nowIso})`);
   query = query.order("starts_at", { ascending: f.when === "upcoming" }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  const [{ data, count, error }, { data: orgs }, { data: sourceRows }] = await Promise.all([
+  const [{ data, count, error }, { data: orgs }, { data: sourceRows }, { data: categoryRows }] = await Promise.all([
     query,
     supabase.from("organisers").select("id, name").order("name"),
     supabase.from("events").select("source").neq("source", "orbit").limit(1000),
+    supabase.from("categories").select("id, name").order("sort_order").order("name"),
   ]);
   if (error) throw error;
   const rows = (data ?? []) as unknown as Row[];
   const total = count ?? 0;
   const sources = [...new Set(["orbit", "manual", "csv", ...(sourceRows ?? []).map((r) => r.source as string)])];
+  const categories = (categoryRows ?? []) as { id: string; name: string }[];
 
   const { data: countRows } = rows.length
     ? await supabase.rpc("event_counts", { event_ids: rows.map((r) => r.id) })
@@ -173,7 +175,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
         </Empty>
       ) : (
         <>
-          <EventsTable rows={tableRows} />
+          <EventsTable rows={tableRows} categories={categories} />
           <Pagination
             page={page}
             pageCount={Math.ceil(total / PAGE_SIZE)}
