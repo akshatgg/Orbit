@@ -5,6 +5,7 @@
 // object in its app data (which includes lat/lng).
 
 import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
+import { firstJsonLdEvent } from "./jsonld";
 import { isValidTimezone } from "./timezone";
 import type { NormalizedEvent } from "./types";
 
@@ -36,23 +37,6 @@ function coverImage(html: string): string | null {
   return safeImage(featured) ?? safeImage(ogTag?.match(/content=["']([^"']+)["']/i)?.[1]);
 }
 
-function firstEvent(html: string): Record<string, unknown> | null {
-  for (const match of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
-    let data: unknown;
-    try {
-      data = JSON.parse(match[1]);
-    } catch {
-      continue;
-    }
-    for (const item of Array.isArray(data) ? data : [data]) {
-      if (item && typeof item === "object" && (item as Record<string, unknown>)["@type"] === "Event") {
-        return item as Record<string, unknown>;
-      }
-    }
-  }
-  return null;
-}
-
 function text(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -82,6 +66,15 @@ function parseVenueObject(object: string): VenueState {
  * Scans those objects, preferring one whose name matches the JSON-LD location.
  */
 function venueState(html: string, name: string | null): VenueState | null {
+  const state = findVenueState(html, name);
+  // Online events carry a placeholder venue ("Online event", at a point in the Pacific): not a place.
+  return state?.name === ONLINE_VENUE ? null : state;
+}
+
+/** Meetup's name for the placeholder venue on online events. */
+const ONLINE_VENUE = "Online event";
+
+function findVenueState(html: string, name: string | null): VenueState | null {
   let fallback: VenueState | null = null;
   for (const match of html.matchAll(/"venue":\{/g)) {
     const start = match.index ?? -1;
@@ -126,7 +119,7 @@ function validPoint(latitude: number | null, longitude: number | null) {
  * instead of a search page. The page's JSON-LD and venue state carry everything we need.
  */
 export function parseMeetupLinkedEvent(html: string, pageUrl: string): NormalizedEvent | null {
-  const event = firstEvent(html);
+  const event = firstJsonLdEvent(html);
   if (!event) return null;
 
   const idMatch = pageUrl.match(/\/events\/(\d+)/) ?? (typeof event.url === "string" ? event.url.match(/\/events\/(\d+)/) : null);
@@ -172,7 +165,7 @@ export function parseMeetupLinkedEvent(html: string, pageUrl: string): Normalize
 
 /** Venue details and cover from a Meetup event page, or null when the page has neither. */
 export function parseMeetupEventPage(html: string): MeetupPageDetails | null {
-  const event = firstEvent(html);
+  const event = firstJsonLdEvent(html);
   const location = event && typeof event.location === "object" ? (event.location as Record<string, unknown>) : null;
   const address = location && typeof location.address === "object" ? (location.address as Record<string, unknown>) : null;
 

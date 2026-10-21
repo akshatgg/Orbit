@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCloudinaryConfig } from "@/lib/cloudinary";
 import { importRemoteImage } from "./cloudinary-import";
 import {
-  ENRICH_BUDGET_MS, PAUSE_MS, detailsPatch, hasTimeFor, isBlockedStatus, looksFlattened, pickEventsToEnrich,
+  ENRICH_BUDGET_MS, FORMATTED_DESCRIPTIONS_SINCE, PAUSE_MS, detailsPatch, hasTimeFor, isBlockedStatus, pickEventsToEnrich,
   type EnrichCandidate, type EnrichRunState,
 } from "./enrich-plan";
 import { FetchHttpError, fetchFeedText } from "./fetch";
@@ -59,10 +59,11 @@ export async function enrichLumaEvents(
     }
 
     // Pages read before descriptions kept their formatting saved them flattened. Read those once
-    // more so the description can be upgraded (only when it is still the page's own text).
+    // more so the description can be upgraded (only while it is still exactly the old import).
     for (const [eventId, row] of details) {
       const event = events.find((e) => e.id === eventId);
-      if (row.status === "ok" && event && looksFlattened(event.description)) details.delete(eventId);
+      const readBefore = new Date(row.fetched_at).getTime() < FORMATTED_DESCRIPTIONS_SINCE;
+      if (row.status === "ok" && event?.description && readBefore) details.delete(eventId);
     }
 
     const picked = pickEventsToEnrich(events, details, now);

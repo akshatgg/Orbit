@@ -118,7 +118,15 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
       {/* Cover */}
       <div className="relative lg:col-start-1 lg:row-start-1 light:max-lg:flex light:max-lg:flex-col light:max-lg:px-4">
         <div className="h-[340px] w-full overflow-hidden md:h-auto md:aspect-[16/9] lg:aspect-[16/9] lg:rounded-[28px] light:max-lg:order-last light:max-lg:h-[220px] light:max-lg:rounded-[24px] md:light:max-lg:h-72 md:light:max-lg:aspect-auto">
-          <EventCover src={event.cover_url} title={event.title} className={cancelled ? "grayscale" : ""} />
+          {/* The content sheet below overlaps the cover by -mt-7 (dark theme, below lg): keep the poster above it. */}
+          <EventCover
+            src={event.cover_url}
+            title={event.title}
+            fit="contain"
+            width={1600}
+            posterClassName="max-lg:pb-7 light:max-lg:pb-0"
+            className={cancelled ? "grayscale" : ""}
+          />
         </div>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent lg:rounded-[28px] light:max-lg:hidden" aria-hidden />
         <div className="absolute inset-x-0 top-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),1rem)] lg:pt-4 light:max-lg:static light:max-lg:px-0 light:max-lg:pb-3">

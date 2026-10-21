@@ -76,34 +76,16 @@ export type DetailsPatch = {
   longitude?: number;
 };
 
-/** Words only: markers, bullets, list numbers and line breaks dropped. */
-const proseWords = (text: string) =>
-  text
-    .replace(/\*+/g, "")
-    .replace(/^[ \t]*(?:•|\d{1,3}[.)])[ \t]+/gm, "")
-    .replace(/…$/, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-
 /**
- * True when `stored` is the page's description with the formatting flattened (what older imports
- * saved from Luma's JSON-LD), not an admin's rewrite. Clamping may have cut either one short.
+ * Luma pages read before this were saved with a flattened description. Pages last read before
+ * then are read once more so the description can be upgraded (see detailsPatch). Set safely after
+ * the release that ships it; a page re-read in between just finds nothing to change.
  */
-export function sameProse(stored: string, formatted: string) {
-  const a = proseWords(stored);
-  const b = proseWords(formatted);
-  if (a.length < 20 || b.length < 20) return a === b;
-  return a === b || a.startsWith(b) || b.startsWith(a);
-}
-
-/** A multi-line description with no paragraph breaks, bullets or bold: an older flattened Luma import. */
-export const looksFlattened = (text: string | null) =>
-  !!text && text.includes("\n") && !text.includes("\n\n") && !/^• /m.test(text) && !text.includes("**");
+export const FORMATTED_DESCRIPTIONS_SINCE = Date.parse("2026-10-24T00:00:00Z");
 
 /**
  * Only fills fields that are empty, so admin edits always win. The one exception: a description
- * that is the same text as the page's, only flattened, is upgraded to the formatted version.
+ * that is still exactly the flattened copy an older import saved is upgraded to the formatted one.
  */
 export function detailsPatch(
   current: Pick<EnrichCandidate, "cover_url" | "description" | "price_min" | "venue_name" | "address" | "city" | "latitude" | "longitude">,
@@ -112,7 +94,8 @@ export function detailsPatch(
 ): DetailsPatch {
   const patch: DetailsPatch = {};
   if (!current.cover_url && importedCover) patch.cover_url = importedCover;
-  if (page.description && (!current.description || (current.description !== page.description && sameProse(current.description, page.description)))) {
+  const untouchedFlat = !!current.description && current.description === page.flatDescription;
+  if (page.description && current.description !== page.description && (!current.description || untouchedFlat)) {
     patch.description = page.description;
   }
   if (current.price_min === null && page.priceMin !== null && page.priceMax !== null && page.currency) {

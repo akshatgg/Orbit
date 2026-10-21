@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_ATTEMPTS, PAGE_WORST_CASE_MS, detailsPatch, hasTimeFor, isBlockedStatus, looksFlattened, pickEventsToEnrich, sameProse,
+  MAX_ATTEMPTS, PAGE_WORST_CASE_MS, detailsPatch, hasTimeFor, isBlockedStatus, pickEventsToEnrich,
   type EnrichCandidate,
 } from "./enrich-plan";
 import type { SourceEventDetails } from "./types";
@@ -82,14 +82,15 @@ describe("detailsPatch", () => {
     expect(detailsPatch(current, page, "https://res.cloudinary.com/other.jpg")).toEqual({});
   });
 
-  it("upgrades a flattened copy of the page's description to the formatted one", () => {
-    const formatted = "**Embedded Swift**\n\nJoin us for a hands-on **workshop** today.\n\nWhat we’ll cover\n\n• Intro to Swift\n• Controlling an LED";
-    const flat = "Embedded Swift\nJoin us for a hands-on workshop today.\nWhat we’ll cover\nIntro to Swift\nControlling an LED";
-    expect(detailsPatch(event("a", { description: flat }), { ...page, description: formatted }, null)).toMatchObject({ description: formatted });
-    // An admin's rewrite is different text: left alone.
-    expect(detailsPatch(event("a", { description: "Our own words about this event, rewritten." }), { ...page, description: formatted }, null)).not.toHaveProperty("description");
+  it("upgrades a description that is still exactly the old flattened import", () => {
+    const formatted = "**Agenda**\n\n• Founder demos\n\nApply here (https://example.com/apply)";
+    const flat = "Agenda\n• Founder demos\n\nApply here";
+    const withFlat = { ...page, description: formatted, flatDescription: flat };
+    expect(detailsPatch(event("a", { description: flat }), withFlat, null)).toMatchObject({ description: formatted });
+    // Anything else in the column is someone's edit: left alone, even a near copy.
+    expect(detailsPatch(event("a", { description: `${flat} Edited.` }), withFlat, null)).not.toHaveProperty("description");
     // Already formatted: nothing to do.
-    expect(detailsPatch(event("a", { description: formatted }), { ...page, description: formatted }, null)).not.toHaveProperty("description");
+    expect(detailsPatch(event("a", { description: formatted }), withFlat, null)).not.toHaveProperty("description");
   });
 
   it("skips the cover when the import failed", () => {
@@ -107,21 +108,5 @@ describe("hasTimeFor", () => {
   });
   it("refuses a page that could overrun the deadline", () => {
     expect(hasTimeFor(deadline - PAGE_WORST_CASE_MS + 1, deadline)).toBe(false);
-  });
-});
-
-describe("sameProse / looksFlattened", () => {
-  it("compares words, ignoring markers, bullets, numbering and clamping", () => {
-    expect(sameProse("Intro line\nTwo\nThree items here", "**Intro line**\n\n• Two\n1. Three items here")).toBe(true);
-    expect(sameProse("Intro line\nTwo\nThree items…", "**Intro line**\n\n• Two\n• Three items here and more")).toBe(true);
-    expect(sameProse("Something an admin wrote instead", "**Intro line**\n\n• Two\n• Three items here")).toBe(false);
-  });
-
-  it("spots the old flattened Luma imports only", () => {
-    expect(looksFlattened("Title\nOne line\nAnother")).toBe(true);
-    expect(looksFlattened("One paragraph only")).toBe(false);
-    expect(looksFlattened("Para one\n\nPara two")).toBe(false);
-    expect(looksFlattened("Agenda\n• one\n• two")).toBe(false);
-    expect(looksFlattened(null)).toBe(false);
   });
 });
