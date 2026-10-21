@@ -1,17 +1,18 @@
-// The opening animation ("liquid dive"): coloured drops swirl and melt into the ORBIT logo, the
-// wordmark wipes in, then the logo's dark centre opens onto the real page and the logo grows past
-// the viewer. Runs from an inline <head> script before the page paints (see intro-script.ts), so
-// runIntro is serialised with toString(): keep it fully self-contained (no imports, no closures
-// over module scope) and use only plain DOM APIs.
+// The opening animation: the ORBIT logo fades in and settles, gives one soft beat, and two faint
+// rings ripple out from it like a signal going out; then the screen fades into the app. Logo only,
+// about two seconds.
+//
+// Runs from an inline <head> script before the page paints (see intro-script.ts), so runIntro is
+// serialised with toString(): keep it fully self-contained (no imports, no closures over module
+// scope) and use only plain DOM APIs.
 //
 // Smoothness: the page hydrates while this plays, so the main thread is busy. Every moving part is
-// therefore a Web Animation on transform/opacity of an HTML element (run by the compositor), and the
-// whole timeline is scheduled up front with delays — nothing waits on JavaScript between steps.
-
-import type { IntroLogo } from "./logo-data";
+// a Web Animation on transform/opacity/filter (run by the compositor), scheduled up front with
+// delays — nothing waits on JavaScript between steps.
 
 export type IntroOptions = {
-  emblemUrl: string;
+  /** Transparent logo shown in the middle of the screen. */
+  logoUrl: string;
   reducedMotion: boolean;
   /** Opened from the home-screen icon: start from the OS launch-screen logo instead of an empty screen. */
   fromIcon?: boolean;
@@ -21,23 +22,21 @@ export type IntroOptions = {
   maxMs: number;
 };
 
-export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
+export function runIntro(opts: IntroOptions): void {
   const doc = document;
   const root = doc.documentElement;
-  const NS = "http://www.w3.org/2000/svg";
   const BG = "#0c0d10";
-  const OVERLAY_Z = "2147483647";
+  const LOGO_PX = 96;
+  const EASE = "cubic-bezier(.22,1,.36,1)"; // soft ease-out, no overshoot
 
-  // Timeline (ms from start). From the home-screen icon, an extra opening melts the launch-screen
-  // logo into the drops first (BURST), and everything after it shifts by that much.
-  const fromIcon = !!opts.fromIcon && !opts.reducedMotion;
-  const BURST = fromIcon ? 650 : 0; // launch logo melts and the drops fly out of it
-  const SWIRL = 1350; // drops swirl in
-  const FORM = BURST + SWIRL; // drops become the logo
-  const WIPE = FORM + 350; // wordmark wipes in
-  const DIVE = FORM + 1500; // centre opens, logo grows past the viewer
-  const DIVE_MS = 1500;
-  const END = DIVE + 100 + DIVE_MS;
+  // Timeline (ms from start).
+  const IN_MS = 500; // logo fades in and settles
+  const BEAT_AT = 550; // one soft beat…
+  const BEAT_MS = 400;
+  const RING_AT = [550, 800]; // …as two rings ripple out
+  const RING_MS = 1200;
+  const FADE_AT = 1800; // screen fades into the app
+  const FADE_MS = 500;
 
   let dead = false;
   let overlay: HTMLElement | null = null;
@@ -61,11 +60,10 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
     root.removeAttribute("data-intro");
   }
 
-  /** Quick fade-out then finish (skip, reduced motion). */
+  /** Fades the whole screen out, then cleans up. */
   function fadeOut(ms: number) {
     if (dead || !overlay) return finish();
     try {
-      overlay.getAnimations({ subtree: true }).forEach((a) => a.pause());
       const a = overlay.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms, easing: "ease-out", fill: "forwards" });
       a.onfinish = finish;
     } catch {
@@ -75,241 +73,72 @@ export function runIntro(LOGO: IntroLogo, opts: IntroOptions): void {
     later(ms + 120, finish);
   }
 
-  const svgEl = (tag: string, attrs?: Record<string, string>) => {
-    const e = doc.createElementNS(NS, tag);
-    if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
-    return e;
-  };
-  const div = (css: string) => {
-    const e = doc.createElement("div");
+  const el = (tag: string, css: string) => {
+    const e = doc.createElement(tag);
     e.style.cssText = css;
     return e;
   };
-  const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-  const polar = (r: number, deg: number) => {
-    const a = (deg * Math.PI) / 180;
-    return { x: r * Math.cos(a), y: r * Math.sin(a) };
-  };
-  const corePoints = (scale: number) =>
-    LOGO.core
-      .split(" ")
-      .map((pt) => pt.split(",").map((v) => (parseFloat(v) * scale).toFixed(1)).join(","))
-      .join(" ");
+
+  overlay = el(
+    "div",
+    `position:fixed;inset:0;z-index:2147483647;background:${BG};display:flex;align-items:center;justify-content:center;pointer-events:auto;`,
+  );
+  overlay.setAttribute("aria-hidden", "true");
+
+  // The rings: thin, faint lavender circles the size of the logo, hidden until they ripple.
+  const rings = RING_AT.map(() =>
+    el(
+      "div",
+      `position:absolute;left:50%;top:50%;width:${LOGO_PX}px;height:${LOGO_PX}px;margin:${-LOGO_PX / 2}px 0 0 ${-LOGO_PX / 2}px;border-radius:50%;` +
+        "border:2px solid rgba(200,190,255,.7);box-sizing:border-box;opacity:0;will-change:transform,opacity;",
+    ),
+  );
+
+  const logo = el("img", `position:relative;width:${LOGO_PX}px;height:${LOGO_PX}px;display:block;will-change:transform,opacity,filter;`) as HTMLImageElement;
+  logo.src = opts.logoUrl;
+  logo.alt = "";
+  logo.decoding = "async";
+
+  rings.forEach((ring) => overlay!.appendChild(ring));
+  overlay.appendChild(logo);
+  doc.body.appendChild(overlay);
+  root.setAttribute("data-intro", "play"); // overlay is up: drop the pre-paint cover
+
+  // Tap or key skips straight to the app.
+  const skip = () => fadeOut(260);
+  overlay.addEventListener("pointerdown", skip, { once: true });
+  window.addEventListener("keydown", skip, { once: true });
+  cleanups.push(() => window.removeEventListener("keydown", skip));
+  later(opts.maxMs, finish);
+
+  if (opts.reducedMotion) {
+    later(800, () => fadeOut(300));
+    return;
+  }
 
   try {
-    later(opts.maxMs, finish);
+    // From the home-screen icon the OS launch screen already shows the logo (launchLogoPx wide, in
+    // colour) in the middle: start from exactly that instead of popping in.
+    const fromIcon = !!opts.fromIcon && !!opts.launchLogoPx;
+    // Later steps animate the same properties, so only a step that starts at 0 fills backwards;
+    // the rest only hold their end state (a backwards fill would override the step before them).
+    const anim = (target: Element, frames: Keyframe[], duration: number, delay: number, easing: string) =>
+      target.animate(frames, { duration, delay, easing, fill: delay === 0 ? "both" : "forwards" });
 
-    const W = window.innerWidth;
-    const H = window.innerHeight;
-    const CX = W / 2;
-    const CY = H * 0.46;
-    // Size the logo from a phone-sized base so it stays the same comfortable size on laptops.
-    const B = Math.min(W, H * 0.62, 420);
-    const k = (B * 0.19) / 100; // px per logo unit (logo radius = 100 units)
-    // Zoom far enough that the logo's centre (narrowest at ~38% of the radius) covers the screen.
-    const zMax = (Math.hypot(W, H) / 2 / (38 * k)) * 1.2;
-    // Launch-screen logo: centred on the whole screen (Android centres its splash icon), drawn
-    // launchLogoPx wide; the logo circle fills ~91.5% of that image.
-    const dy = H / 2 - CY;
-    const s0 = ((opts.launchLogoPx || 128) * 0.915) / (200 * k);
-    const full = "position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;";
-    const origin = `transform-origin:${CX}px ${CY}px;`;
-
-    const ov = div(
-      `position:fixed;inset:0;z-index:${OVERLAY_Z};overflow:hidden;pointer-events:auto;touch-action:none;` +
-        "font-family:var(--font-instrument),system-ui,sans-serif;color:#f2f3f5;contain:strict;",
-    );
-    ov.setAttribute("aria-hidden", "true");
-    overlay = ov;
-
-    // ---- Zoom layer: dark backdrop with a hole shaped like the logo's centre, the centre's dark
-    // fill, the glow and the logo. The whole layer grows at the end (one composited transform).
-    const zoomWrap = div(full + origin + "will-change:transform;");
-    ov.appendChild(zoomWrap);
-    const view = `${-CX / k} ${-CY / k} ${W / k} ${H / k}`; // logo units, logo centred at (CX, CY)
-
-    const darkSvg = svgEl("svg", { viewBox: view, preserveAspectRatio: "none" });
-    darkSvg.style.cssText = full;
-    const mask = svgEl("mask", { id: "orbit-intro-mask", maskUnits: "userSpaceOnUse", x: "-9000", y: "-9000", width: "18000", height: "18000" });
-    mask.appendChild(svgEl("rect", { x: "-9000", y: "-9000", width: "18000", height: "18000", fill: "#fff" }));
-    mask.appendChild(svgEl("polygon", { points: corePoints(1), fill: "#000" }));
-    darkSvg.appendChild(mask);
-    darkSvg.appendChild(svgEl("rect", { x: "-9000", y: "-9000", width: "18000", height: "18000", fill: BG, mask: "url(#orbit-intro-mask)" }));
-    zoomWrap.appendChild(darkSvg);
-
-    const coreWrap = div(full + "will-change:opacity;");
-    const coreSvg = svgEl("svg", { viewBox: view, preserveAspectRatio: "none" });
-    coreSvg.style.cssText = full;
-    coreSvg.appendChild(svgEl("polygon", { points: corePoints(1.01), fill: BG }));
-    coreWrap.appendChild(coreSvg);
-    zoomWrap.appendChild(coreWrap);
-
-    const glowSize = 300 * k;
-    const glow = div(
-      `position:absolute;left:${CX - glowSize / 2}px;top:${CY - glowSize / 2}px;width:${glowSize}px;height:${glowSize}px;border-radius:50%;` +
-        "background:radial-gradient(circle,rgba(181,124,246,.75) 0,rgba(63,121,253,.32) 45%,rgba(63,121,253,0) 70%);opacity:0;will-change:opacity,transform;",
-    );
-    zoomWrap.appendChild(glow);
-
-    const logoWrap = div(full + origin + "opacity:0;will-change:opacity,transform;");
-    const logoSvg = svgEl("svg", { viewBox: view, preserveAspectRatio: "none" });
-    logoSvg.style.cssText = full;
-    const defs = svgEl("defs");
-    logoSvg.appendChild(defs);
-    // No blur anywhere: the logo pieces are drawn crisp, straight from the PNG.
-    const group = svgEl("g");
-    LOGO.petals.forEach((pc, i) => {
-      const clip = svgEl("clipPath", { id: `orbit-intro-c${i}` });
-      clip.appendChild(svgEl("path", { d: pc.d }));
-      defs.appendChild(clip);
-      group.appendChild(
-        svgEl("image", {
-          href: opts.emblemUrl, x: String(LOGO.img.x), y: String(LOGO.img.y), width: String(LOGO.img.w), height: String(LOGO.img.w),
-          "clip-path": `url(#orbit-intro-c${i})`, preserveAspectRatio: "none",
-        }),
-      );
-    });
-    logoSvg.appendChild(group);
-    logoWrap.appendChild(logoSvg);
-    zoomWrap.appendChild(logoWrap);
-
-    // ---- Wordmark below the logo, in the app's font.
-    const u = B / 100;
-    const wm = div(`position:absolute;left:0;right:0;top:${CY + B * 0.3}px;text-align:center;opacity:0;will-change:opacity,transform;`);
-    wm.innerHTML =
-      `<div style="font-weight:600;font-size:${u * 7.6}px;letter-spacing:.38em;padding-left:.38em;line-height:1;white-space:nowrap">ORBIT</div>` +
-      `<div style="margin-top:${u * 3}px;font-size:${u * 3.3}px;letter-spacing:.32em;padding-left:.32em;color:#a9a3c9;white-space:nowrap">EXPLORE OPPORTUNITIES</div>`;
-    ov.appendChild(wm);
-
-    // ---- Drops: crisp glossy spheres in the logo's colours, each on its own composited layer; they
-    // end overlapping, so their soft edges run together (a smooth stand-in for a goo filter).
-    const size = B * 0.38;
-    const dropsWrap = div(`position:absolute;left:${CX}px;top:${CY}px;width:0;height:0;will-change:opacity;`);
-    ov.appendChild(dropsWrap);
-    const fills = ["#4a6dff", "#ffad66", "#9d8cff", "#f1dccb", "#b77cff"];
-    const drop = size * 0.5;
-    const drops = fills.map((c, i) => {
-      const d = div(
-        `position:absolute;left:${-drop / 2}px;top:${-drop / 2}px;width:${drop}px;height:${drop}px;border-radius:50%;` +
-          // Crisp glossy sphere: a highlight, the colour, a slightly darker rim and a soft glow around it.
-          `background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.95) 0,rgba(255,255,255,.55) 9%,${c} 38%,${c} 72%,color-mix(in srgb,${c} 78%,#000) 100%);` +
-          `box-shadow:0 0 ${Math.round(drop * 0.35)}px color-mix(in srgb,${c} 55%,transparent);will-change:transform;`,
-      );
-      dropsWrap.appendChild(d);
-      const mid = LOGO.petals[i].mid;
-      return { d, a0: mid + 200 + Math.random() * 60, r0: size * (1.15 + Math.random() * 0.4), a1: mid, r1: size * 0.21 };
-    });
-
-    const img = new Image();
-    img.onerror = () => fadeOut(200); // never leave the page covered
-    img.src = opts.emblemUrl;
-
-    let went = false;
-    const go = () => {
-      if (went || dead) return;
-      went = true;
-      root.appendChild(ov);
-      // The overlay is in place: the CSS cover is no longer needed.
-      root.setAttribute("data-intro", "playing");
-
-      // Skip: any tap, click or key ends it with a quick fade.
-      const skip = () => fadeOut(250);
-      window.addEventListener("pointerdown", skip, true);
-      window.addEventListener("keydown", skip, true);
-      cleanups.push(() => {
-        window.removeEventListener("pointerdown", skip, true);
-        window.removeEventListener("keydown", skip, true);
-      });
-
-      // ---- Reduced motion: static logo + wordmark, then a short fade.
-      if (opts.reducedMotion) {
-        logoWrap.style.opacity = "1";
-        glow.style.opacity = ".6";
-        wm.style.opacity = "1";
-        dropsWrap.style.display = "none";
-        later(700, () => fadeOut(250));
-        return;
-      }
-
-      const both = "both" as FillMode;
-      // 1) Drops swirl in along a spiral (ease-out baked into the keyframes, so the path stays smooth).
-      const STEPS = 30;
-      const TOTAL = BURST + SWIRL;
-      drops.forEach((it) => {
-        const frames: Keyframe[] = [];
-        const at = (x: number, y: number, sc: number, offset: number) =>
-          frames.push({ offset, transform: `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${sc.toFixed(3)})` });
-        // From the launch logo the drops only fly part of the way out before swirling back in.
-        const rStart = fromIcon ? it.r0 * 0.8 : it.r0;
-        if (fromIcon) {
-          // Burst: out of the launch logo's pieces, turning the same way the swirl continues.
-          for (let s = 0; s <= STEPS; s++) {
-            const t = easeOut(s / STEPS);
-            const p = polar(lerp(it.r1 * s0, rStart, t), lerp(it.a1, it.a0 - 360, t));
-            at(p.x, p.y + dy * (1 - t), lerp(0.9 * s0, 0.55, t), (BURST / TOTAL) * (s / STEPS));
-          }
-        }
-        for (let s = fromIcon ? 1 : 0; s <= STEPS; s++) {
-          const t = easeOut(s / STEPS);
-          const p = polar(lerp(rStart, it.r1, t), lerp(it.a0, it.a1, t));
-          at(p.x, p.y, lerp(0.55, 1.1, t), (BURST + SWIRL * (s / STEPS)) / TOTAL);
-        }
-        it.d.animate(frames, { duration: TOTAL, easing: "linear", fill: both });
-      });
-      if (fromIcon) {
-        // The launch-screen logo is already on screen: it melts away as the drops burst out of it.
-        logoWrap.animate(
-          [
-            { opacity: 1, transform: `translate(0px,${dy.toFixed(1)}px) scale(${s0.toFixed(3)})` },
-            { opacity: 0, transform: `translate(0px,${(dy * 0.6).toFixed(1)}px) scale(${(s0 * 1.15).toFixed(3)})` },
-          ],
-          { duration: 420, easing: "cubic-bezier(.4,0,.2,1)", fill: "forwards" },
-        );
-        dropsWrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, fill: both });
-      } else {
-        dropsWrap.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, fill: both });
-      }
-
-      // 2) The drops melt away as the real logo forms; glow pulse; wordmark wipes in.
-      // The drops fade out as the logo fades in.
-    dropsWrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 380, delay: FORM, fill: "forwards" });
-      logoWrap.animate(
-        [{ opacity: 0, transform: "scale(.88)" }, { opacity: 1, transform: "scale(1)" }],
-        { duration: 620, delay: FORM, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" },
-      );
-      glow.animate(
-        [{ opacity: 0, transform: "scale(.6)" }, { opacity: 0.85, transform: "scale(1.2)" }, { opacity: 0.6, transform: "scale(1)" }],
-        { duration: 900, delay: FORM + 120, fill: both },
-      );
-      wm.animate(
-        [{ opacity: 1, clipPath: "inset(0 100% 0 0)" }, { opacity: 1, clipPath: "inset(0 0 0 0)" }],
-        { duration: 750, delay: WIPE, easing: "cubic-bezier(.6,0,.2,1)", fill: both },
-      );
-
-      // 3) The centre opens onto the page and the whole logo grows past the viewer.
-      coreWrap.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 320, delay: DIVE, easing: "linear", fill: "forwards" });
-      glow.animate([{ opacity: 0.6 }, { opacity: 0 }], { duration: 500, delay: DIVE, fill: "forwards", composite: "replace" });
-      wm.animate(
-        [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(60px) scale(1.8)" }],
-        { duration: 750, delay: DIVE, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" },
-      );
-      const dive = zoomWrap.animate(
-        [{ transform: "scale(1) rotate(0deg)" }, { transform: `scale(${zMax.toFixed(2)}) rotate(28deg)` }],
-        { duration: DIVE_MS, delay: DIVE + 100, easing: "cubic-bezier(.55,.055,.675,.19)", fill: "forwards" },
-      );
-      dive.onfinish = finish;
-      later(END + 400, finish);
-    };
-    // From the home-screen icon the cover is still showing the launch logo: keep it until the logo
-    // image is ready (at most ~1.2s), so the hand-over never shows an empty frame.
-    if (fromIcon && !img.complete) {
-      img.onload = go;
-      later(1200, go);
+    if (fromIcon) {
+      anim(logo, [{ transform: `scale(${opts.launchLogoPx! / LOGO_PX})` }, { transform: "scale(1)" }], IN_MS, 0, EASE);
     } else {
-      go();
+      anim(logo, [{ opacity: 0, transform: "scale(.85)" }, { opacity: 1, transform: "scale(1)" }], IN_MS, 0, EASE);
     }
+
+    // One soft beat while the rings ripple out and fade; then the screen fades into the app.
+    anim(logo, [{ transform: "scale(1)" }, { transform: "scale(1.04)" }, { transform: "scale(1)" }], BEAT_MS, BEAT_AT, "ease-in-out");
+    rings.forEach((ring, i) =>
+      anim(ring, [{ opacity: 0.8, transform: "scale(1)" }, { opacity: 0, transform: "scale(3)" }], RING_MS, RING_AT[i], EASE),
+    );
   } catch {
-    finish();
+    // No Web Animations: the logo just shows, then fades out normally.
   }
+
+  later(FADE_AT, () => fadeOut(FADE_MS));
 }
