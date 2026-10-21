@@ -8,6 +8,7 @@ import {
   linkify,
   mapsUrl,
   paragraphs,
+  textBlocks,
   registerLabel,
   registerVariant,
   safeHttpUrl,
@@ -221,5 +222,46 @@ describe("splitTickets", () => {
     );
     expect(upcoming.map((r) => r.id)).toEqual(["soon", "later"]);
     expect(past.map((r) => r.id)).toEqual(["old", "older"]);
+  });
+});
+
+describe("textBlocks", () => {
+  it("reads headings, paragraphs and bullet lists (Luma import shape)", () => {
+    const text = "**What we’ll cover**\n\n• Intro\n• **GPIO** basics\n\nThis workshop is suitable for:\n\n• Swift developers";
+    expect(textBlocks(text)).toEqual([
+      { type: "heading", text: "What we’ll cover" },
+      { type: "bullets", items: ["Intro", "**GPIO** basics"] },
+      { type: "paragraph", text: "This workshop is suitable for:" },
+      { type: "bullets", items: ["Swift developers"] },
+    ]);
+  });
+
+  it("splits text and lists that share a paragraph (Meetup import shape)", () => {
+    const text = "**Link to the Luma page: https://luma.com/x**\nSteps:\n1. Choose a cohort.\n2. Pay.\n\n**Workshop Details:**\n\n• **Date:** **Tuesdays**\n• **Fee:** SGD 60";
+    expect(textBlocks(text)).toEqual([
+      { type: "paragraph", text: "**Link to the Luma page: https://luma.com/x**\nSteps:" },
+      { type: "numbered", start: 1, items: ["Choose a cohort.", "Pay."] },
+      { type: "heading", text: "Workshop Details:" },
+      { type: "bullets", items: ["**Date:** **Tuesdays**", "**Fee:** SGD 60"] },
+    ]);
+  });
+
+  it("keeps two bold lines, long bold sentences and lists split by a blank line as they are", () => {
+    expect(textBlocks("**Saturday, 24 October**\n**9:30 AM – 1:00 PM**")).toEqual([
+      { type: "paragraph", text: "**Saturday, 24 October**\n**9:30 AM – 1:00 PM**" },
+    ]);
+    const long = `**${"Please note that only paid registrations count as confirmed. ".repeat(2).trim()}**`;
+    expect(textBlocks(long)).toEqual([{ type: "paragraph", text: long }]);
+    expect(textBlocks("• a\n\n• b")).toEqual([{ type: "bullets", items: ["a"] }, { type: "bullets", items: ["b"] }]);
+    expect(textBlocks("3. third\n4. fourth")).toEqual([{ type: "numbered", start: 3, items: ["third", "fourth"] }]);
+  });
+
+  it("leaves ordinary prose alone; a dash with a space starts a list item", () => {
+    expect(textBlocks("2024 was great.\n- a dash item, not -this")).toEqual([
+      { type: "paragraph", text: "2024 was great." },
+      { type: "bullets", items: ["a dash item, not -this"] },
+    ]);
+    expect(textBlocks("Price is 5*3 today")).toEqual([{ type: "paragraph", text: "Price is 5*3 today" }]);
+    expect(textBlocks("")).toEqual([]);
   });
 });

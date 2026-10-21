@@ -2,7 +2,10 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getCloudinaryConfig } from "@/lib/cloudinary";
 import { importRemoteImage } from "./cloudinary-import";
-import { ENRICH_BUDGET_MS, PAUSE_MS, detailsPatch, hasTimeFor, isBlockedStatus, pickEventsToEnrich, type EnrichCandidate, type EnrichRunState } from "./enrich-plan";
+import {
+  ENRICH_BUDGET_MS, PAUSE_MS, detailsPatch, hasTimeFor, isBlockedStatus, looksFlattened, pickEventsToEnrich,
+  type EnrichCandidate, type EnrichRunState,
+} from "./enrich-plan";
 import { FetchHttpError, fetchFeedText } from "./fetch";
 import { parseLumaEventPage } from "./luma-page";
 import { lumaPageUrl } from "./platforms";
@@ -11,7 +14,7 @@ import { sourceKey, type DetailsStatus, type EventSource, type RunError, type So
 // Trusted server code only (called from the sync engine with the service-role client).
 
 const CANDIDATE_SELECT =
-  "id, source_event_id, external_url, starts_at, created_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude";
+  "id, source_event_id, external_url, starts_at, created_at, updated_at, cover_url, description, price_min, venue_name, address, city, latitude, longitude";
 const COVER_FOLDER = "orbit/event-covers/sources";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -55,6 +58,13 @@ export async function enrichLumaEvents(
       for (const r of (rows ?? []) as SourceEventDetails[]) details.set(r.event_id, r);
     }
 
+    // Pages read before descriptions kept their formatting saved them flattened. Read those once
+    // more so the description can be upgraded (only when it is still the page's own text).
+    for (const [eventId, row] of details) {
+      const event = events.find((e) => e.id === eventId);
+      if (row.status === "ok" && event && looksFlattened(event.description)) details.delete(eventId);
+    }
+
     const picked = pickEventsToEnrich(events, details, now);
     const limit = Math.min(Date.now() + ENRICH_BUDGET_MS, run.deadline);
     const coversPossible = getCloudinaryConfig() !== null;
@@ -62,15 +72,14 @@ export async function enrichLumaEvents(
       errors.push({ message: "Image import needs Cloudinary (CLOUDINARY_* env vars are missing), so covers were skipped." });
     }
 
-    // Each group only writes where the column is still empty, so an admin save mid-run wins.
+    // Each group only writes where the column is still empty, so an admin save mid-run wins. A
+    // flattened description being upgraded isn't empty: it's guarded by the row's updated_at instead
+    // (any save since we read it changes that), so it has to be the first write for the event.
     const applyGroup = async (event: EnrichCandidate, column: string, values: Record<string, unknown>) => {
-      const { data: rows, error: updateError } = await db
-        .from("events")
-        .update(values)
-        .eq("id", event.id)
-        .eq("source", key)
-        .is(column, null)
-        .select("id");
+      const current = (event as Record<string, unknown>)[column];
+      let query = db.from("events").update(values).eq("id", event.id).eq("source", key);
+      query = current === null || current === undefined || !event.updated_at ? query.is(column, null) : query.eq("updated_at", event.updated_at);
+      const { data: rows, error: updateError } = await query.select("id");
       if (updateError) throw new Error(updateError.message);
       return (rows?.length ?? 0) > 0;
     };
@@ -108,8 +117,8 @@ export async function enrichLumaEvents(
         const patch = detailsPatch(event, page, cover);
         let wrote = false;
         try {
-          if (patch.cover_url) wrote = (await applyGroup(event, "cover_url", { cover_url: patch.cover_url })) || wrote;
           if (patch.description) wrote = (await applyGroup(event, "description", { description: patch.description })) || wrote;
+          if (patch.cover_url) wrote = (await applyGroup(event, "cover_url", { cover_url: patch.cover_url })) || wrote;
           if (patch.price_min !== undefined) {
             const price = { price_min: patch.price_min, price_max: patch.price_max, currency: patch.currency };
             wrote = (await applyGroup(event, "price_min", price)) || wrote;

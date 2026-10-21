@@ -26,6 +26,8 @@ export type EnrichCandidate = {
   external_url: string | null;
   starts_at: string;
   created_at: string;
+  /** Guards upgrading a description that isn't empty (see enrich.ts). */
+  updated_at?: string;
   cover_url: string | null;
   description: string | null;
   price_min: number | null;
@@ -74,7 +76,35 @@ export type DetailsPatch = {
   longitude?: number;
 };
 
-/** Only fills fields that are empty, so admin edits always win. */
+/** Words only: markers, bullets, list numbers and line breaks dropped. */
+const proseWords = (text: string) =>
+  text
+    .replace(/\*+/g, "")
+    .replace(/^[ \t]*(?:•|\d{1,3}[.)])[ \t]+/gm, "")
+    .replace(/…$/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+/**
+ * True when `stored` is the page's description with the formatting flattened (what older imports
+ * saved from Luma's JSON-LD), not an admin's rewrite. Clamping may have cut either one short.
+ */
+export function sameProse(stored: string, formatted: string) {
+  const a = proseWords(stored);
+  const b = proseWords(formatted);
+  if (a.length < 20 || b.length < 20) return a === b;
+  return a === b || a.startsWith(b) || b.startsWith(a);
+}
+
+/** A multi-line description with no paragraph breaks, bullets or bold: an older flattened Luma import. */
+export const looksFlattened = (text: string | null) =>
+  !!text && text.includes("\n") && !text.includes("\n\n") && !/^• /m.test(text) && !text.includes("**");
+
+/**
+ * Only fills fields that are empty, so admin edits always win. The one exception: a description
+ * that is the same text as the page's, only flattened, is upgraded to the formatted version.
+ */
 export function detailsPatch(
   current: Pick<EnrichCandidate, "cover_url" | "description" | "price_min" | "venue_name" | "address" | "city" | "latitude" | "longitude">,
   page: LumaPageDetails,
@@ -82,7 +112,9 @@ export function detailsPatch(
 ): DetailsPatch {
   const patch: DetailsPatch = {};
   if (!current.cover_url && importedCover) patch.cover_url = importedCover;
-  if (!current.description && page.description) patch.description = page.description;
+  if (page.description && (!current.description || (current.description !== page.description && sameProse(current.description, page.description)))) {
+    patch.description = page.description;
+  }
   if (current.price_min === null && page.priceMin !== null && page.priceMax !== null && page.currency) {
     patch.price_min = page.priceMin;
     patch.price_max = page.priceMax;
