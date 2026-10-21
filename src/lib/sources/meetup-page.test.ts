@@ -77,6 +77,25 @@ describe("parseMeetupLinkedEvent", () => {
     expect(description).toContain("**Santosh Rout** - is the founder of navan.ai (https://navan.ai/)");
   });
 
+  it("reads events Meetup files as a schema.org subtype (BusinessEvent), with cover and no placeholder venue (real page)", () => {
+    const html = readFileSync(fileURLToPath(new URL("./__fixtures__/meetup-business-event.html", import.meta.url)), "utf8");
+    const url = "https://www.meetup.com/mohali-business-networking-community/events/316894987/";
+    expect(parseMeetupLinkedEvent(html, url)).toMatchObject({
+      sourceEventId: "event_316894987@meetup.com",
+      title: "Business Networking & Referral Meetup ( 5 PM )",
+      startsAt: "2026-10-28T11:30:00.000Z",
+      format: "online",
+      venueName: null,
+      latitude: null,
+      longitude: null,
+    });
+    expect(parseMeetupLinkedEvent(html, url)?.description).toContain("This is an **online meetup** designed for business owners");
+    expect(parseMeetupEventPage(html)).toEqual({
+      venueName: null, address: null, city: null, latitude: null, longitude: null,
+      coverUrl: "https://secure.meetupstatic.com/photos/event/d/e/5/6/highres_533996918.jpeg",
+    });
+  });
+
   it("returns null without event JSON-LD", () => {
     expect(parseMeetupLinkedEvent("<html></html>", "https://www.meetup.com/a/events/1/")).toBeNull();
   });

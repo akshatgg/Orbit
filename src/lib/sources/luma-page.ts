@@ -2,6 +2,7 @@
 // plus the host's formatted description from the page's app data.
 
 import { LIMITS, clamp, cleanProse, decodeEntities, oneLine, orNull, safeHttpUrl, stripHtml, summarise } from "./text";
+import { firstJsonLdEvent } from "./jsonld";
 import { isValidTimezone } from "./timezone";
 import type { NormalizedEvent } from "./types";
 
@@ -16,6 +17,11 @@ export type LumaPageDetails = {
   city: string | null;
   latitude: number | null;
   longitude: number | null;
+  /**
+   * The flattened JSON-LD description, exactly as imports before formatted descriptions stored
+   * it. A stored description equal to this was never edited, so it can be upgraded.
+   */
+  flatDescription?: string | null;
 };
 
 const IMAGE_HOSTS = new Set(["cdn.lu.ma", "images.lumacdn.com"]);
@@ -28,23 +34,6 @@ function safeImage(value: unknown): string | null {
   } catch {
     return null;
   }
-}
-
-function firstEvent(html: string): Record<string, unknown> | null {
-  for (const match of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
-    let data: unknown;
-    try {
-      data = JSON.parse(match[1]);
-    } catch {
-      continue;
-    }
-    for (const item of Array.isArray(data) ? data : [data]) {
-      if (item && typeof item === "object" && (item as Record<string, unknown>)["@type"] === "Event") {
-        return item as Record<string, unknown>;
-      }
-    }
-  }
-  return null;
 }
 
 type MirrorNode = {
@@ -100,7 +89,9 @@ function mirrorInline(nodes: MirrorNode[] = [], { plain = false } = {}): string 
     const href = marks.find((m) => m.type === "link")?.attrs?.href;
     const link = typeof href === "string" ? safeHttpUrl(href) : null;
     const text = tidy(node.text);
-    const value = link && text.trim() !== link && text.trim() !== href ? `${text} (${link})` : text;
+    // "label (url)", with the label's own surrounding spaces kept outside: "Bangalore (url) - Founders".
+    const [, lead, core, trail] = text.match(/^(\s*)([\s\S]*?)(\s*)$/)!;
+    const value = link && core && core !== link && core !== href ? `${lead}${core} (${link})${trail}` : text;
     const bold = !plain && marks.some((m) => m.type === "bold" || m.type === "strong");
     const italic = !plain && marks.some((m) => m.type === "italic" || m.type === "em");
     const last = runs[runs.length - 1];
@@ -164,12 +155,14 @@ export function lumaMirrorDescription(html: string): string | null {
   return orNull(clamp(mirrorBlocks(mirror.content).join("\n\n").replace(/\n{3,}/g, "\n\n").trim(), LIMITS.description));
 }
 
+/** The JSON-LD description, cleaned the way every Luma import used to store it. */
+function jsonLdDescription(event: Record<string, unknown> | null): string | null {
+  return orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : ""), { keepEmphasis: true }), LIMITS.description));
+}
+
 /** Formatted description when the page has one, else the flattened JSON-LD copy. */
 function pageDescription(html: string, event: Record<string, unknown> | null): string | null {
-  return (
-    lumaMirrorDescription(html) ??
-    orNull(clamp(cleanProse(stripHtml(typeof event?.description === "string" ? event.description : ""), { keepEmphasis: true }), LIMITS.description))
-  );
+  return lumaMirrorDescription(html) ?? jsonLdDescription(event);
 }
 
 function ogImage(html: string): string | null {
@@ -198,7 +191,7 @@ function prices(offers: unknown): { priceMin: number; priceMax: number; currency
 
 /** One Luma event page as an ORBIT event. Used when an admin pastes a single event link. */
 export function parseLumaLinkedEvent(html: string, pageUrl: string): NormalizedEvent | null {
-  const event = firstEvent(html);
+  const event = firstJsonLdEvent(html);
   if (!event) return null;
 
   const title = clamp(oneLine(typeof event.name === "string" ? event.name : ""), LIMITS.title);
@@ -246,7 +239,7 @@ export function parseLumaLinkedEvent(html: string, pageUrl: string): NormalizedE
 
 /** Cover, full description and price from a Luma event page, or null when the page has none. */
 export function parseLumaEventPage(html: string): LumaPageDetails | null {
-  const event = firstEvent(html);
+  const event = firstJsonLdEvent(html);
   const images = event ? (Array.isArray(event.image) ? event.image : [event.image]) : [];
   const coverUrl = images.map(safeImage).find((u): u is string => u !== null) ?? ogImage(html);
   const description = pageDescription(html, event);
@@ -279,5 +272,6 @@ export function parseLumaEventPage(html: string): LumaPageDetails | null {
     city,
     latitude: point?.latitude ?? null,
     longitude: point?.longitude ?? null,
+    flatDescription: jsonLdDescription(event),
   };
 }
