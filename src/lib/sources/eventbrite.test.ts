@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
-  eventDetailsUrl, eventbriteIdOf, organizerEventsUrl, parseEventbriteDescription, parseEventbriteEvents,
+  eventDetailsUrl, eventbriteIdOf, searchPageUrl, organizerEventsUrl, parseEventbriteDescription, parseEventbriteEvents,
   parseEventbriteSearchPage, parseOrganizerEvents,
 } from "./eventbrite";
 
@@ -29,6 +29,15 @@ describe("Eventbrite listings", () => {
     );
     expect(organizerEventsUrl("1", "eyJ")).toContain("&continuation=eyJ");
     expect(eventDetailsUrl(["1", "2"])).toContain("/api/v3/destination/events/?event_ids=1%2C2&expand=");
+  });
+
+  it("asks for each search page by number, page 1 included", () => {
+    expect(searchPageUrl("https://www.eventbrite.co.uk/d/united-kingdom--london/music--events/", 1)).toBe(
+      "https://www.eventbrite.co.uk/d/united-kingdom--london/music--events/?page=1",
+    );
+    expect(searchPageUrl("https://www.eventbrite.co.uk/d/united-kingdom--london/events/?page=4&q=x", 2)).toBe(
+      "https://www.eventbrite.co.uk/d/united-kingdom--london/events/?page=2&q=x",
+    );
   });
 
   it("only takes its own ids back out of a source event id", () => {

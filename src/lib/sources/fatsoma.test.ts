@@ -26,7 +26,7 @@ describe("Fatsoma lookups", () => {
       "filter[status]": "active",
       "filter[starts-at][gte]": "2026-10-22T03:00:00",
       include: "location,page,categories",
-      sort: "starts-at",
+      sort: "starts-at,id",
       "page[size]": "50",
       "page[number]": "2",
     });

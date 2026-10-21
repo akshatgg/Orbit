@@ -1,7 +1,7 @@
 import "server-only";
 import {
   EVENTBRITE_BATCH, EVENTBRITE_MAX_EVENTS, EVENTBRITE_MAX_PAGES, eventDetailsUrl, organizerEventsUrl, parseEventbriteEvents,
-  parseEventbriteSearchPage, parseOrganizerEvents,
+  parseEventbriteSearchPage, parseOrganizerEvents, searchPageUrl,
 } from "./eventbrite";
 import {
   FATSOMA_MAX_EVENTS, FATSOMA_MAX_PAGES, FATSOMA_PAGE_SIZE, fatsomaEventsUrl, fatsomaPageLookupUrl, parseFatsomaCityPage,
@@ -17,7 +17,7 @@ import {
 import { parseMeetupLinkedEvent } from "./meetup-page";
 import { withSeriesDates } from "./meetup-series";
 import { cleanEvent, eventbriteLink, fatsomaLink, lumaDiscoverSlug } from "./platforms";
-import type { ConnectorResult, NormalizedEvent, RunError, SourceConnector, SourceKind } from "./types";
+import type { ConnectorResult, ListingCoverage, NormalizedEvent, RunError, SourceConnector, SourceKind } from "./types";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -114,6 +114,12 @@ const meetupSearchConnector: SourceConnector = {
   },
 };
 
+/** A soonest-first list cut off at the cap covers events up to its last start (exclusive). */
+function coveredUntil(events: NormalizedEvent[]): ListingCoverage {
+  const last = events.reduce((max, e) => (e.startsAt > max ? e.startsAt : max), "");
+  return last ? { until: last } : "complete";
+}
+
 /**
  * Requests to one platform, 1 s apart. Any failure fails the run: a partial list would make the
  * sync flag every event it didn't see as missing.
@@ -141,10 +147,17 @@ const eventbriteConnector: SourceConnector = {
     const client = politeClient();
 
     let ids: string[];
+    let truncated = false; // an organiser list (soonest first) cut off at the cap
     if (link.type === "event") {
       ids = [link.id];
     } else if (link.type === "search") {
-      ids = parseEventbriteSearchPage(await client.html(link.url));
+      ids = [];
+      for (let page = 1; page <= EVENTBRITE_MAX_PAGES && ids.length < EVENTBRITE_MAX_EVENTS; page++) {
+        const found = parseEventbriteSearchPage(await client.html(searchPageUrl(link.url, page)));
+        const fresh = found.filter((id) => !ids.includes(id));
+        ids.push(...fresh);
+        if (fresh.length === 0) break; // past the last page, or a search that doesn't page
+      }
       if (ids.length === 0) throw new Error("No events found on that Eventbrite search page.");
     } else {
       ids = [];
@@ -156,6 +169,7 @@ const eventbriteConnector: SourceConnector = {
         continuation = listing.continuation;
         if (!continuation) break;
       }
+      truncated = !!continuation || ids.length > EVENTBRITE_MAX_EVENTS;
     }
 
     const result: ConnectorResult = { events: [], errors: [] };
@@ -167,6 +181,8 @@ const eventbriteConnector: SourceConnector = {
       result.errors.push(...batch.errors);
     }
     if (link.type === "event" && result.events.length === 0) throw new Error("That Eventbrite event isn't public or has ended.");
+    // A search is ranked by relevance, so an event dropping out of it says nothing.
+    result.coverage = link.type === "search" ? "sample" : truncated ? coveredUntil(result.events) : "complete";
     return result;
   },
 };
@@ -193,15 +209,20 @@ const fatsomaConnector: SourceConnector = {
     }
 
     const result: ConnectorResult = { events: [], errors: [] };
+    let truncated = true; // until a page shows it was the last one
     for (let page = 1; page <= FATSOMA_MAX_PAGES && result.events.length < FATSOMA_MAX_EVENTS; page++) {
       const response = parseFatsomaEvents(await client.json(fatsomaEventsUrl(filter, page, now)));
       if (!response) throw new Error("Couldn't read events from Fatsoma.");
-      result.events.push(...response.events);
+      result.events.push(...response.events.filter((e) => !result.events.some((seen) => seen.sourceEventId === e.sourceEventId)));
       result.errors.push(...response.errors);
       const read = response.events.length + response.errors.length;
-      if (read < FATSOMA_PAGE_SIZE || (response.total !== null && page * FATSOMA_PAGE_SIZE >= response.total)) break;
+      if (read < FATSOMA_PAGE_SIZE || (response.total !== null && page * FATSOMA_PAGE_SIZE >= response.total)) {
+        truncated = false;
+        break;
+      }
     }
     result.events = result.events.slice(0, FATSOMA_MAX_EVENTS);
+    result.coverage = truncated ? coveredUntil(result.events) : "complete";
     if (link.type === "event" && result.events.length === 0) throw new Error("That Fatsoma event isn't on sale or has ended.");
     return result;
   },

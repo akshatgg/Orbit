@@ -53,7 +53,7 @@ const URL_COPY: Record<SourceKind, { label: string; hint: string; placeholder: s
   },
   eventbrite: {
     label: "Eventbrite link",
-    hint: "An organiser page (…/o/name-123) imports all their live events; a search page (…/d/united-kingdom--london/…) imports its first 40 results; an event page imports just that event.",
+    hint: "An organiser page (…/o/name-123) imports all their live events; a category page (…/b/united-kingdom--london/music/) imports up to 100; a search page (…/d/united-kingdom--london/events/) its first 40; an event page just that event.",
     placeholder: "https://www.eventbrite.co.uk/o/…",
   },
   fatsoma: {

@@ -154,7 +154,7 @@ export async function runSource(
       db.from("events").select(EXISTING_EVENT_SELECT).eq("source", key).order("id").range(from, to),
     );
     const plan = planSync(existing, fetched.events, {
-      now, feedUrl: source.url, previousRunStartedAt, skip: SKIPPED_FIELDS[source.kind],
+      now, feedUrl: source.url, previousRunStartedAt, skip: SKIPPED_FIELDS[source.kind], coverage: fetched.coverage,
     });
     const verifiedAt = now.toISOString();
 

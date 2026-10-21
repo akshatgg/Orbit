@@ -191,6 +191,8 @@ describe("resolveFeedUrl — eventbrite", () => {
     ["https://www.eventbrite.ie/e/global-camp-meeting-london-tickets-1983164153368?aff=x", "https://www.eventbrite.co.uk/e/global-camp-meeting-london-tickets-1983164153368"],
     ["https://www.eventbrite.co.uk/d/united-kingdom--london/events/", "https://www.eventbrite.co.uk/d/united-kingdom--london/events/"],
     ["https://www.eventbrite.co.uk/d/united-kingdom--london/free--events?page=1", "https://www.eventbrite.co.uk/d/united-kingdom--london/free--events/?page=1"],
+    ["https://www.eventbrite.com/b/united-kingdom--london/music/", "https://www.eventbrite.co.uk/d/united-kingdom--london/music--events/"],
+    ["eventbrite.co.uk/b/united-kingdom--london/Food-And-Drink", "https://www.eventbrite.co.uk/d/united-kingdom--london/food-and-drink--events/"],
   ])("turns %s into %s", (input, url) => {
     expect(resolveFeedUrl("eventbrite", input)).toEqual({ ok: true, url });
   });
@@ -200,6 +202,8 @@ describe("resolveFeedUrl — eventbrite", () => {
     "https://www.eventbrite.co.uk/o/no-id-here",
     "https://www.eventbrite.co.uk/e/123",
     "https://www.eventbrite.co.uk/organizer/home/",
+    "https://www.eventbrite.co.uk/b/united-kingdom--london/",
+    "https://www.eventbrite.co.uk/b/united-kingdom--london/music/rock/",
     "https://www.eventbrite.co.uk.evil.com/o/x-78436165503",
     "https://lu.ma/london",
   ])("rejects %s", (input) => {

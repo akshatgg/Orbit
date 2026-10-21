@@ -104,10 +104,18 @@ export type NormalizedEvent = {
   price?: { min: number; max: number; currency: string } | null;
 };
 
+/**
+ * How much of a listing a fetch read, so the sync only calls an event "missing" when it could have
+ * been seen: everything (the default), everything starting before `until` (a soonest-first list cut
+ * off at the cap), or a "sample" (a relevance-ranked search, where events come and go).
+ */
+export type ListingCoverage = "complete" | "sample" | { until: string };
+
 export type ConnectorResult = {
   events: NormalizedEvent[];
   /** Entries that were skipped (bad data); the run still succeeds. */
   errors: RunError[];
+  coverage?: ListingCoverage;
 };
 
 /** A connector turns an approved source into normalised events. */
