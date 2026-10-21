@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayGroupLabel, groupByDayLabel, reasonSegments, reasonTag } from "./feed-display";
+import { dayHeading, groupByDay, reasonSegments, reasonTag } from "./feed-display";
 
 describe("reasonSegments", () => {
   it("lifts the key words and keeps the rest muted", () => {
@@ -27,30 +27,30 @@ describe("reasonTag", () => {
   });
 });
 
-describe("dayGroupLabel", () => {
+describe("dayHeading", () => {
   // Wednesday 15 Oct 2025, noon UK time
   const now = new Date("2025-10-15T11:00:00Z");
-  it("labels today, tomorrow and the rest of the week", () => {
-    expect(dayGroupLabel("2025-10-15T18:00:00Z", now)).toBe("Today");
-    expect(dayGroupLabel("2025-10-16T18:00:00Z", now)).toBe("Tomorrow");
-    expect(dayGroupLabel("2025-10-18T10:00:00Z", now)).toBe("This week");
-    expect(dayGroupLabel("2025-10-19T10:00:00Z", now)).toBe("This week");
+  it("says today and tomorrow, with the weekday", () => {
+    expect(dayHeading("2025-10-15T18:00:00Z", now)).toEqual({ key: "2025-10-15", title: "Today", weekday: "Wednesday" });
+    expect(dayHeading("2025-10-16T18:00:00Z", now)).toEqual({ key: "2025-10-16", title: "Tomorrow", weekday: "Thursday" });
   });
-  it("labels next week, then months", () => {
-    expect(dayGroupLabel("2025-10-20T10:00:00Z", now)).toBe("Next week");
-    expect(dayGroupLabel("2025-10-26T10:00:00Z", now)).toBe("Next week");
-    expect(dayGroupLabel("2025-10-27T10:00:00Z", now)).toBe("October 2025");
-    expect(dayGroupLabel("2025-11-05T10:00:00Z", now)).toBe("November 2025");
+  it("gives the date for later days", () => {
+    expect(dayHeading("2025-10-18T10:00:00Z", now)).toMatchObject({ title: "18 October", weekday: "Saturday" });
+    expect(dayHeading("2025-11-05T10:00:00Z", now)).toMatchObject({ title: "5 November", weekday: "Wednesday" });
+  });
+  it("uses the UK day, not UTC", () => {
+    // 23:30 UTC on 18 Oct is 00:30 on Sunday 19 Oct in London (BST).
+    expect(dayHeading("2025-10-18T23:30:00Z", now)).toMatchObject({ key: "2025-10-19", weekday: "Sunday" });
   });
 });
 
-describe("groupByDayLabel", () => {
-  it("groups consecutive events under one heading", () => {
+describe("groupByDay", () => {
+  it("groups events on the same day under one heading", () => {
     const now = new Date("2025-10-15T11:00:00Z");
-    const groups = groupByDayLabel(
-      [{ starts_at: "2025-10-17T10:00:00Z" }, { starts_at: "2025-10-18T10:00:00Z" }, { starts_at: "2025-10-21T10:00:00Z" }],
+    const groups = groupByDay(
+      [{ starts_at: "2025-10-17T10:00:00Z" }, { starts_at: "2025-10-17T18:00:00Z" }, { starts_at: "2025-10-21T10:00:00Z" }],
       now,
     );
-    expect(groups.map((g) => [g.label, g.items.length])).toEqual([["This week", 2], ["Next week", 1]]);
+    expect(groups.map((g) => [g.title, g.items.length])).toEqual([["17 October", 2], ["21 October", 1]]);
   });
 });

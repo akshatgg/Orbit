@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { RankedCard } from "@/components/discovery/Cards";
+import { EventRows } from "@/components/events/EventRow";
 import { FilterBar } from "@/components/discovery/FilterBar";
 import { ICONS, SearchSkeleton, SectionHeading } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
@@ -114,9 +115,12 @@ async function Results({ filters, viewer, categories, now }: {
             Try a different word, widen the dates, or remove a filter.
           </EmptyState>
         ) : (
-          <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
-            {results.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
-          </ul>
+          <>
+            <PhoneRows ranked={results} viewer={viewer} now={now} byDay={filters.sort === "date"} />
+            <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
+              {results.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
+            </ul>
+          </>
         )}
         {truncated && (
           <p className="mt-4 px-4 text-center text-xs text-muted">Showing the first {results.length}. Narrow your search to see more.</p>
@@ -141,6 +145,18 @@ function ResultItem({ r, viewer }: { r: RankedEvent; viewer: Viewer }) {
   );
 }
 
+/** Phones: the events as rows, under day headings when they're in date order. */
+function PhoneRows({ ranked, viewer, now, byDay }: { ranked: RankedEvent[]; viewer: Viewer; now: Date; byDay?: boolean }) {
+  return (
+    <EventRows
+      items={ranked.map((r) => ({ event: r.event, registration: viewer.state.registrations.get(r.event.id) }))}
+      groupBy={byDay ? "day" : undefined}
+      now={now}
+      className="px-4 md:hidden"
+    />
+  );
+}
+
 async function Browse({ viewer, now }: { viewer: Viewer; now: Date }) {
   const soon = await listHappeningSoon(viewer, now);
   return (
@@ -160,9 +176,12 @@ async function Browse({ viewer, now }: { viewer: Viewer; now: Date }) {
             </div>
           </>
         ) : (
-          <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
-            {soon.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
-          </ul>
+          <>
+            <PhoneRows ranked={soon} viewer={viewer} now={now} byDay />
+            <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
+              {soon.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
+            </ul>
+          </>
         )}
       </section>
     </>

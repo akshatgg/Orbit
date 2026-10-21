@@ -4,11 +4,11 @@ import type { Metadata } from "next";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FeedTabs } from "@/components/nav/FeedTabs";
-import { FeedRow, HeroCard, RankedCard } from "@/components/discovery/Cards";
+import { HeroCard, RankedCard } from "@/components/discovery/Cards";
+import { EventRows } from "@/components/events/EventRow";
 import { DismissProvider, Dismissible } from "@/components/discovery/Dismiss";
 import { DiscoveryHeader, FeedSkeleton, ICONS, IconLink, SectionHeading } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
-import { groupByDayLabel } from "@/lib/discovery/feed-display";
 import { getRankedFeed, getViewer } from "@/lib/discovery/queries";
 import { spotsLeft } from "@/lib/events/queries";
 
@@ -69,7 +69,7 @@ async function Feed() {
   const topIndex = openIndex === -1 ? 0 : openIndex;
   const top = ranked[topIndex];
   const rest = ranked.filter((_, i) => i !== topIndex);
-  const byDate = [...rest].map((r) => ({ ...r, starts_at: r.event.starts_at })).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
+  const byDate = [...rest].sort((a, b) => Date.parse(a.event.starts_at) - Date.parse(b.event.starts_at));
   const state = viewer.state;
 
   return (
@@ -91,23 +91,14 @@ async function Feed() {
       {rest.length > 0 && (
         <section aria-labelledby="more-for-you">
           <SectionHeading id="more-for-you" title="More for you" />
-          {/* Phones: a calm chronological list (dark) / a diary grouped by day (light). */}
-          <div className="px-4 md:hidden">
-            {groupByDayLabel(byDate, now).map((g) => (
-              <div key={g.label}>
-                <h3 className="hidden px-1 pb-2 text-[13px] font-semibold text-muted light:block">{g.label}</h3>
-                <ul className="divide-y divide-line dark:border-b dark:border-line dark:last:border-b-0 light:mb-[18px] light:rounded-[20px] light:bg-surface light:px-3.5 light:py-1 light:shadow-[var(--card-shadow)]">
-                  {g.items.map((r) => (
-                    <Dismissible key={r.event.id} id={r.event.id}>
-                      <li>
-                        <FeedRow event={r.event} dismissible />
-                      </li>
-                    </Dismissible>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          {/* Phones: a chronological list under day headings. */}
+          <EventRows
+            items={byDate.map((r) => ({ event: r.event, registration: state.registrations.get(r.event.id) }))}
+            groupBy="day"
+            now={now}
+            dismissible
+            className="px-4 md:hidden"
+          />
           {/* Tablet and up: ranked tiles. */}
           <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
             {rest.map((r) => (

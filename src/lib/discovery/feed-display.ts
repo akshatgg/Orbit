@@ -1,7 +1,7 @@
-// Pure helpers for how the For You feed presents itself: reason copy and the diary-style day groups.
+// Pure helpers for how the For You feed presents itself: reason copy and the day headings of event lists.
 
 import { dayKey } from "@/lib/format";
-import { addDays, formatMonth, weekdayIndex } from "./dates";
+import { addDays } from "./dates";
 
 export type ReasonSegment = { text: string; strong: boolean };
 
@@ -44,30 +44,28 @@ export function reasonTag(reason: string | null | undefined): string | null {
   return first.charAt(0).toUpperCase() + first.slice(1);
 }
 
-/**
- * Diary heading for an event day: Today / Tomorrow / This week / Next week, then the month.
- * Weeks run Monday to Sunday in UK time.
- */
-export function dayGroupLabel(startsAt: string | Date, now: Date): string {
-  const day = dayKey(startsAt);
+const headingDate = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", timeZone: "UTC" });
+const headingWeekday = new Intl.DateTimeFormat("en-GB", { weekday: "long", timeZone: "UTC" });
+
+export type DayHeading = { key: string; title: string; weekday: string };
+
+/** Heading for an event's day, in UK time: "Today", "Tomorrow", else "24 October"; plus the weekday. */
+export function dayHeading(startsAt: string | Date, now: Date): DayHeading {
+  const key = dayKey(startsAt);
   const today = dayKey(now);
-  if (day === today) return "Today";
-  if (day === addDays(today, 1)) return "Tomorrow";
-  const weekStart = addDays(today, -weekdayIndex(today));
-  const nextWeekStart = addDays(weekStart, 7);
-  if (day < nextWeekStart) return "This week";
-  if (day < addDays(weekStart, 14)) return "Next week";
-  return formatMonth(day.slice(0, 7));
+  const noon = new Date(`${key}T12:00:00Z`);
+  const title = key === today ? "Today" : key === addDays(today, 1) ? "Tomorrow" : headingDate.format(noon);
+  return { key, title, weekday: headingWeekday.format(noon) };
 }
 
-/** Groups chronologically, keeping the order of first appearance (input should be sorted by start). */
-export function groupByDayLabel<T extends { starts_at: string }>(items: T[], now: Date): { label: string; items: T[] }[] {
-  const groups: { label: string; items: T[] }[] = [];
+/** Groups events by day, keeping the order of first appearance (input should be sorted by start). */
+export function groupByDay<T extends { starts_at: string }>(items: T[], now: Date): (DayHeading & { items: T[] })[] {
+  const groups: (DayHeading & { items: T[] })[] = [];
   for (const item of items) {
-    const label = dayGroupLabel(item.starts_at, now);
+    const heading = dayHeading(item.starts_at, now);
     const last = groups[groups.length - 1];
-    if (last && last.label === label) last.items.push(item);
-    else groups.push({ label, items: [item] });
+    if (last && last.key === heading.key) last.items.push(item);
+    else groups.push({ ...heading, items: [item] });
   }
   return groups;
 }

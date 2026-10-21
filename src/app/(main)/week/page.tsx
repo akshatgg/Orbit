@@ -4,6 +4,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { FeedTabs } from "@/components/nav/FeedTabs";
 import { PickCard, RankedCard } from "@/components/discovery/Cards";
+import { EventRows } from "@/components/events/EventRow";
 import { DismissProvider, Dismissible } from "@/components/discovery/Dismiss";
 import { DiscoveryHeader, SectionHeading, WeekSkeleton } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
@@ -87,7 +88,12 @@ async function Week() {
         return (
           <section key={group} aria-labelledby={id} className="mb-8">
             <SectionHeading id={id} eyebrow={eyebrow} title={title} count={items.length} />
-            <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 lg:grid-cols-3">
+            <EventRows
+              items={items.map((r) => ({ event: r.event, registration: viewer.state.registrations.get(r.event.id) }))}
+              dismissible
+              className="px-4 md:hidden"
+            />
+            <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
               {items.map((r) => (
                 <Dismissible key={r.event.id} id={r.event.id}>
                   <li>

@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { EventCard } from "@/components/events/EventCard";
+import { EventRows } from "@/components/events/EventRow";
 import { FollowButton } from "@/components/organiser/FollowButton";
 import { OrganiserLogo } from "@/components/organiser/OrganiserStatus";
 import { VerifiedMark } from "@/components/ui/Badge";
@@ -107,11 +108,17 @@ function EventList({ title, events, empty, state }: {
       {events.length === 0 ? (
         <p className="rounded-[22px] border border-dashed border-ink/12 bg-ink/[0.025] px-4 py-8 text-center text-sm text-muted">{empty}</p>
       ) : (
-        <div className="space-y-3">
-          {events.map((e) => (
-            <EventCard key={e.id} event={e} counts={e.counts} saved={state.saved.has(e.id)} registration={state.registrations.get(e.id)} />
-          ))}
-        </div>
+        <>
+          <EventRows
+            items={events.map((e) => ({ event: e, registration: state.registrations.get(e.id) }))}
+            className="md:hidden"
+          />
+          <div className="hidden space-y-3 md:block">
+            {events.map((e) => (
+              <EventCard key={e.id} event={e} counts={e.counts} saved={state.saved.has(e.id)} registration={state.registrations.get(e.id)} />
+            ))}
+          </div>
+        </>
       )}
     </section>
   );
