@@ -14,7 +14,8 @@ import { ActionButton } from "./_components/ActionButton";
 import { ImportedEventRow } from "./_components/ImportedEventRow";
 import { RefreshAllButton } from "./_components/RefreshAllButton";
 import { ReviewCard } from "./_components/ReviewCard";
-import { deleteSource, resolveReview, retryPageDetails, runSourceNow, saveImportedDetails, setSourceEnabled } from "./actions";
+import { resolveReview, retryPageDetails, runSourceNow, saveImportedDetails, setSourceEnabled } from "./actions";
+import { deleteSource } from "./delete-source";
 
 export const metadata = { title: "Event sources · ORBIT admin" };
 
@@ -57,13 +58,13 @@ function SourceActions({ source, align = "end", className = "" }: {
         action={deleteSource} fields={{ id: source.id }} variant="danger" pendingText="Deleting…" size="sm"
         confirm={{
           title: `Delete ${source.name}?`,
-          body: "The feed and its run history are removed. Imported events stay in ORBIT unless you tick the box below.",
+          body: "The feed and its run history are removed. If you tick the box, its upcoming events are permanently deleted, including their registrations and tickets. This cannot be undone.",
           confirmLabel: "Delete source",
         }}
         extra={
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" name="remove_events" className="mt-0.5 h-4 w-4 accent-[var(--color-accent)]" />
-            Also remove its upcoming events from ORBIT
+            Also permanently delete its upcoming events
           </label>
         }
       >Delete</ActionButton>
