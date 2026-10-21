@@ -1,0 +1,59 @@
+{
+    "data": [
+        {
+            "type": "pages",
+            "id": "78e9cbee-fbc6-4d10-93cd-32ebd31f7927",
+            "attributes": {
+                "name": "Space Safari - The Drone Light Show",
+                "description": "",
+                "vanity-name": "space-safari-drone-show",
+                "category": "event",
+                "sub-category": null,
+                "twitter-handle": "",
+                "bio": null,
+                "reps-count": 45,
+                "followers-count": 15218,
+                "subscribers-count": 15218,
+                "verified": true,
+                "asset-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzIvMjQvMTcvNDgvMTYvNjkyL1JhY2tNdWx0aXBhcnQyMDI2MDIyNC02MS0xcXdnaWNvLmpwZyJdXQ",
+                "asset-logo-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzgvMjgvOS80OS80OC8yODMvUmFja011bHRpcGFydDIwMjYwODI4LTYyLTE2N2x3ZzAuanBnIl1d",
+                "stubbed": null,
+                "turn-customers-to-reps": true,
+                "allow-co-promotion-invites": true,
+                "allow-co-promotion-requests": true,
+                "company-id": "f2c3e6a7-5e81-4aa6-bef3-506c03a2fe24"
+            },
+            "relationships": {
+                "company": {
+                    "links": {
+                        "related": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/company",
+                        "self": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/relationships/company"
+                    }
+                },
+                "location": {
+                    "links": {
+                        "related": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/location",
+                        "self": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/relationships/location"
+                    }
+                },
+                "posts": {
+                    "links": {
+                        "related": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/posts",
+                        "self": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/relationships/posts"
+                    }
+                },
+                "tracking-codes": {
+                    "links": {
+                        "related": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/tracking-codes",
+                        "self": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/relationships/tracking-codes"
+                    }
+                }
+            }
+        }
+    ],
+    "meta": {
+        "author": "Fatsoma",
+        "license-url": "https://www.fatsoma.com/policies/api",
+        "total-count": 1
+    }
+}

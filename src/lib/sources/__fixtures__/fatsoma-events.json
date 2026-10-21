@@ -1,0 +1,423 @@
+{
+ "data": [
+  {
+   "type": "events",
+   "id": "af4ec54e-cf82-4ae7-8410-f40d0d7977e5",
+   "attributes": {
+    "currency": "GBP",
+    "on-sale": true,
+    "price-min": 0,
+    "price-max": 6500,
+    "price-min-with-fees": 0,
+    "price-max-with-fees": 7150,
+    "starts-at": "2026-10-24T15:00:00+01:00",
+    "ends-at": "2026-10-24T20:00:00+01:00",
+    "expired": false,
+    "name": "Space Safari Drone Light Show - Cambridge",
+    "vanity-name": "mhrxdx1i",
+    "seo-name": "space-safari-drone-light-show-cambridge",
+    "description": "<p><br></p>\n<p>Experience a spectacular drone light show for the first time in Cambridgeshire! ✨</p>\n<p><br></p>\n<p>Witness the night sky filled with hundreds of synchronised drones, creating mesmerising animations with a symphony of light and sound.</p>\n<p><br></p>\n<p>Prepare to be amazed with cinematic storytelling in the sky with epic-scale narration by Bafta award-winning TV presenter Michaela Strachan. 🎙️🎶✨🎥</p>\n<p><br></p>\n<p>As well as the drone show finale, enjoy a full evening of entertainment including:</p>\n<p>🎶 Live Music &amp; Entertainment</p>\n<p>🎡 Fairground rides, face painting and street food</p>\n<p></p>\n<p>Through immersive sound and light, the night sky in Cambridge will see hundreds of drones showcasing this inspiring story of bravery and adventure. 🤩</p>\n<p>(Under 3s go FREE, ticket still required)<br><br>   <br>Newmarket Racecourse</p>\n<p>Saturday 24th October 2026</p>\n<p></p>\n<p>✨ The drone show is expected to start between 18:30 and 18:45 (subject to change)</p>\n<p></p>\n<p>🌌 Hundreds of drones light up the night sky</p>\n<p>🎥 Epic storytelling soundtrack</p>\n<p>✨ Live Music <br></p>\n<p>🎡 Fairground rides</p>\n<p>🎨 Face painting</p>\n<p>🌮 Food stalls</p>\n<p>🌿 Eco-friendly<br><br></p>\n<h4><strong>Important Venue Information</strong></h4>\n<p>Please note that dogs are NOT permitted on site<br><br></p>\n<img src=\"https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzEwLzEyLzIwLzIxLzU4LzMyOC9SYWNrTXVsdGlwYXJ0MjAyNjEwMTItNjQtNTJ3cTQzLmpwZWciXV0\">\n<h3><strong><strong>Important Weather Policy</strong></strong></h3>\n<p>Drone shows are highly sensitive to weather, and if weather conditions prevent Space Safari from proceeding as planned, the event will be rescheduled to a new date at the same venue.</p>\n<p>Tickets are non-refundable in the case of rescheduling due to weather. Contingency dates include but are not limited to<strong> Monday 26th, Tuesday 27th &amp; Wednesday 28th October <strong>2026 </strong></strong>and ticket holders will be contacted via SMS and email with updates.</p>\n<p>By purchasing a ticket, you agree to comply with safety guidelines and accept the possibility of rescheduling the event to the contingency dates.</p>\n<p></p>\n<h3><strong><strong>Parking</strong></strong></h3>\n<p><strong>Important: Don't forget to book your Parking! (PARKING GOES LIVE AT 10:30AM)</strong></p>\n<p>Please note that pre-booking parking is essential to guarantee a parking space on site. Pre-book parking here:</p>\n<p><a href=\"https://parkthecarhere.com/CarPark.aspx?eventid=9949\"></a><a href=\"https://parkthecarhere.com/Events.aspx?CustomerId=213\">Park The Car Here Booking Platform</a><br></p>\n<h3><br></h3>\n<h3>\n<br><br>\n</h3>",
+    "terms": null,
+    "additional-information": null,
+    "order-complete-message": "<p>Important: Don't forget to book your Parking! </p>\n<p>Please note that pre-booking parking is essential to guarantee a parking space on site. Pre-book parking here:</p>\n<p><a href=\"https://parkthecarhere.com/CarPark.aspx?eventid=9949\"></a><a href=\"https://parkthecarhere.com/Events.aspx?CustomerId=213\">Park The Car Here Booking Platform</a></p>\n<p><br></p>",
+    "tags": null,
+    "asset-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzEwLzgvMTgvMjIvMzAvNTg1L1JhY2tNdWx0aXBhcnQyMDI2MTAwOC02My1qNWNjcWEuanBnIl1d",
+    "announced-at": "2026-08-07T15:27:54+00:00",
+    "health": null,
+    "health-postponed-date-confirmed": null,
+    "refund-requestable": false,
+    "refund-policy": "disabled",
+    "co-promoted-brand-ids": [],
+    "co-promoted-by-id": null,
+    "attendees-count": 7837,
+    "age-restrictions": null,
+    "last-entry-time": null,
+    "official-website-url": "https://www.spacesafari.show/",
+    "announcement-message": "The UK's favourite drone light show experience arrives in Cambridgeshire!"
+   },
+   "relationships": {
+    "categories": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/af4ec54e-cf82-4ae7-8410-f40d0d7977e5/categories",
+      "self": "https://api.fatsoma.com/v1/events/af4ec54e-cf82-4ae7-8410-f40d0d7977e5/relationships/categories"
+     },
+     "data": [
+      {
+       "type": "categories",
+       "id": "7c250c41-1695-4faa-b5e0-a87f0a734ece"
+      }
+     ]
+    },
+    "location": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/af4ec54e-cf82-4ae7-8410-f40d0d7977e5/location",
+      "self": "https://api.fatsoma.com/v1/events/af4ec54e-cf82-4ae7-8410-f40d0d7977e5/relationships/location"
+     },
+     "data": {
+      "type": "locations",
+      "id": "315b83ee-fb41-4f20-931d-415adbaa2bca"
+     }
+    },
+    "page": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/af4ec54e-cf82-4ae7-8410-f40d0d7977e5/page",
+      "self": "https://api.fatsoma.com/v1/events/af4ec54e-cf82-4ae7-8410-f40d0d7977e5/relationships/page"
+     },
+     "data": {
+      "type": "pages",
+      "id": "78e9cbee-fbc6-4d10-93cd-32ebd31f7927"
+     }
+    }
+   }
+  },
+  {
+   "type": "events",
+   "id": "e28ff172-ee23-4fa3-b400-844d559ddddf",
+   "attributes": {
+    "currency": "GBP",
+    "on-sale": true,
+    "price-min": 0,
+    "price-max": 5900,
+    "price-min-with-fees": 0,
+    "price-max-with-fees": 6490,
+    "starts-at": "2027-05-15T18:30:00+01:00",
+    "ends-at": "2027-05-15T23:00:00+01:00",
+    "expired": false,
+    "name": "Space Safari Drone Light Show - Belfast",
+    "vanity-name": "b2uk5luo",
+    "seo-name": "space-safari-drone-light-show-belfast",
+    "description": "<p>The UK’s biggest drone light show returns to Belfast! ✨<br></p>\n<p>Witness the night sky filled with 750 synchronised drones, creating mesmerising animations with a symphony of light and sound.<br></p>\n<p>Prepare to be amazed with cinematic storytelling in the sky with epic-scale narration by Bafta award-winning TV presenter Michaela Strachan. 🎙️🎶✨🎥<br></p>\n<p>As well as the drone show finale, enjoy a full evening of entertainment including:</p>\n<p>🎶 Live Music &amp; Entertainment</p>\n<p>🎡 Fairground rides, face painting and street food</p>\n<p>Through immersive sound and light, the night sky in Belfast will see hundreds of drones showcasing this inspiring story of bravery and adventure. 🤩</p>\n<p>(Under 3s go FREE, ticket still required)<br><br>   <br>📍  Down Royal Racecourse, 60A Gravelhill Road, Maze, Lisburn, Northern Ireland, BT27 5RW<br> 📅 Saturday 15th May 2027</p>\n<p>✨ The drone show is expected to start 40 minutes after sunset (subject to change)</p>\n<p>🌌 750 drones light up the night sky</p>\n<p>🎥 Epic storytelling soundtrack</p>\n<p>✨ Live Music <br></p>\n<p>🎡 Fairground rides</p>\n<p>🎨 Face painting</p>\n<p>🌮 Food stalls</p>\n<p>🌿 Eco-friendly<br><br></p>\n<h4><strong>Important Venue Information</strong></h4>\n<p>Please note that dogs and personal chairs are NOT pernitted on site<br><br></p>\n\n<img src=\"https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzEwLzEyLzIwLzMwLzM1LzMyNC9SYWNrTXVsdGlwYXJ0MjAyNjEwMTItNjQtMXl0Zm1jYS5qcGVnIl1d\">\n<h3><strong><strong>Important Weather Policy</strong></strong></h3>\n<p>Drone shows are highly sensitive to weather, and if weather conditions prevent Space Safari from proceeding as planned, the event will be rescheduled to a new date at the same venue.</p>\n<p>Tickets are non-refundable in the case of rescheduling due to weather. Contingency dates include but are not limited to<strong> Sunday 16th May &amp; Monday 17th May 2027<strong> </strong></strong>and ticket holders will be contacted via SMS and email with updates.</p>\n<p>By purchasing a ticket, you agree to comply with safety guidelines and accept the possibility of rescheduling the event to the contingency dates.</p>\n<p></p>\n<h3><strong><strong>Parking</strong></strong></h3>\n<p><strong>Important: Don't forget to book your Parking! </strong></p>\n<p>Please note that pre-booking parking is essential to guarantee a parking space on site. Pre-book parking here:</p>\n<p><a href=\"https://parkthecarhere.com/CarPark.aspx?eventid=9949\"></a><a href=\"https://parkthecarhere.com/Events.aspx?CustomerId=213\">Park The Car Here Booking Platform</a><br></p>\n<h3><br></h3>\n<h3>\n<br><br>\n</h3>",
+    "terms": null,
+    "additional-information": null,
+    "order-complete-message": "<p>Important: Don't forget to book your Parking! </p>\n<p>Please note that pre-booking parking is essential to guarantee a parking space on site. Pre-book parking here:</p>\n<p><a href=\"https://parkthecarhere.com/CarPark.aspx?eventid=9949\"></a><a href=\"https://parkthecarhere.com/Events.aspx?CustomerId=213\">Park The Car Here Booking Platform</a></p>\n<p><br></p>",
+    "tags": null,
+    "asset-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzEwLzgvMTgvMjQvMzEvMTMyL1JhY2tNdWx0aXBhcnQyMDI2MTAwOC01OC0xMXU2NzN6LmpwZyJdXQ",
+    "announced-at": null,
+    "health": null,
+    "health-postponed-date-confirmed": null,
+    "refund-requestable": false,
+    "refund-policy": "disabled",
+    "co-promoted-brand-ids": [],
+    "co-promoted-by-id": null,
+    "attendees-count": 5689,
+    "age-restrictions": null,
+    "last-entry-time": null,
+    "official-website-url": "https://www.spacesafari.show/",
+    "announcement-message": "The UK's favourite drone show returns to Belfast!"
+   },
+   "relationships": {
+    "categories": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/e28ff172-ee23-4fa3-b400-844d559ddddf/categories",
+      "self": "https://api.fatsoma.com/v1/events/e28ff172-ee23-4fa3-b400-844d559ddddf/relationships/categories"
+     },
+     "data": [
+      {
+       "type": "categories",
+       "id": "7c250c41-1695-4faa-b5e0-a87f0a734ece"
+      }
+     ]
+    },
+    "location": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/e28ff172-ee23-4fa3-b400-844d559ddddf/location",
+      "self": "https://api.fatsoma.com/v1/events/e28ff172-ee23-4fa3-b400-844d559ddddf/relationships/location"
+     },
+     "data": {
+      "type": "locations",
+      "id": "07d12311-947e-4886-925f-6ab8eca9f735"
+     }
+    },
+    "page": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/e28ff172-ee23-4fa3-b400-844d559ddddf/page",
+      "self": "https://api.fatsoma.com/v1/events/e28ff172-ee23-4fa3-b400-844d559ddddf/relationships/page"
+     },
+     "data": {
+      "type": "pages",
+      "id": "78e9cbee-fbc6-4d10-93cd-32ebd31f7927"
+     }
+    }
+   }
+  },
+  {
+   "type": "events",
+   "id": "2ede4cdd-5e52-4250-af87-f63d73183bc5",
+   "attributes": {
+    "currency": "GBP",
+    "on-sale": true,
+    "price-min": 1999,
+    "price-max": 2999,
+    "price-min-with-fees": 2199,
+    "price-max-with-fees": 3299,
+    "starts-at": "2026-10-29T22:30:00+00:00",
+    "ends-at": "2026-10-30T03:30:00+00:00",
+    "expired": false,
+    "name": "PROJECT HALLOWEEN 🎃 Manchester's Biggest Halloween Event! ❤️‍🔥 10,000 People! ‼️ 90% SOLD OUT ‼️",
+    "vanity-name": "w12de4k1",
+    "seo-name": "project-halloween-manchester-s-biggest-halloween-event-10-000-people-90-sold-out",
+    "description": "<h2>PROJECT HALLOWEEN 🎃 Manchester's Biggest Halloween Event! ❤️‍🔥 10,000 People!<br><br>\n</h2>\n<hr>\n<h2>\n<br>IMPORTANT INFORMATION<br><br>This event is NOT Included on the Wristband<br><br>To access this event you must have purchased a SINGLE TICKET SEPARATELY or AS A ADD ON. <br><br>ANY person who tries to access the event with a wristband ticket will not get access to the event.<br><br>\n</h2>\n<hr>\n<p><strong><br>🎃 THE HALLOWEEN PROJECT, Manchesters Biggest Halloween Event 🎃<br><br>10,000 STUDENTS! UK'S BIGGEST HALLOWEEN EVENT<br></strong></p>\n<p><strong><br>🚨 </strong><strong>THE SCARIEST. THE WILDEST. THE MOST INSANE HALLOWEEN RAVE.</strong> 🚨<strong><br><br>👻 ONE NIGHT ONLY </strong>at the legendary home of THE WAREHOUSE PROJECT… if you dare. 👻<br><br>This isn’t just a Halloween party—it’s a full-blown <strong>NIGHTMARE</strong> at <strong>DEPOT MAYFIELD</strong>. For the first time ever, <strong>thousands of</strong> will descend into the rave of horror.<br><br>Halloween is probably the biggest date of the year in the calendar and it doesn't get much better than this for a halloween event.<br><br>Don't miss out on tickets, once they are gone, they're gone.<br></p>\n<img src=\"https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzMvMjMvMTkvNDUvMzcvMjYxL1JhY2tNdWx0aXBhcnQyMDI2MDMyMy02MS1nYWY2ZnYuanBnIl1d\">\n<p></p>\n<p></p>\n<p><strong>💀 WHAT TO EXPECT? 💀<br></strong><strong><br>🔪 Terrifyingly Good DJs</strong> – Spine-chilling drops, haunting beats &amp; the hottest music in the game!<br><br><strong>🩸 Insane Horror Production</strong> – Blood-red lighting, mind-melting visuals, and eerie effects that will take you to the underworld!<br><br><strong>🎭 The Freak Show</strong> – Expect the unexpected… sinister performers, twisted characters, and haunting surprises lurking in the shadows!<br><br><strong>🕷 Thousands of people </strong>– Your squad just got bigger… but make sure you keep them close, you'll need your dance partners by your side for this one.<br><br>HUGE PRIZES FOR THE BEST DRESSED ON THE NIGHT!!!</p>\n<h2><br></h2>\n<p>Halloween Warehouse Project</p>\n<p>Halloween WHP</p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong></strong></strong><strong><strong></strong></strong></p>\n<p><strong><strong><br></strong></strong></p>",
+    "terms": null,
+    "additional-information": null,
+    "order-complete-message": null,
+    "tags": null,
+    "asset-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzEwLzIvMjEvNDcvNDEvMzUyL1JhY2tNdWx0aXBhcnQyMDI2MTAwMi02MS0xOTNxa2lmLmpwZWciXV0",
+    "announced-at": "2026-09-19T18:47:21+00:00",
+    "health": "postponed",
+    "health-postponed-date-confirmed": true,
+    "refund-requestable": true,
+    "refund-policy": "standard",
+    "co-promoted-brand-ids": [],
+    "co-promoted-by-id": null,
+    "attendees-count": 7605,
+    "age-restrictions": "18+",
+    "last-entry-time": "23:00",
+    "official-website-url": "",
+    "announcement-message": "RIFF RAFF ULTIMATE FRESHERS WRISTBAND COLLECTION \n🚨 IMPORTANT INFORMATION 🚨\n\nYour Ultimate Riff Raff Wristband can be collected from:\n\nThe Grosvenor Oxford Road (M1 7DZ)\n\non the below days/times. Please bring your ticket and ID with you:\n\nSunday 20th Sep : 14.00 - 18.00\nMonday 21st Sep: 14.00 - 18.00\nTuesday 22nd Sep: 14.00 - 18.00\n\nPlease arrive early to avoid big queues.\n\n⚠️ TICKET WARNING  98% SOLD OUT ⚠️\n\nTHIS WRISTBAND WILL SELL OUT"
+   },
+   "relationships": {
+    "categories": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/2ede4cdd-5e52-4250-af87-f63d73183bc5/categories",
+      "self": "https://api.fatsoma.com/v1/events/2ede4cdd-5e52-4250-af87-f63d73183bc5/relationships/categories"
+     },
+     "data": [
+      {
+       "type": "categories",
+       "id": "b5e903ca-1c7f-4ab6-868a-a4f5cdc106c2"
+      }
+     ]
+    },
+    "location": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/2ede4cdd-5e52-4250-af87-f63d73183bc5/location",
+      "self": "https://api.fatsoma.com/v1/events/2ede4cdd-5e52-4250-af87-f63d73183bc5/relationships/location"
+     },
+     "data": {
+      "type": "locations",
+      "id": "624a964c-4c09-4459-9aed-2b97b7bbc174"
+     }
+    },
+    "page": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/events/2ede4cdd-5e52-4250-af87-f63d73183bc5/page",
+      "self": "https://api.fatsoma.com/v1/events/2ede4cdd-5e52-4250-af87-f63d73183bc5/relationships/page"
+     },
+     "data": {
+      "type": "pages",
+      "id": "b4e07a5e-b862-4383-a467-57411338f459"
+     }
+    }
+   }
+  }
+ ],
+ "included": [
+  {
+   "type": "categories",
+   "id": "7c250c41-1695-4faa-b5e0-a87f0a734ece",
+   "attributes": {
+    "name": "Fun Things",
+    "vanity-name": "fun-things",
+    "position": 3
+   }
+  },
+  {
+   "type": "pages",
+   "id": "78e9cbee-fbc6-4d10-93cd-32ebd31f7927",
+   "attributes": {
+    "name": "Space Safari - The Drone Light Show",
+    "description": "",
+    "vanity-name": "space-safari-drone-show",
+    "category": "event",
+    "sub-category": null,
+    "twitter-handle": "",
+    "bio": null,
+    "reps-count": 45,
+    "followers-count": 15218,
+    "subscribers-count": 15218,
+    "verified": true,
+    "asset-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzIvMjQvMTcvNDgvMTYvNjkyL1JhY2tNdWx0aXBhcnQyMDI2MDIyNC02MS0xcXdnaWNvLmpwZyJdXQ",
+    "asset-logo-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI2LzgvMjgvOS80OS80OC8yODMvUmFja011bHRpcGFydDIwMjYwODI4LTYyLTE2N2x3ZzAuanBnIl1d",
+    "stubbed": null,
+    "turn-customers-to-reps": true,
+    "allow-co-promotion-invites": true,
+    "allow-co-promotion-requests": true,
+    "company-id": "f2c3e6a7-5e81-4aa6-bef3-506c03a2fe24"
+   },
+   "relationships": {
+    "company": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/company",
+      "self": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/relationships/company"
+     }
+    },
+    "location": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/location",
+      "self": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/relationships/location"
+     }
+    },
+    "posts": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/posts",
+      "self": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/relationships/posts"
+     }
+    },
+    "tracking-codes": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/tracking-codes",
+      "self": "https://api.fatsoma.com/v1/pages/78e9cbee-fbc6-4d10-93cd-32ebd31f7927/relationships/tracking-codes"
+     }
+    }
+   }
+  },
+  {
+   "type": "locations",
+   "id": "315b83ee-fb41-4f20-931d-415adbaa2bca",
+   "attributes": {
+    "name": "Newmarket Rowley Mile Course",
+    "area-ids": [
+     "af2d405e-607b-405b-84b4-09289326ef0e",
+     "07aa30fe-c60f-4301-b91a-45722cd948d0",
+     "c91216ce-9c60-4ab7-ba5c-6b88dc37287d",
+     "defe87e6-eda1-456b-9151-ac214b72c083",
+     "eac8ae4a-bca1-436f-94e2-efb82bd28ca0"
+    ],
+    "most-specific-area-id": "af2d405e-607b-405b-84b4-09289326ef0e",
+    "address": "Rowley Mile Racecourse, Cambridge Road, Newmarket CB8 0TF, UK",
+    "address-line-1": null,
+    "address-line-2": null,
+    "city": "Newmarket",
+    "country": "United Kingdom",
+    "postal-code": "CB8 0TF",
+    "manual": false,
+    "latitude": 52.2380347,
+    "longitude": 0.3748907,
+    "google-places-reference": "ChIJRwHLHNJp2EcR1s_dsu2uSqk",
+    "google-place-id": "ChIJRwHLHNJp2EcR1s_dsu2uSqk",
+    "timezone": "Europe/London",
+    "currency": "GBP"
+   }
+  },
+  {
+   "type": "categories",
+   "id": "b5e903ca-1c7f-4ab6-868a-a4f5cdc106c2",
+   "attributes": {
+    "name": "Club Nights",
+    "vanity-name": "club-nights",
+    "position": 1
+   }
+  },
+  {
+   "type": "pages",
+   "id": "b4e07a5e-b862-4383-a467-57411338f459",
+   "attributes": {
+    "name": "Riff Raff Events",
+    "description": "Riff Raff Events 🥷🥷🥷🥷\n\nThe Biggest Student Events & Festivals🦄🤩\n10 Years & Counting 🤪🚀\n\nFind all of our upcoming events right here!\n\nIn conjunction with: \n\nHotmessFest \nLockdown\nBig Freshers Lockdown\n",
+    "vanity-name": "riffraff",
+    "category": "event",
+    "sub-category": null,
+    "twitter-handle": "",
+    "bio": null,
+    "reps-count": 3395,
+    "followers-count": 68284,
+    "subscribers-count": 104733,
+    "verified": true,
+    "asset-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDIxLzYvMTAvMTUvNDMvMjQvMjg5L1JpZmZSYWZmRXZlbnRzYm94b2ZmaWNlLmpwZyJdXQ",
+    "asset-logo-url": "https://cdn2.fatsoma.com/media/W1siZiIsInB1YmxpYy8yMDI1LzIvMi8xNC8yNC8xOS8yNy9yaWZmLXJhZmYucG5nIl1d",
+    "stubbed": null,
+    "turn-customers-to-reps": false,
+    "allow-co-promotion-invites": true,
+    "allow-co-promotion-requests": true,
+    "company-id": "506aa275-2a8c-43a2-ade7-6b73718497f5"
+   },
+   "relationships": {
+    "company": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/pages/b4e07a5e-b862-4383-a467-57411338f459/company",
+      "self": "https://api.fatsoma.com/v1/pages/b4e07a5e-b862-4383-a467-57411338f459/relationships/company"
+     }
+    },
+    "location": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/pages/b4e07a5e-b862-4383-a467-57411338f459/location",
+      "self": "https://api.fatsoma.com/v1/pages/b4e07a5e-b862-4383-a467-57411338f459/relationships/location"
+     }
+    },
+    "posts": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/pages/b4e07a5e-b862-4383-a467-57411338f459/posts",
+      "self": "https://api.fatsoma.com/v1/pages/b4e07a5e-b862-4383-a467-57411338f459/relationships/posts"
+     }
+    },
+    "tracking-codes": {
+     "links": {
+      "related": "https://api.fatsoma.com/v1/pages/b4e07a5e-b862-4383-a467-57411338f459/tracking-codes",
+      "self": "https://api.fatsoma.com/v1/pages/b4e07a5e-b862-4383-a467-57411338f459/relationships/tracking-codes"
+     }
+    }
+   }
+  },
+  {
+   "type": "locations",
+   "id": "624a964c-4c09-4459-9aed-2b97b7bbc174",
+   "attributes": {
+    "name": "Mayfield Depot Home of WHP, Ambers,  IDRA, Yes, Albert Hall, Gorilla, Grosvenor + MORE TBA",
+    "area-ids": [
+     "4dd7d505-4c6f-4c07-9965-44478ecbf2cc",
+     "d41ea877-445a-4bea-aecf-80f1a72c5e80",
+     "c91216ce-9c60-4ab7-ba5c-6b88dc37287d",
+     "defe87e6-eda1-456b-9151-ac214b72c083",
+     "eac8ae4a-bca1-436f-94e2-efb82bd28ca0"
+    ],
+    "most-specific-area-id": "4dd7d505-4c6f-4c07-9965-44478ecbf2cc",
+    "address": "Manchester, UK",
+    "address-line-1": null,
+    "address-line-2": null,
+    "city": "Manchester",
+    "country": "United Kingdom",
+    "postal-code": "M1",
+    "manual": true,
+    "latitude": 53.4807593,
+    "longitude": -2.2426305,
+    "google-places-reference": "ChIJ2_UmUkxNekgRqmv-BDgUvtk",
+    "google-place-id": "ChIJ2_UmUkxNekgRqmv-BDgUvtk",
+    "timezone": "Europe/London",
+    "currency": "GBP"
+   }
+  },
+  {
+   "type": "locations",
+   "id": "07d12311-947e-4886-925f-6ab8eca9f735",
+   "attributes": {
+    "name": "Down Royal Racecourse",
+    "area-ids": [
+     "94d01adb-2f78-4a63-b8ed-2dbc4cbdca6f",
+     "4da9bec2-a779-41e8-b836-8aac77f17683",
+     "1e2c925a-f7a8-49ef-a211-28e6d450b2bf",
+     "defe87e6-eda1-456b-9151-ac214b72c083",
+     "eac8ae4a-bca1-436f-94e2-efb82bd28ca0"
+    ],
+    "most-specific-area-id": "94d01adb-2f78-4a63-b8ed-2dbc4cbdca6f",
+    "address": "Gravelhill Rd, Lisburn BT27 5RW, UK",
+    "address-line-1": null,
+    "address-line-2": null,
+    "city": "Lisburn",
+    "country": "United Kingdom",
+    "postal-code": "BT27 5RW",
+    "manual": false,
+    "latitude": 54.4869619,
+    "longitude": -6.1277164,
+    "google-places-reference": "ChIJ_9yWXgQDYUgRK7NmRCTcHkI",
+    "google-place-id": "ChIJ_9yWXgQDYUgRK7NmRCTcHkI",
+    "timezone": "Europe/London",
+    "currency": "GBP"
+   }
+  }
+ ],
+ "meta": {
+  "author": "Fatsoma",
+  "license-url": "https://www.fatsoma.com/policies/api",
+  "total-count": 3
+ }
+}

@@ -12,7 +12,18 @@ import { saveSource } from "../actions";
 type Option = { id: string; name: string };
 
 /** Kinds that pull unrelated events, so each one is worth classifying on its own. */
-const DISCOVERY_KINDS: SourceKind[] = ["luma-discover", "meetup-search"];
+const DISCOVERY_KINDS: SourceKind[] = ["luma-discover", "meetup-search", "eventbrite", "fatsoma"];
+
+const PLATFORM_NAME: Partial<Record<SourceKind, string>> = {
+  luma: "Luma", "luma-discover": "Luma", meetup: "Meetup", "meetup-search": "Meetup", eventbrite: "Eventbrite", fatsoma: "Fatsoma",
+};
+
+/** Platforms whose terms don't allow this kind of import; the owner accepted the risk. */
+const TERMS_WARNING: Partial<Record<SourceKind, string>> = {
+  "meetup-search": "Meetup’s robots rules disallow the find-page parameters.",
+  eventbrite: "Eventbrite’s terms only allow automated access through its official API; this reads the JSON its own website uses.",
+  fatsoma: "Fatsoma’s terms (clause 5.1.6) don’t allow copying or storing its content.",
+};
 
 const URL_COPY: Record<SourceKind, { label: string; hint: string; placeholder: string }> = {
   ical: {
@@ -39,6 +50,16 @@ const URL_COPY: Record<SourceKind, { label: string; hint: string; placeholder: s
     label: "Meetup link",
     hint: "A single event link imports one event; a find page (…/find/?categoryId=…) imports every matching event. Without a location parameter, Meetup’s default location is used.",
     placeholder: "https://www.meetup.com/find/?location=…",
+  },
+  eventbrite: {
+    label: "Eventbrite link",
+    hint: "An organiser page (…/o/name-123) imports all their live events; a search page (…/d/united-kingdom--london/…) imports its first 40 results; an event page imports just that event.",
+    placeholder: "https://www.eventbrite.co.uk/o/…",
+  },
+  fatsoma: {
+    label: "Fatsoma link",
+    hint: "An organiser page (…/p/name) imports all their events; a city page (…/l/gb/london) imports the city’s next 250; an event page imports just that event.",
+    placeholder: "https://www.fatsoma.com/p/…",
   },
 };
 
@@ -72,7 +93,7 @@ export function SourceForm({ source, organisers, categories }: {
         <Field label="Name" htmlFor="name" required hint="Shown to admins, e.g. “Imperial Careers Service calendar”.">
           <Input id="name" name="name" required minLength={2} maxLength={80} defaultValue={source?.name ?? ""} />
         </Field>
-        <Field label="Type" htmlFor="kind" hint="Luma and Meetup sources link each event back to its page there.">
+        <Field label="Type" htmlFor="kind" hint="Platform sources link each event back to its page there.">
           <Select id="kind" name="kind" value={kind} onChange={(e) => changeKind(e.target.value as SourceKind)}>
             {SOURCE_KINDS.map((k) => <option key={k} value={k}>{SOURCE_KIND_LABELS[k]}</option>)}
           </Select>
@@ -120,7 +141,7 @@ export function SourceForm({ source, organisers, categories }: {
           </span>
         </label>
         <Field label="Attribution" htmlFor="attribution" hint="Credit line the source asks for, if any.">
-          <Input id="attribution" name="attribution" maxLength={200} placeholder={kind === "ical" ? "Events from Imperial Careers Service" : `Leave empty for “From ${kind.startsWith("luma") ? "Luma" : "Meetup"}”`} defaultValue={source?.attribution ?? ""} />
+          <Input id="attribution" name="attribution" maxLength={200} placeholder={PLATFORM_NAME[kind] ? `Leave empty for “From ${PLATFORM_NAME[kind]}”` : "Events from Imperial Careers Service"} defaultValue={source?.attribution ?? ""} />
         </Field>
       </section>
 
@@ -131,10 +152,9 @@ export function SourceForm({ source, organisers, categories }: {
             Feed sources use only feeds we&rsquo;re allowed to. Discovery sources read public listing pages — check the
             platform&rsquo;s terms or get written OK first.
           </p>
-          {kind === "meetup-search" && (
+          {TERMS_WARNING[kind] && (
             <p className="rounded-xl border border-orange/25 bg-orange/10 p-3 text-xs text-orange">
-              Meetup&rsquo;s robots rules disallow the find-page parameters. Only enable this if you accept that risk and
-              will disable it if Meetup asks.
+              {TERMS_WARNING[kind]} Only enable this if you accept that risk and will disable it if {PLATFORM_NAME[kind]} asks.
             </p>
           )}
           <label className="flex items-start gap-3 text-sm">

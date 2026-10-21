@@ -18,7 +18,7 @@ const when = (iso: string) =>
 const STATUS = {
   ok: { tone: "success", text: "Details read" },
   failed: { tone: "warning", text: "Details failed" },
-  blocked: { tone: "danger", text: "Blocked by Luma" },
+  blocked: { tone: "danger", text: "Blocked" },
 } as const;
 
 export function ImportedEventRow({ event, action, retry }: { event: ImportedEvent; action: Action; retry: Action }) {
@@ -72,12 +72,12 @@ export function ImportedEventRow({ event, action, retry }: { event: ImportedEven
           <input type="hidden" name="id" value={event.id} />
           <input type="hidden" name="cover_url" value={uploaded ?? ""} />
           <Field label="Image link" htmlFor={`img-${event.id}`} hint="On the event page: right-click the cover → Copy image address, then paste. ORBIT keeps its own copy.">
-            <Input id={`img-${event.id}`} name="image_url" type="text" inputMode="url" placeholder="https://cdn.lu.ma/…" />
+            <Input id={`img-${event.id}`} name="image_url" type="text" inputMode="url" placeholder="https://…" />
           </Field>
           <Field label="…or upload an image" htmlFor={`file-${event.id}`} hint={uploading ? "Uploading…" : uploadError ?? "JPG, PNG or WebP, up to 5 MB."}>
             <Input id={`file-${event.id}`} type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => onFile(e.target.files?.[0])} />
           </Field>
-          {(event.kind === "luma" || event.kind === "luma-discover") && (
+          {(event.kind === "luma" || event.kind === "luma-discover" || event.kind === "eventbrite") && (
             <Field label="Description" htmlFor={`desc-${event.id}`}>
               <Textarea id={`desc-${event.id}`} name="description" rows={5} maxLength={5000} defaultValue={event.description ?? ""} />
             </Field>

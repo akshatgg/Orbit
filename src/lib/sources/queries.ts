@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { EventSource, SourceEventDetails, SourceRun } from "./types";
-import { sourceIdFromKey, sourceKey } from "./types";
+import { IMPORTED_KINDS, sourceIdFromKey, sourceKey, type ImportedKind } from "./types";
 
 // Admin screens read through the signed-in admin's client, so RLS still applies.
 
@@ -195,7 +195,7 @@ export async function listHiddenDuplicates({ limit = 50 }: { limit?: number } = 
   return events.map((event) => ({ event, original: originals.get(event.duplicate_of!) ?? null }));
 }
 
-// ─── Imported Luma / Meetup events (details editor) ───────────────────────
+// ─── Imported platform events (details editor) ────────────────────────────
 
 export type ImportedEvent = {
   id: string;
@@ -206,20 +206,20 @@ export type ImportedEvent = {
   price_min: number | null;
   price_max: number | null;
   currency: string;
-  kind: "luma" | "luma-discover" | "meetup" | "meetup-search";
+  kind: ImportedKind;
   external_url: string | null;
   source: string;
   source_event_id: string | null;
   details: Pick<SourceEventDetails, "status" | "attempts" | "last_error" | "fetched_at"> | null;
 };
 
-/** Upcoming published events from Luma / Meetup sources; ones without a cover first. */
+/** Upcoming published events from platform sources (Luma, Meetup, Eventbrite, Fatsoma); ones without a cover first. */
 export async function listImportedEvents({ limit = 60 }: { limit?: number } = {}) {
   const supabase = await createClient();
   const { data: sources } = await supabase
     .from("event_sources")
     .select("id, kind")
-    .in("kind", ["luma", "luma-discover", "meetup", "meetup-search"]);
+    .in("kind", [...IMPORTED_KINDS]);
   const kinds = new Map(((sources ?? []) as { id: string; kind: ImportedEvent["kind"] }[]).map((s) => [sourceKey(s.id), s.kind]));
   if (kinds.size === 0) return [];
   const upcoming = () =>

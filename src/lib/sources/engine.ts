@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { classifyEvent, type ClassifyCategory } from "./classify";
 import { CONNECTORS } from "./connectors";
 import { enrichLumaEvents } from "./enrich";
+import { enrichImportedEvents } from "./enrich-imports";
 import { enrichMeetupEvents } from "./enrich-meetup";
 import { ENRICH_BUDGET_MS, RUN_ENRICH_DEADLINE_MS, type EnrichRunState } from "./enrich-plan";
 import { certainDuplicate, findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
@@ -219,6 +220,9 @@ export async function runSource(
     }
     if (source.kind === "meetup" || source.kind === "meetup-search") {
       summary.enriched = await enrichMeetupEvents(source, { db, now, errors, run });
+    }
+    if (source.kind === "eventbrite" || source.kind === "fatsoma") {
+      summary.enriched = await enrichImportedEvents({ id: source.id, kind: source.kind }, { db, now, errors, run });
     }
     summary.status = "ok";
   } catch (e) {

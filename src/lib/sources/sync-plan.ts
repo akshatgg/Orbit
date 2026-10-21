@@ -61,17 +61,21 @@ export const EXTERNAL_LABELS: Record<SourceKind, string> = {
   "luma-discover": "Register on Luma",
   meetup: "Register on Meetup",
   "meetup-search": "Register on Meetup",
+  eventbrite: "Register on Eventbrite",
+  fatsoma: "Get tickets on Fatsoma",
 };
 
 /** Synced fields a kind's feed doesn't really have, so updates leave them alone.
  *  - Luma's feed only carries a stub description; the real one comes from the page or an admin.
  *  - Meetup's feed usually has no LOCATION/GEO; venue and coordinates come from its event page,
- *    so a later feed sync must not wipe them back to null. */
+ *    so a later feed sync must not wipe them back to null.
+ *  - Eventbrite's listing only has the summary; the full description is read once afterwards. */
 export const SKIPPED_FIELDS: Partial<Record<SourceKind, readonly (keyof SyncedFields)[]>> = {
   luma: ["description", "city"],
   "luma-discover": ["description", "city"],
   meetup: ["venue_name", "address", "city", "latitude", "longitude"],
   "meetup-search": ["venue_name", "address", "city", "latitude", "longitude"],
+  eventbrite: ["description"],
 };
 
 /** Public provenance link: the event's own page, else the feed's site (never the full feed URL,
@@ -107,7 +111,10 @@ export function syncedFields(event: NormalizedEvent, feedUrl: string): SyncedFie
   };
 }
 
-/** Row to insert for an event we haven't seen before. `categoryId` overrides the source default. */
+/**
+ * Row to insert for an event we haven't seen before. `categoryId` overrides the source default.
+ * The platform's price is only set here: later syncs never touch it, so an admin's price wins.
+ */
 export function buildInsertRow(
   event: NormalizedEvent,
   source: Pick<EventSource, "id" | "url" | "default_organiser_id" | "default_category_id" | "default_tags"> & { kind?: SourceKind },
@@ -122,6 +129,7 @@ export function buildInsertRow(
     organiser_id: source.default_organiser_id,
     category_id: categoryId === undefined ? source.default_category_id : categoryId,
     tags: source.default_tags,
+    ...(event.price ? { price_min: event.price.min, price_max: event.price.max, currency: event.price.currency } : {}),
     status: "published" as const,
     last_verified_at: now.toISOString(),
   };

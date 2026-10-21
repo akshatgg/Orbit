@@ -123,7 +123,7 @@ const VALUES = new Set<string>(ALL_INTERESTS.map((i) => i.value));
  */
 export const HINT_WEIGHT = { eventCategory: 3, groupCategory: 2, groupTopic: 1 } as const;
 
-/** Platform category names (Meetup's topic categories, Luma's discover categories) → interests. */
+/** Platform category names (Meetup, Luma, Eventbrite and Fatsoma categories) → interests. */
 const PLATFORM_CATEGORIES: Record<string, string[]> = {
   // Meetup
   "art culture": ["arts"],
@@ -157,6 +157,31 @@ const PLATFORM_CATEGORIES: Record<string, string[]> = {
   running: ["fitness"],
   tech: ["technology"],
   wellness: ["wellbeing"],
+  // Eventbrite (music, food drink, sports fitness, travel outdoor, religion spirituality: above)
+  "auto boat air": ["hobbies"],
+  "business professional": ["entrepreneurship"],
+  "charity causes": ["volunteering"],
+  "community culture": ["socialising"],
+  "family education": ["growth"],
+  "fashion beauty": ["creative"],
+  "film media entertainment": ["creative"],
+  "government politics": ["public-sector"],
+  "health wellness": ["wellbeing"],
+  "hobbies special interest": ["hobbies"],
+  "home lifestyle": ["hobbies"],
+  "performing visual arts": ["arts"],
+  "science technology": ["technology", "science"],
+  "seasonal holiday": ["socialising"],
+  // Fatsoma (food drink, sports fitness: above)
+  "arts performance": ["arts"],
+  "business conferences": ["entrepreneurship"],
+  classes: ["growth"],
+  "club nights": ["music", "socialising"],
+  comedy: ["arts"],
+  dating: ["socialising"],
+  festivals: ["music"],
+  "fun things": ["socialising"],
+  gigs: ["music"],
 };
 
 /** Interests one hint points to: a known platform category, else its words against the keywords. */
