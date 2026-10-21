@@ -96,32 +96,21 @@ export function Dismissible({ id, children }: { id: string; children: ReactNode 
   return <>{children}</>;
 }
 
-export function NotInterestedButton({ id, title, className = "", compact = false }: { id: string; title: string; className?: string; compact?: boolean }) {
+/** Icon-only dismiss control: a quiet ✕ that hides the event and offers Undo. */
+export function NotInterestedButton({ id, title, className = "" }: { id: string; title: string; className?: string }) {
   const ctx = useContext(DismissContext);
   if (!ctx) return null;
-  if (compact) {
-    return (
-      <button
-        type="button"
-        onClick={() => ctx.dismiss(id, title)}
-        aria-label={`Not interested in ${title}`}
-        title="Not interested"
-        className={`flex h-7 w-7 items-center justify-center rounded-full text-subtle transition-colors duration-200 hover:bg-ink/[0.07] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${className}`}
-      >
-        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-          <path d="M6 6l12 12M18 6 6 18" />
-        </svg>
-      </button>
-    );
-  }
   return (
     <button
       type="button"
       onClick={() => ctx.dismiss(id, title)}
       aria-label={`Not interested in ${title}`}
-      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-subtle transition-colors duration-200 hover:bg-ink/[0.07] hover:text-fg ${className}`}
+      title="Not interested"
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-subtle transition duration-200 hover:bg-ink/[0.08] hover:text-fg focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent active:scale-95 motion-reduce:transition-none ${className}`}
     >
-      Not interested
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+        <path d="M6 6l12 12M18 6 6 18" />
+      </svg>
     </button>
   );
 }

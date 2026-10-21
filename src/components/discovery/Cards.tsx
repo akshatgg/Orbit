@@ -174,8 +174,7 @@ export function FeedRow({ event, dismissible }: { event: EventCardData; dismissi
         <NotInterestedButton
           id={event.id}
           title={event.title}
-          compact
-          className="absolute bottom-1.5 right-0 light:right-[4.25rem]"
+          className="absolute bottom-1 right-0 light:right-[4.25rem]"
         />
       )}
     </div>
