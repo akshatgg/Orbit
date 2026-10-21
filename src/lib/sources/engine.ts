@@ -6,7 +6,7 @@ import { CONNECTORS } from "./connectors";
 import { enrichLumaEvents } from "./enrich";
 import { enrichMeetupEvents } from "./enrich-meetup";
 import { ENRICH_BUDGET_MS, RUN_ENRICH_DEADLINE_MS, type EnrichRunState } from "./enrich-plan";
-import { findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
+import { certainDuplicate, findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
 import { withInterests } from "./interests";
 import { groupRepeats } from "./repeats";
 import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
@@ -272,7 +272,7 @@ export async function detectDuplicates({ now = new Date(), db = createAdminClien
     selectAll<DuplicateCandidate>((from, to) =>
       db
         .from("events")
-        .select("id, title, starts_at, source, created_at, external_url, source_event_id")
+        .select("id, title, starts_at, source, created_at, external_url, source_event_id, format, venue_name, address")
         .eq("status", "published")
         .is("duplicate_of", null)
         .gte("starts_at", since)
@@ -296,7 +296,34 @@ export async function detectDuplicates({ now = new Date(), db = createAdminClien
       .select("id");
     if (!error) flagged += data?.length ?? 0;
   }
+  await settleCertainDuplicates(db, since);
   return flagged;
+}
+
+/**
+ * Takes certain duplicates (same title, start and place) out of the review queue. They're already
+ * hidden; this only stops them asking for a decision. Covers pairs flagged before the rule existed.
+ */
+async function settleCertainDuplicates(db: SupabaseClient, since: string) {
+  const fields = "id, title, starts_at, format, venue_name, address, duplicate_of";
+  type Row = Pick<DuplicateCandidate, "id" | "title" | "starts_at" | "format" | "venue_name" | "address"> & { duplicate_of: string | null };
+  const queued = await selectAll<Row>((from, to) =>
+    db.from("events").select(fields).not("duplicate_of", "is", null).eq("needs_review", true).gte("starts_at", since).order("id").range(from, to),
+  ).catch(() => [] as Row[]);
+  if (queued.length === 0) return;
+  const ids = [...new Set(queued.map((r) => r.duplicate_of!))];
+  const originals = new Map<string, Row>();
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data } = await db.from("events").select(fields).in("id", ids.slice(i, i + 200));
+    for (const r of (data ?? []) as Row[]) originals.set(r.id, r);
+  }
+  const settled = queued.filter((r) => {
+    const original = originals.get(r.duplicate_of!);
+    return original && certainDuplicate(original, r);
+  });
+  for (const ids of chunks(settled.map((r) => r.id))) {
+    await db.from("events").update({ needs_review: false }).in("id", ids).not("duplicate_of", "is", null);
+  }
 }
 
 /** The nightly job: every enabled source in turn (one failure never stops the rest), then expiry

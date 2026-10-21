@@ -48,6 +48,9 @@ export type DuplicateCandidate = {
   created_at: string;
   external_url?: string | null;
   source_event_id?: string | null;
+  format?: string | null;
+  venue_name?: string | null;
+  address?: string | null;
 };
 
 /** Events created in ORBIT (by organisers or admins) are the originals. */
@@ -74,6 +77,28 @@ function sameIdentity(a: DuplicateCandidate, b: DuplicateCandidate) {
     (!!a.external_url && a.external_url === b.external_url) ||
     (!!a.source_event_id && a.source_event_id === b.source_event_id)
   );
+}
+
+/** Starts this close (seconds apart) count as the same start. */
+const SAME_START_MS = 60 * 1000;
+
+const placeKey = (s: string | null | undefined) => (s ? normaliseTitle(s) : "");
+
+/**
+ * Same title, same start and same place (both online, or the same venue or address): the same
+ * event posted twice, e.g. in two Meetup groups. Certain enough to hide without asking an admin.
+ * Different places, or a title or time that only nearly matches, still go to review.
+ */
+export function certainDuplicate(
+  a: Pick<DuplicateCandidate, "title" | "starts_at" | "format" | "venue_name" | "address">,
+  b: Pick<DuplicateCandidate, "title" | "starts_at" | "format" | "venue_name" | "address">,
+) {
+  if (!normaliseTitle(a.title) || normaliseTitle(a.title) !== normaliseTitle(b.title)) return false;
+  if (Math.abs(new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()) > SAME_START_MS) return false;
+  if (a.format === "online" && b.format === "online") return true;
+  const venue = placeKey(a.venue_name);
+  const address = placeKey(a.address);
+  return (!!venue && venue === placeKey(b.venue_name)) || (!!address && address === placeKey(b.address));
 }
 
 export type DuplicateMatch = { id: string; duplicateOf: string; exact: boolean };
@@ -111,7 +136,7 @@ export function findDuplicates(
     const possible = kept.find(
       (k) => pairAllowed(k) && Math.abs(k.ms - ms) <= windowMs && titlesSimilar(k.title, event.title),
     );
-    if (possible) result.push({ id: event.id, duplicateOf: possible.id, exact: false });
+    if (possible) result.push({ id: event.id, duplicateOf: possible.id, exact: certainDuplicate(possible, event) });
     else kept.push({ ...event, ms });
   }
   return result;
