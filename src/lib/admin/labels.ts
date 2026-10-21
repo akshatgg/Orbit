@@ -18,10 +18,13 @@ export const EVENT_STATUS: Record<EventStatus, { label: string; tone: Tone }> = 
   removed: { label: "Removed", tone: "danger" },
 };
 
-export function sourceLabel(source: string) {
+export function sourceLabel(source: string, names?: Readonly<Record<string, string>>) {
   if (source === "orbit") return "Organiser";
   if (source === "manual") return "Admin";
   if (source === "csv") return "CSV";
+  if (source.startsWith("source:")) {
+    return names?.[source] ?? `Deleted source (${source.slice("source:".length, "source:".length + 8)})`;
+  }
   return source;
 }
 

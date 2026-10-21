@@ -15,5 +15,7 @@ describe("sourceLabel", () => {
     expect(sourceLabel("csv")).toBe("CSV");
     expect(sourceLabel("manual")).toBe("Admin");
     expect(sourceLabel("eventbrite")).toBe("eventbrite");
+    expect(sourceLabel("source:abc-123", { "source:abc-123": "Luma London" })).toBe("Luma London");
+    expect(sourceLabel("source:abcdef12-3456")).toBe("Deleted source (abcdef12)");
   });
 });
