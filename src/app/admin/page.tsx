@@ -111,7 +111,7 @@ async function Content() {
           href="/admin/organisers"
           alert={s.organisers_pending > 0}
         />
-        <KpiTile label="Upcoming events" value={compactNumber(s.upcoming_events)} hint="Published, not yet finished" href="/admin/events" accent />
+        <KpiTile label="Upcoming events" value={compactNumber(s.upcoming_events)} hint={s.upcoming_dates ? `${compactNumber(s.upcoming_dates)} dates · not yet finished` : "Published, not yet finished"} href="/admin/events" accent />
         <KpiTile label="Events this week" value={s.events_this_week} hint="Starting in the next 7 days" href="/admin/events?when=upcoming" />
         <KpiTile label="Registrations" value={compactNumber(s.registrations)} hint={`${s.registrations_7d} in the last 7 days`} />
         <KpiTile label="Check-ins" value={compactNumber(s.check_ins)} hint={`${percent(s.check_ins, s.registrations)}% of registrations`} />

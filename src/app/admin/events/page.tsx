@@ -100,6 +100,8 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
     else if (/^[0-9a-f-]{36}$/i.test(f.organiser)) q = q.eq("organiser_id", f.organiser);
     if (f.source) q = q.eq("source", f.source);
     if (f.review) q = q.eq("needs_review", true);
+    // A duplicate copy is the same event from a second source: it's settled from Needs review.
+    else q = q.is("duplicate_of", null);
     if (f.when === "upcoming") q = q.or(`ends_at.gte.${nowIso},and(ends_at.is.null,starts_at.gte.${nowIso})`);
     if (f.when === "past") q = q.or(`ends_at.lt.${nowIso},and(ends_at.is.null,starts_at.lt.${nowIso})`);
     const { data, error } = await q.order("starts_at", { ascending }).order("id", { ascending }).range(from, to);
