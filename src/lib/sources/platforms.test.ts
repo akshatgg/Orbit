@@ -2,7 +2,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseIcal } from "./ical";
-import { cleanEvent, eventbriteLink, fatsomaLink, isPlatformHostedImage, lumaPageUrl, platformImage, resolveFeedUrl } from "./platforms";
+import {
+  cleanEvent, eventbriteLink, fatsomaLink, isPlatformHostedImage, lumaNearSlug, lumaPageUrl, platformImage, resolveFeedUrl,
+} from "./platforms";
 
 const fixture = (name: string) => readFileSync(fileURLToPath(new URL(`./__fixtures__/${name}`, import.meta.url)), "utf8");
 
@@ -61,6 +63,16 @@ describe("resolveFeedUrl — discovery", () => {
     expect(resolveFeedUrl("luma-discover", "luma.com/bengaluru/")).toEqual({ ok: true, url: "https://luma.com/bengaluru" });
     expect(resolveFeedUrl("luma-discover", "https://lu.ma/van-dweb-social")).toEqual({ ok: true, url: "https://luma.com/van-dweb-social" });
     expect(resolveFeedUrl("luma-discover", "https://luma.com/event/evt-abc123")).toEqual({ ok: true, url: "https://luma.com/event/evt-abc123" });
+  });
+
+  it("keeps the city on a Luma category link", () => {
+    expect(resolveFeedUrl("luma-discover", "https://luma.com/tech?near=Bengaluru")).toEqual({ ok: true, url: "https://luma.com/tech?near=bengaluru" });
+    expect(resolveFeedUrl("luma-discover", "lu.ma/tech?utm_source=x")).toEqual({ ok: true, url: "https://luma.com/tech" });
+    expect(resolveFeedUrl("luma-discover", "https://luma.com/tech?near=").ok).toBe(false);
+    expect(resolveFeedUrl("luma-discover", "https://luma.com/tech?near=new%20york").ok).toBe(false);
+    expect(lumaNearSlug("https://luma.com/tech?near=london")).toBe("london");
+    expect(lumaNearSlug("https://luma.com/tech")).toBeNull();
+    expect(lumaNearSlug("https://luma.com/tech?near=discover")).toBeNull();
   });
 
   it("rejects Luma discover, API, user, calendar and short links", () => {

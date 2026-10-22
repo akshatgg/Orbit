@@ -99,9 +99,22 @@ function resolveLumaDiscover(input: string): FeedUrlResult {
 
   const slug = lumaDiscoverSlug(input);
   if (!slug) {
-    return { ok: false, error: "Paste a Luma city or event link, e.g. https://lu.ma/london." };
+    return { ok: false, error: "Paste a Luma city, category or event link, e.g. https://lu.ma/london." };
   }
-  return finalCheck(`https://luma.com/${slug}`);
+  const near = raw?.searchParams.get("near");
+  if (near != null && !lumaNearSlug(input)) {
+    return { ok: false, error: "After near=, put a Luma city page name, e.g. https://luma.com/tech?near=bengaluru." };
+  }
+  return finalCheck(`https://luma.com/${slug}${near ? `?near=${near.trim().toLowerCase()}` : ""}`);
+}
+
+/**
+ * The city for a Luma category link (luma.com/tech?near=bengaluru), or null. A category page
+ * lists events near whoever opens it, so the link names the city to import.
+ */
+export function lumaNearSlug(input: string): string | null {
+  const near = parseLoose(input.trim())?.searchParams.get("near")?.trim().toLowerCase();
+  return near && /^[a-z0-9-]{2,80}$/.test(near) && !LUMA_RESERVED.has(near) ? near : null;
 }
 
 function resolveMeetupSearch(input: string): FeedUrlResult {
