@@ -38,7 +38,7 @@ const URL_COPY: Record<SourceKind, { label: string; hint: string; placeholder: s
   },
   "luma-discover": {
     label: "Luma link",
-    hint: "A city page (https://lu.ma/london) imports the whole city; a single event link imports just that event.",
+    hint: "A city page (https://lu.ma/london) imports the whole city; a category page plus a city (https://luma.com/tech?near=bengaluru) imports that category's events there, up to 250; a single event link imports just that event.",
     placeholder: "https://lu.ma/london",
   },
   meetup: {

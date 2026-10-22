@@ -12,6 +12,7 @@ const enabled = process.env.RUN_DISCOVERY_E2E === "1";
 
 const LUMA_CITY = "https://lu.ma/bengaluru";
 const LUMA_EVENT = "https://luma.com/van-dweb-social";
+const LUMA_CATEGORY = "https://luma.com/tech?near=bengaluru";
 const MEETUP_SEARCH = "https://www.meetup.com/find/?location=in--Bengaluru&source=EVENTS";
 const MEETUP_NO_LOCATION = "https://www.meetup.com/find/?categoryId=652&source=EVENTS";
 const MEETUP_EVENT = "https://www.meetup.com/london-software-craftsmanship/events/317008447/";
@@ -150,4 +151,28 @@ describe.skipIf(!enabled)("discovery sources end to end", () => {
     });
     expect(event!.source_event_id).toBeTruthy();
   }, 60_000);
+
+  it("imports a Luma category page for one city, and explains a category link without a city", async () => {
+    const db = client();
+    const categoryId = await ensureSource(db, "luma-discover", LUMA_CATEGORY, "Luma Tech in Bengaluru (e2e)");
+    const noCityId = await ensureSource(db, "luma-discover", "https://luma.com/tech", "Luma Tech, no city (e2e)");
+    await db.from("event_sources").update({ enabled: false }).in("kind", ["luma-discover", "meetup-search"]).not("id", "in", `(${categoryId},${noCityId})`);
+    await db.from("event_sources").update({ enabled: true }).in("id", [categoryId, noCityId]);
+
+    const result = await runSource(categoryId, { trigger: "manual" });
+    expect(result.status).toBe("ok");
+    expect(result.found).toBeGreaterThan(5);
+    const { data: events, error } = await db
+      .from("events")
+      .select("city, country, external_url, source_event_id")
+      .eq("source", `source:${categoryId}`)
+      .limit(250);
+    if (error) throw error;
+    expect(events!.every((e) => e.country === "IN" && /^https:\/\/luma\.com\//.test(e.external_url ?? ""))).toBe(true);
+    expect(events!.some((e) => /bengaluru|bangalore/i.test(e.city ?? ""))).toBe(true);
+
+    const noCity = await runSource(noCityId, { trigger: "manual" });
+    expect(noCity.status).toBe("error");
+    expect(noCity.errors.map((e) => e.message).join(" ")).toMatch(/Add the city to the link, e\.g\. https:\/\/luma\.com\/tech\?near=bengaluru/);
+  }, 90_000);
 });

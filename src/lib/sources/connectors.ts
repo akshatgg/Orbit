@@ -9,14 +9,17 @@ import {
 } from "./fatsoma";
 import { FetchHttpError, fetchFeedText } from "./fetch";
 import { parseIcal } from "./ical";
-import { parseLumaDiscoverPage } from "./luma-discover";
+import {
+  LUMA_CATEGORY_MAX_PAGES, lumaCategoryEventsUrl, parseLumaCategoryEvents, parseLumaCategoryPage, parseLumaDiscoverPage,
+  type LumaCategory,
+} from "./luma-discover";
 import { parseLumaLinkedEvent } from "./luma-page";
 import {
   MEETUP_SEARCH_MAX_EVENTS, MEETUP_SEARCH_MAX_PAGES, fetchMeetupSearchPage, parseMeetupFindPage,
 } from "./meetup-search";
 import { parseMeetupLinkedEvent } from "./meetup-page";
 import { withSeriesDates } from "./meetup-series";
-import { cleanEvent, eventbriteLink, fatsomaLink, lumaDiscoverSlug } from "./platforms";
+import { cleanEvent, eventbriteLink, fatsomaLink, lumaDiscoverSlug, lumaNearSlug } from "./platforms";
 import type { ConnectorResult, ListingCoverage, NormalizedEvent, RunError, SourceConnector, SourceKind } from "./types";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -52,6 +55,8 @@ const lumaDiscoverConnector: SourceConnector = {
     const slug = lumaDiscoverSlug(source.url);
     const html = await fetchHtml(source.url);
     const place = parseLumaDiscoverPage(html, slug);
+    const category = place ? null : parseLumaCategoryPage(html);
+    if (category) return lumaCategoryEvents(category, lumaNearSlug(source.url));
     if (!place) {
       const single = parseLumaLinkedEvent(html, source.url);
       if (!single) throw new Error("Couldn't read that Luma link. Use a city page or an event page.");
@@ -63,6 +68,31 @@ const lumaDiscoverConnector: SourceConnector = {
     return { ...result, events: result.events.map((e) => cleanEvent("luma-discover", e)) };
   },
 };
+
+/**
+ * A Luma category page (luma.com/tech) lists events near whoever opens it, so the link names the
+ * city (?near=bengaluru). Luma's own list for that city and category, soonest first, capped.
+ */
+async function lumaCategoryEvents(category: LumaCategory, near: string | null): Promise<ConnectorResult> {
+  const example = `https://luma.com/${category.slug ?? "tech"}?near=bengaluru`;
+  if (!near) throw new Error(`Luma's ${category.name} page shows events near whoever opens it. Add the city to the link, e.g. ${example}`);
+
+  const client = politeClient();
+  const place = parseLumaDiscoverPage(await client.html(`https://luma.com/${near}`), near);
+  if (!place) throw new Error(`Luma has no city page called “${near}”. Use the name from the city's link, e.g. ${example}`);
+
+  const events: NormalizedEvent[] = [];
+  const errors: RunError[] = [];
+  let cursor: string | null = null;
+  for (let page = 0; page < LUMA_CATEGORY_MAX_PAGES; page++) {
+    const result = parseLumaCategoryEvents(await client.json(lumaCategoryEventsUrl(category.apiId, place.apiId, cursor)), category);
+    events.push(...result.events);
+    errors.push(...result.errors);
+    if (!result.hasMore) return { events, errors };
+    cursor = result.nextCursor;
+  }
+  return { events, errors, coverage: coveredUntil(events) };
+}
 
 /** Meetup's find page + internal GraphQL, capped and de-duplicated. */
 const meetupSearchConnector: SourceConnector = {
