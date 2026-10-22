@@ -57,18 +57,3 @@ export function seriesBlocks<T extends { series_key?: string | null; starts_at: 
   }
   return blocks;
 }
-
-/**
- * Events per category, counting a recurring series once however many dates it has (a weekly
- * meetup with 12 upcoming dates is one event to browse, not 12).
- */
-export function countEventsByCategory(rows: { id: string; category_id: string | null; series_key?: string | null }[]): Map<string, number> {
-  const seen = new Map<string, Set<string>>();
-  for (const row of rows) {
-    if (!row.category_id) continue;
-    const set = seen.get(row.category_id) ?? new Set<string>();
-    set.add(row.series_key ?? row.id);
-    seen.set(row.category_id, set);
-  }
-  return new Map([...seen].map(([category, events]) => [category, events.size]));
-}

@@ -24,9 +24,11 @@ const Check = () => (
  * Compact filter bar: one pill per filter, each opening a popover (desktop) or bottom sheet (mobile).
  * `keys` picks which pills to show (Explore leaves out Category: its CategoryRail does that job).
  */
-export function FilterBar({ filters, categories, places, keys = FILTER_KEYS }: {
+export function FilterBar({ filters, categories, interestCounts, places, keys = FILTER_KEYS }: {
   filters: SearchFilters;
   categories: Option[];
+  /** Upcoming events per interest value, shown beside each interest. */
+  interestCounts?: Record<string, number>;
   places: PlaceGroup[];
   keys?: readonly FilterKey[];
 }) {
@@ -193,7 +195,7 @@ export function FilterBar({ filters, categories, places, keys = FILTER_KEYS }: {
             ) : (
               <OptionList
                 kind={openKey}
-                options={optionsFor(openKey, categories)}
+                options={optionsFor(openKey, categories, interestCounts)}
                 selected={selectedValues(filters, openKey)}
                 onPick={(v) => {
                   go(pickHref(filters, openKey, v));

@@ -14,7 +14,7 @@ import {
   clearFiltersHref, isSearching, parseSearchFilters, SORT_OPTIONS, toSearchParams, type SearchFilters,
 } from "@/lib/discovery/filters";
 import {
-  countUpcomingByCategory, getViewer, listUpcomingPage, listUpcomingPlaces, searchEvents, type RankedEvent, type Viewer,
+  getDiscoveryCounts, getViewer, listUpcomingPage, listUpcomingPlaces, searchEvents, type RankedEvent, type Viewer,
 } from "@/lib/discovery/queries";
 import { FILTER_KEYS } from "@/lib/discovery/filter-bar";
 import { listCategories } from "@/lib/events/queries";
@@ -46,21 +46,27 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
   const categories = (await listCategories()) as Category[];
   const now = new Date();
   const searching = isSearching(filters);
-  const [categoryCounts, places] = await Promise.all([countUpcomingByCategory(now), listUpcomingPlaces()]);
+  const [counts, places] = await Promise.all([getDiscoveryCounts(), listUpcomingPlaces()]);
+  const categoryCount = (id: string) => (counts.total === null ? undefined : counts.byCategory.get(id) ?? 0);
 
   return (
     <div className="space-y-6 lg:space-y-10">
       <div className="space-y-3 lg:space-y-4">
         <SearchBox filters={filters} />
-        <CategoryRail filters={filters} categories={categories.map((c) => ({ value: c.slug, label: c.name }))} />
+        <CategoryRail
+          filters={filters}
+          total={counts.total}
+          categories={categories.map((c) => ({ value: c.slug, label: c.name, count: categoryCount(c.id) }))}
+        />
         <FilterBar
           filters={filters}
           keys={FILTER_KEYS.filter((k) => k !== "category")}
           categories={categories.map((c) => ({
             value: c.slug,
             label: c.name,
-            count: categoryCounts.get(c.id) ?? 0,
+            count: categoryCount(c.id),
           }))}
+          interestCounts={counts.total === null ? undefined : Object.fromEntries(counts.byInterest)}
           places={places}
         />
       </div>

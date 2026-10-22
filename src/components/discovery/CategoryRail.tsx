@@ -31,9 +31,12 @@ const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("
  * to the picked one, arrow buttons on laptops when the row overflows, swipe on phones. Picking a
  * category shows just that one; "All events" clears it.
  */
-export function CategoryRail({ filters, categories }: {
+export function CategoryRail({ filters, categories, total = null }: {
   filters: SearchFilters;
-  categories: { value: string; label: string }[];
+  /** `count`: upcoming events in the category (a recurring series once). */
+  categories: { value: string; label: string; count?: number }[];
+  /** Upcoming events in all categories, beside "All events"; null when unknown. */
+  total?: number | null;
 }) {
   const current = filters.categories.length === 1 ? filters.categories[0] : filters.categories.length === 0 ? "all" : null;
   // A tap moves the underline straight away; once the URL changes (the navigation landed, or the
@@ -80,7 +83,7 @@ export function CategoryRail({ filters, categories }: {
     if (el) el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: reducedMotion() ? "auto" : "smooth" });
   };
 
-  const items = [{ value: "all", label: "All events" }, ...categories];
+  const items = [{ value: "all", label: "All events", count: total ?? undefined }, ...categories];
   const fade = `linear-gradient(to right, ${edges.start ? "transparent, #000 3rem" : "#000"}, ${edges.end ? "#000 calc(100% - 3rem), transparent" : "#000"})`;
 
   return (
@@ -115,7 +118,10 @@ export function CategoryRail({ filters, categories }: {
                     <path d={CATEGORY_ICONS[item.value] ?? FALLBACK_ICON} />
                   </svg>
                 </span>
-                <span className="whitespace-nowrap">{item.label}</span>
+                <span className="whitespace-nowrap">
+                  {item.label}
+                  {item.count !== undefined && <span className="ml-1 font-normal tabular-nums text-subtle">({item.count})</span>}
+                </span>
               </Link>
             );
           })}

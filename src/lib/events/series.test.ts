@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countEventsByCategory, nextOfEachSeries, seriesBlocks, seriesDayLabel, shortSeriesLabel } from "./series";
+import { nextOfEachSeries, seriesBlocks, seriesDayLabel, shortSeriesLabel } from "./series";
 
 const e = (id: string, startsAt: string, seriesKey: string | null = null) => ({ id, starts_at: startsAt, series_key: seriesKey });
 
@@ -52,17 +52,5 @@ describe("seriesBlocks", () => {
       ["oct28", ["oct28", "nov4"]],
       ["fair", ["fair"]],
     ]);
-  });
-});
-
-describe("countEventsByCategory", () => {
-  it("counts a series once per category, however many dates it has", () => {
-    const rows = [
-      ...Array.from({ length: 12 }, (_, i) => ({ id: `sun${i}`, category_id: "hobbies", series_key: "meetup:weekend:sunday book club" })),
-      { id: "bowling", category_id: "hobbies", series_key: null },
-      { id: "mixer", category_id: "networking", series_key: null },
-      { id: "x", category_id: null, series_key: null },
-    ];
-    expect(Object.fromEntries(countEventsByCategory(rows))).toEqual({ hobbies: 2, networking: 1 });
   });
 });

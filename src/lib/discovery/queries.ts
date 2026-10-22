@@ -9,8 +9,8 @@ import { ACTIVE_REGISTRATION, rankEvents, type Scored } from "@/lib/ranking";
 import { createClient } from "@/lib/supabase/server";
 import { datePresetRange } from "./dates";
 import type { SearchFilters } from "./filters";
-import { interestTags } from "@/lib/taxonomy";
-import { countEventsByCategory, nextOfEachSeries } from "@/lib/events/series";
+import { ALL_INTERESTS, interestTags } from "@/lib/taxonomy";
+import { nextOfEachSeries } from "@/lib/events/series";
 import { cityVariants, groupPlaces, knownCityNames, type PlaceGroup } from "@/lib/places";
 
 /** Card columns plus what ranking needs to judge "full without a waitlist". */
@@ -224,11 +224,28 @@ export async function listUpcomingPage(viewer: Viewer, now: Date, page: number):
   return { results: sortResults(ranked, "date", now), total: rows.length, page: current, pageCount };
 }
 
-/** Upcoming event counts per category id (for the browse view). */
-export async function countUpcomingByCategory(now: Date): Promise<Map<string, number>> {
-  const rows = await upcomingRows<{ id: string; category_id: string | null; series_key: string | null }>("id, category_id, series_key", now)
-    .catch(() => []);
-  return countEventsByCategory(rows);
+export type DiscoveryCounts = {
+  /** Different upcoming events (a series once, duplicate copies not at all); null if counting failed. */
+  total: number | null;
+  byCategory: Map<string, number>;
+  byInterest: Map<string, number>;
+};
+
+/** Upcoming events overall, per category id and per interest — counted in the database (discovery_counts). */
+export async function getDiscoveryCounts(): Promise<DiscoveryCounts> {
+  const supabase = await createClient();
+  const interests = Object.fromEntries(ALL_INTERESTS.map((i) => [i.value, interestTags(i.value)]));
+  const { data, error } = await supabase.rpc("discovery_counts", { p_interests: interests });
+  const counts: DiscoveryCounts = { total: null, byCategory: new Map(), byInterest: new Map() };
+  // Counts are a hint: without them the tabs and filters still work, just unnumbered.
+  if (error) return counts;
+  for (const row of (data ?? []) as { kind: string; key: string | null; events: number | string }[]) {
+    const n = Number(row.events);
+    if (row.kind === "all") counts.total = n;
+    else if (row.kind === "category" && row.key) counts.byCategory.set(row.key, n);
+    else if (row.kind === "interest" && row.key) counts.byInterest.set(row.key, n);
+  }
+  return counts;
 }
 
 /** Places upcoming in-person events are in, as country → city lists (Location filter, header search). */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryTabHref, clearKeyHref, isActive, pickHref, pillLabel, showClearAll } from "./filter-bar";
+import { categoryTabHref, clearKeyHref, isActive, optionsFor, pickHref, pillLabel, showClearAll } from "./filter-bar";
 import { parseSearchFilters } from "./filters";
 
 const cats = [{ value: "workshop", label: "Workshop" }, { value: "talk", label: "Talk" }, { value: "social", label: "Social" }];
@@ -59,5 +59,17 @@ describe("clearKeyHref / showClearAll", () => {
     expect(isActive(f({}), "sort")).toBe(false);
     expect(showClearAll(f({ sort: "date" }))).toBe(false);
     expect(showClearAll(f({ format: "online" }))).toBe(true);
+  });
+});
+
+describe("optionsFor", () => {
+  it("puts each interest's event count beside it, 0 when it has none", () => {
+    const options = optionsFor("interest", cats, { technology: 21 });
+    expect(options.find((o) => o.value === "technology")?.count).toBe(21);
+    expect(options.find((o) => o.value === "marketing")?.count).toBe(0);
+  });
+
+  it("leaves interests unnumbered when the counts aren't known", () => {
+    expect(optionsFor("interest", cats).every((o) => o.count === undefined)).toBe(true);
   });
 });

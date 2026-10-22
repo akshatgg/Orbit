@@ -30,11 +30,12 @@ export function parsePlaceValue(value: string): Pick<SearchFilters, "country" | 
   return { country: /^[A-Z]{2}$/.test(country) ? country : null, city: cleanLocation(city) };
 }
 
-export function optionsFor(key: FilterKey, categories: readonly Option[]): Option[] {
+/** Options for a pill; interests carry their event counts when they're known. */
+export function optionsFor(key: FilterKey, categories: readonly Option[], interestCounts?: Readonly<Record<string, number>>): Option[] {
   switch (key) {
     case "date": return DATE_PRESETS;
     case "category": return [...categories];
-    case "interest": return [...ALL_INTERESTS];
+    case "interest": return ALL_INTERESTS.map((i) => (interestCounts ? { ...i, count: interestCounts[i.value] ?? 0 } : { ...i }));
     case "format": return [...EVENT_FORMATS];
     case "sort": return [...SORT_OPTIONS];
     case "location": return [];
