@@ -8,13 +8,13 @@ import { EventRows } from "@/components/events/EventRow";
 import { EventTile } from "@/components/events/EventTile";
 import { CategoryRail } from "@/components/discovery/CategoryRail";
 import { FilterBar } from "@/components/discovery/FilterBar";
-import { ICONS, SearchSkeleton, SectionHeading } from "@/components/discovery/Layout";
+import { ICONS, Pager, SearchSkeleton, SectionHeading } from "@/components/discovery/Layout";
 import { requireProfile } from "@/lib/auth";
 import {
   clearFiltersHref, isSearching, parseSearchFilters, SORT_OPTIONS, toSearchParams, type SearchFilters,
 } from "@/lib/discovery/filters";
 import {
-  countUpcomingByCategory, getViewer, listHappeningSoon, listUpcomingPlaces, searchEvents, type RankedEvent, type Viewer,
+  countUpcomingByCategory, getViewer, listUpcomingPage, listUpcomingPlaces, searchEvents, type RankedEvent, type Viewer,
 } from "@/lib/discovery/queries";
 import { FILTER_KEYS } from "@/lib/discovery/filter-bar";
 import { listCategories } from "@/lib/events/queries";
@@ -40,7 +40,8 @@ type Category = { id: string; slug: string; name: string; group: string };
 
 async function Explore({ searchParams }: { searchParams: PageProps<"/search">["searchParams"] }) {
   const profile = await requireProfile();
-  const filters = parseSearchFilters(await searchParams);
+  const raw = await searchParams;
+  const filters = parseSearchFilters(raw);
   const viewer = await getViewer(profile);
   const categories = (await listCategories()) as Category[];
   const now = new Date();
@@ -66,7 +67,7 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
       {searching ? (
         <Results filters={filters} viewer={viewer} categories={categories} now={now} />
       ) : (
-        <Browse viewer={viewer} now={now} />
+        <Browse viewer={viewer} now={now} page={Number(raw.page) || 1} />
       )}
     </div>
   );
@@ -159,33 +160,25 @@ function PhoneRows({ ranked, viewer, now, byDay }: { ranked: RankedEvent[]; view
   );
 }
 
-async function Browse({ viewer, now }: { viewer: Viewer; now: Date }) {
-  const soon = await listHappeningSoon(viewer, now);
+/** No search or filter ("All events"): every upcoming event, soonest first, a page at a time. */
+async function Browse({ viewer, now, page }: { viewer: Viewer; now: Date; page: number }) {
+  const upcoming = await listUpcomingPage(viewer, now, page);
   return (
-    <>
-      <section aria-labelledby="soon">
-        <SectionHeading id="soon" eyebrow="Next 14 days" title="Happening soon" />
-        {soon.length === 0 ? (
-          <>
-            <p className="px-4 text-sm text-muted lg:hidden">Nothing coming up in the next two weeks.</p>
-            <div className="hidden lg:block">
-              <EmptyState
-                title="Nothing in the next two weeks"
-                action={<ButtonLink href="/" variant="secondary">See what&rsquo;s on For You</ButtonLink>}
-              >
-                New events appear here as soon as organisers publish them.
-              </EmptyState>
-            </div>
-          </>
-        ) : (
-          <>
-            <PhoneRows ranked={soon} viewer={viewer} now={now} byDay />
-            <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-9 lg:grid-cols-4">
-              {soon.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
-            </ul>
-          </>
-        )}
-      </section>
-    </>
+    <section aria-labelledby="upcoming">
+      <SectionHeading id="upcoming" eyebrow="Soonest first" title="All upcoming events" count={upcoming.total} />
+      {upcoming.results.length === 0 ? (
+        <EmptyState title="Nothing coming up yet">
+          New events appear here as soon as organisers publish them.
+        </EmptyState>
+      ) : (
+        <>
+          <PhoneRows ranked={upcoming.results} viewer={viewer} now={now} byDay />
+          <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-9 lg:grid-cols-4">
+            {upcoming.results.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
+          </ul>
+        </>
+      )}
+      <Pager page={upcoming.page} pageCount={upcoming.pageCount} hrefFor={(p) => (p > 1 ? `/search?page=${p}` : "/search")} />
+    </section>
   );
 }
