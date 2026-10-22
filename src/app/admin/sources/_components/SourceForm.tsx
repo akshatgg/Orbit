@@ -58,7 +58,7 @@ const URL_COPY: Record<SourceKind, { label: string; hint: string; placeholder: s
   },
   fatsoma: {
     label: "Fatsoma link",
-    hint: "An organiser page (…/p/name) imports all their events; a city page (…/l/gb/london) imports the city’s next 250; an event page imports just that event.",
+    hint: "An organiser page (…/p/name) imports all their events; a city page (…/l/gb/london) or a Discover page with a category or location picked (…/discover?category-id=…&lat-lng=…) imports the next 250; an event page imports just that event.",
     placeholder: "https://www.fatsoma.com/p/…",
   },
 };

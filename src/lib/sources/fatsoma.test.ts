@@ -33,6 +33,16 @@ describe("Fatsoma lookups", () => {
     expect(fatsomaEventsUrl({ pageId: "78e9cbee-fbc6-4d10-93cd-32ebd31f7927" }, 1, NOW)).toContain("filter%5Bpage.id%5D=78e9cbee");
     expect(fatsomaEventsUrl({ vanity: "mhrxdx1i" }, 1, NOW)).toContain("filter%5Bvanity-name%5D=mhrxdx1i");
   });
+
+  it("narrows a Discover search to its category, near its place or anywhere", () => {
+    const category = "bcd84c45-a1cb-4658-b3f4-601fda4a1c6a";
+    const both = new URL(fatsomaEventsUrl({ latLon: [51.5072178, -0.1275862], categoryId: category }, 1, NOW)).searchParams;
+    expect(both.get("filter[categories.id]")).toBe(category);
+    expect(both.get("filter[location.lat-lon]")).toBe("51.5072178,-0.1275862");
+    const anywhere = new URL(fatsomaEventsUrl({ latLon: null, categoryId: category }, 1, NOW)).searchParams;
+    expect(anywhere.get("filter[categories.id]")).toBe(category);
+    expect(anywhere.has("filter[location.lat-lon]")).toBe(false);
+  });
 });
 
 describe("parseFatsomaEvents", () => {

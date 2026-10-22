@@ -219,12 +219,12 @@ const eventbriteConnector: SourceConnector = {
   },
 };
 
-/** Fatsoma organiser, event or city links, through the API Fatsoma's own site uses. */
+/** Fatsoma organiser, event, city or Discover links, through the API Fatsoma's own site uses. */
 const fatsomaConnector: SourceConnector = {
   kind: "fatsoma",
   async fetchEvents(source, { now }) {
     const link = fatsomaLink(source.url);
-    if (!link) throw new Error("That isn't a Fatsoma organiser, event or city link.");
+    if (!link) throw new Error("That isn't a Fatsoma organiser, event, city or Discover link.");
     const client = politeClient();
 
     let filter: FatsomaFilter;
@@ -234,6 +234,8 @@ const fatsomaConnector: SourceConnector = {
       const pageId = parseFatsomaPageLookup(await client.json(fatsomaPageLookupUrl(link.vanity)));
       if (!pageId) throw new Error(`No Fatsoma organiser page called "${link.vanity}".`);
       filter = { pageId };
+    } else if (link.type === "discover") {
+      filter = { latLon: link.latLon, categoryId: link.categoryId };
     } else {
       const latLon = parseFatsomaCityPage(await client.html(link.url));
       if (!latLon) throw new Error("Couldn't find the event list on that Fatsoma city page.");

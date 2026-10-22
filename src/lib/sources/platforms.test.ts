@@ -235,6 +235,12 @@ describe("resolveFeedUrl — fatsoma", () => {
     ["fatsoma.com/p/space-safari-drone-show/events", "https://www.fatsoma.com/p/space-safari-drone-show"],
     ["https://www.fatsoma.com/e/mhrxdx1i/space-safari-drone-light-show-cambridge", "https://www.fatsoma.com/e/mhrxdx1i/space-safari-drone-light-show-cambridge"],
     ["https://www.fatsoma.com/l/GB/London", "https://www.fatsoma.com/l/gb/london"],
+    [
+      "https://www.fatsoma.com/discover?category-id=bcd84c45-a1cb-4658-b3f4-601fda4a1c6a&lat-lng=51.5072178%2C-0.1275862&location=London%2C%20UK",
+      "https://www.fatsoma.com/discover?category-id=bcd84c45-a1cb-4658-b3f4-601fda4a1c6a&lat-lng=51.5072178%2C-0.1275862&location=London%2C+UK",
+    ],
+    ["https://www.fatsoma.com/discover?category-id=BCD84C45-A1CB-4658-B3F4-601FDA4A1C6A", "https://www.fatsoma.com/discover?category-id=bcd84c45-a1cb-4658-b3f4-601fda4a1c6a"],
+    ["https://www.fatsoma.com/discover?lat-lng=53.4808,-2.2426&location=Manchester&sort=date", "https://www.fatsoma.com/discover?lat-lng=53.4808%2C-2.2426&location=Manchester"],
   ])("turns %s into %s", (input, url) => {
     expect(resolveFeedUrl("fatsoma", input)).toEqual({ ok: true, url });
   });
@@ -244,6 +250,10 @@ describe("resolveFeedUrl — fatsoma", () => {
     "https://www.fatsoma.com/l/locations",
     "https://www.fatsoma.com/l/gb",
     "https://www.fatsoma.com/c/club-nights",
+    "https://www.fatsoma.com/discover",
+    "https://www.fatsoma.com/discover?location=London",
+    "https://www.fatsoma.com/discover?category-id=not-a-uuid",
+    "https://www.fatsoma.com/discover?lat-lng=999,0",
     "https://fatsoma.com.evil.com/p/x",
     "https://www.eventbrite.co.uk/o/x-78436165503",
   ])("rejects %s", (input) => {
@@ -254,6 +264,10 @@ describe("resolveFeedUrl — fatsoma", () => {
     expect(fatsomaLink("https://www.fatsoma.com/p/space-safari-drone-show")).toMatchObject({ type: "page", vanity: "space-safari-drone-show" });
     expect(fatsomaLink("https://www.fatsoma.com/e/mhrxdx1i/x")).toMatchObject({ type: "event", vanity: "mhrxdx1i" });
     expect(fatsomaLink("https://www.fatsoma.com/l/gb/london")).toMatchObject({ type: "city" });
+    expect(fatsomaLink("https://www.fatsoma.com/discover?category-id=bcd84c45-a1cb-4658-b3f4-601fda4a1c6a&lat-lng=51.5072178,-0.1275862")).toMatchObject({
+      type: "discover", categoryId: "bcd84c45-a1cb-4658-b3f4-601fda4a1c6a", latLon: [51.5072178, -0.1275862],
+    });
+    expect(fatsomaLink("https://www.fatsoma.com/discover?category-id=bcd84c45-a1cb-4658-b3f4-601fda4a1c6a")).toMatchObject({ type: "discover", latLon: null });
   });
 });
 
