@@ -3,6 +3,7 @@
 import type { EventFormat, RegistrationMode } from "@/types/database";
 import type { EventSource, ListingCoverage, NormalizedEvent, SourceKind } from "./types";
 import { sourceKey } from "./types";
+import { localDay } from "./timezone";
 import { normaliseCountry } from "@/lib/places";
 
 /** Columns of events that a sync reads for one source. */
@@ -274,6 +275,12 @@ export function planSync(
     const starts = new Date(e.starts_at).getTime();
     if (starts <= now.getTime()) continue; // past events are expected to drop off
     if (starts >= coveredUntil) continue; // beyond what this fetch read
+    // Platforms drop an event from their listings on its own day, once registration closes. That
+    // isn't news: it ends as a past event. Only a missing event on a later day needs a decision.
+    if (localDay(starts, e.timezone) === localDay(now.getTime(), e.timezone)) {
+      if (e.needs_review && !e.duplicate_of && !unflagged.has(e.id)) plan.unflagged.push(e.id);
+      continue;
+    }
     flag(e, "missing");
   }
   return plan;
