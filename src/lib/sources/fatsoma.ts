@@ -37,7 +37,8 @@ export function fatsomaEventsUrl(filter: FatsomaFilter, page: number, now: Date)
   url.searchParams.set("filter[status]", "active");
   url.searchParams.set("filter[starts-at][gte]", now.toISOString().slice(0, 19));
   url.searchParams.set("include", "location,page,categories");
-  url.searchParams.set("sort", "starts-at");
+  // `id` breaks ties: with the start time alone, events starting together shift between pages.
+  url.searchParams.set("sort", "starts-at,id");
   url.searchParams.set("page[size]", String(FATSOMA_PAGE_SIZE));
   url.searchParams.set("page[number]", String(page));
   return url.toString();

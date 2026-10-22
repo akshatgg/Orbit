@@ -136,7 +136,13 @@ export type EventbriteLink =
   | { type: "event"; id: string; url: string }
   | { type: "search"; url: string };
 
-/** What an Eventbrite link points at: an organiser (/o/…), one event (/e/…) or a search (/d/…). */
+const EVENTBRITE_SLUG = /^[a-z0-9-]+$/i;
+
+/**
+ * What an Eventbrite link points at: an organiser (/o/…), one event (/e/…) or a search (/d/…).
+ * A category page (/b/<place>/<category>/) only ever shows 8 events, so it becomes the same search
+ * (/d/<place>/<category>--events/), which pages through all of them.
+ */
 export function eventbriteLink(input: string): EventbriteLink | null {
   const url = parseLoose(input);
   if (!url || !EVENTBRITE_HOST.test(url.hostname.toLowerCase())) return null;
@@ -149,8 +155,11 @@ export function eventbriteLink(input: string): EventbriteLink | null {
     const id = slug.match(/(?:^|-)(\d{5,20})$/)?.[1];
     return id ? { type: "event", id, url: `${EVENTBRITE_ORIGIN}/e/${slug}` } : null;
   }
-  if (section === "d" && slug && /^[a-z0-9-]+$/i.test(slug) && rest.length <= 1) {
+  if (section === "d" && slug && EVENTBRITE_SLUG.test(slug) && rest.length <= 1) {
     return { type: "search", url: `${EVENTBRITE_ORIGIN}${url.pathname.replace(/\/?$/, "/")}${url.search}` };
+  }
+  if (section === "b" && slug && EVENTBRITE_SLUG.test(slug) && rest.length === 1 && EVENTBRITE_SLUG.test(rest[0])) {
+    return { type: "search", url: `${EVENTBRITE_ORIGIN}/d/${slug}/${rest[0].toLowerCase()}--events/` };
   }
   return null;
 }
@@ -160,7 +169,7 @@ function resolveEventbrite(input: string): FeedUrlResult {
   if (!link) {
     return {
       ok: false,
-      error: "Paste an Eventbrite organiser page (…/o/name-123), event page (…/e/name-tickets-123) or search page (…/d/united-kingdom--london/events/).",
+      error: "Paste an Eventbrite organiser page (…/o/name-123), event page (…/e/name-tickets-123), category page (…/b/united-kingdom--london/music/) or search page (…/d/united-kingdom--london/events/).",
     };
   }
   return finalCheck(link.url);

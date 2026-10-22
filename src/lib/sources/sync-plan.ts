@@ -1,7 +1,7 @@
 // Pure diff between what a source sent and what ORBIT already has for that source.
 
 import type { EventFormat, RegistrationMode } from "@/types/database";
-import type { EventSource, NormalizedEvent, SourceKind } from "./types";
+import type { EventSource, ListingCoverage, NormalizedEvent, SourceKind } from "./types";
 import { sourceKey } from "./types";
 import { normaliseCountry } from "@/lib/places";
 
@@ -144,9 +144,13 @@ export function buildInsertRow(
 const sameInstant = (a: string | null, b: string | null) =>
   a === b || (a !== null && b !== null && new Date(a).getTime() === new Date(b).getTime());
 
-/** Coordinates may come back from PostgREST as a number or a numeric string. */
+/**
+ * Coordinates may come back from PostgREST as a number or a numeric string, and a platform can send
+ * the same point with float noise (Eventbrite: 51.463368 one call, 51.46336799999999 the next).
+ * Within a millionth of a degree (~10 cm) is the same place, so it isn't rewritten every night.
+ */
 const sameCoordinate = (a: unknown, b: unknown) =>
-  a == null || b == null ? a == null && b == null : Number(a) === Number(b);
+  a == null || b == null ? a == null && b == null : Math.abs(Number(a) - Number(b)) < 1e-6;
 
 /** Only the fields that actually changed (empty object when nothing did). */
 export function changedFields(
@@ -189,16 +193,18 @@ const LIVE_STATUSES = new Set(["published", "draft"]);
  * Works out inserts / updates / unchanged / flags. Events are matched by source_event_id.
  * ORBIT never auto-cancels: events that vanish or are cancelled upstream are only flagged,
  * and only on the run where they first go missing (seen in the previous successful run),
- * so an admin's "Mark reviewed" sticks.
+ * so an admin's "Mark reviewed" sticks. Only events the fetch could have seen count as missing
+ * (`coverage`): a list cut off at the cap says nothing about events after its last one.
  */
 export function planSync(
   existing: ExistingSourceEvent[],
   incoming: NormalizedEvent[],
-  { now, feedUrl, previousRunStartedAt, skip = [] }: {
+  { now, feedUrl, previousRunStartedAt, skip = [], coverage = "complete" }: {
     now: Date;
     feedUrl: string;
     previousRunStartedAt: Date | null;
     skip?: readonly (keyof SyncedFields)[];
+    coverage?: ListingCoverage;
   },
 ): SyncPlan {
   const plan: SyncPlan = { inserts: [], updates: [], unchanged: [], flagged: [] };
@@ -248,9 +254,13 @@ export function planSync(
     else plan.unchanged.push(current.id);
   }
 
+  if (coverage === "sample") return plan;
+  const coveredUntil = typeof coverage === "object" ? new Date(coverage.until).getTime() : Infinity;
   for (const e of existing) {
     if (!e.source_event_id || seenIds.has(e.source_event_id)) continue;
-    if (new Date(e.starts_at).getTime() <= now.getTime()) continue; // past events are expected to drop off
+    const starts = new Date(e.starts_at).getTime();
+    if (starts <= now.getTime()) continue; // past events are expected to drop off
+    if (starts >= coveredUntil) continue; // beyond what this fetch read
     flag(e, "missing");
   }
   return plan;

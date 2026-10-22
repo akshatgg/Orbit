@@ -61,7 +61,15 @@ function eventIdFromUrl(value: unknown): string | null {
   return url?.match(/\/e\/(?:[^/?#]*-)?(\d{5,20})\/?(?:[?#]|$)/)?.[1] ?? null;
 }
 
-/** Event ids from a search page's JSON-LD list (Eventbrite renders the first 40 results). */
+/** Page `page` of a search (Eventbrite's own `?page=` links; page 1 is asked for too, so a category
+ *  search isn't redirected to its 8-event category page). */
+export function searchPageUrl(searchUrl: string, page: number) {
+  const url = new URL(searchUrl);
+  url.searchParams.set("page", String(page));
+  return url.toString();
+}
+
+/** Event ids from a search page's JSON-LD list (20 per page for a category; 40 for a plain search, which doesn't page). */
 export function parseEventbriteSearchPage(html: string): string[] {
   const ids: string[] = [];
   for (const match of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
@@ -131,7 +139,9 @@ function point(address: Record<string, unknown> | null) {
   const longitude = Number(address?.longitude);
   if (address?.latitude == null || address?.longitude == null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
   if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180 || (latitude === 0 && longitude === 0)) return null;
-  return { latitude, longitude };
+  // Eventbrite sends the same point with float noise from call to call; 7 decimals is ~1 cm.
+  const round = (n: number) => Math.round(n * 1e7) / 1e7;
+  return { latitude: round(latitude), longitude: round(longitude) };
 }
 
 /** One event from the details endpoint as an ORBIT event, or an error saying why it was skipped. */

@@ -114,6 +114,14 @@ describe("changedFields", () => {
     expect(changedFields(current, syncedFields(n, FEED))).toEqual({ source_url: "https://example.com/new" });
   });
 
+  it("ignores float noise in coordinates but not a real move", () => {
+    const stored = existingFrom(incoming("a", { latitude: 51.463368, longitude: 0.0963664 }));
+    const noisy = incoming("a", { latitude: 51.46336799999999, longitude: 0.09636639999999999 });
+    expect(changedFields(stored, syncedFields(noisy, FEED))).toEqual({});
+    const moved = incoming("a", { latitude: 51.4634, longitude: 0.0963664 });
+    expect(changedFields(stored, syncedFields(moved, FEED))).toEqual({ latitude: 51.4634 });
+  });
+
   it("syncs coordinates from the feed and ignores unchanged ones", () => {
     const withGeo = incoming("a", { latitude: 51.52, longitude: -0.09 });
     expect(changedFields(existingFrom(incoming("a")), syncedFields(withGeo, FEED))).toEqual({
@@ -243,6 +251,34 @@ describe("eventbrite and fatsoma sources", () => {
     const n = incoming("a", { title: "Renamed", price: { min: 5, max: 10, currency: "GBP" } });
     const patch = changedFields(existingFrom(incoming("a")), syncedFields(n, FEED));
     expect(patch).toEqual({ title: "Renamed" });
+  });
+});
+
+describe("planSync: listing coverage", () => {
+  const later = (id: string, startsAt: string) => existingFrom(incoming(id, { startsAt, endsAt: null }));
+  const seen = incoming("a", { startsAt: "2026-11-01T10:00:00.000Z", endsAt: null });
+  const existing = [later("a", "2026-11-01T10:00:00.000Z"), later("b", "2026-11-01T12:00:00.000Z"), later("c", "2026-11-03T10:00:00.000Z")];
+  const plan = (coverage?: Parameters<typeof planSync>[2]["coverage"]) =>
+    planSync(existing, [seen], { now: NOW, feedUrl: FEED, previousRunStartedAt, coverage }).flagged.map((f) => f.id);
+
+  it("flags every missing upcoming event when the fetch read the whole listing", () => {
+    expect(plan()).toEqual([existing[1].id, existing[2].id]);
+    expect(plan("complete")).toEqual([existing[1].id, existing[2].id]);
+  });
+
+  it("only flags events before the cut-off of a list that hit the cap", () => {
+    expect(plan({ until: "2026-11-02T00:00:00.000Z" })).toEqual([existing[1].id]);
+    expect(plan({ until: "2026-11-01T12:00:00.000Z" })).toEqual([]); // starting at the cut-off: maybe just past it
+  });
+
+  it("never flags missing events from a relevance-ranked sample", () => {
+    expect(plan("sample")).toEqual([]);
+  });
+
+  it("still flags an event the source says is cancelled", () => {
+    const cancelled = incoming("b", { startsAt: "2026-11-01T12:00:00.000Z", endsAt: null, cancelled: true });
+    const result = planSync(existing, [seen, cancelled], { now: NOW, feedUrl: FEED, previousRunStartedAt, coverage: "sample" });
+    expect(result.flagged).toEqual([{ id: existing[1].id, reason: "cancelled" }]);
   });
 });
 

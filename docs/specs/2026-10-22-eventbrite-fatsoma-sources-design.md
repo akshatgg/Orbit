@@ -37,7 +37,8 @@ coordinates, price range, full description and categories (for interest tags).
 |---|---|---|
 | `eventbrite` | An organiser page `eventbrite.co.uk/o/<name>-<id>` | `GET /api/v3/organizers/<id>/events/?status=live&order_by=start_asc`, which lists the organiser's live event ids, following `continuation`. Then the details in batches of 50 (below). |
 | | An event page `eventbrite.co.uk/e/<name>-tickets-<id>` | Details for that one id |
-| | A search page `eventbrite.co.uk/d/<place>/<query>/` | The page's JSON-LD `ItemList` (40 event links, dates only), then details for those ids. Eventbrite ignores `?page=2`, so a search link imports at most 40 events. |
+| | A search page `eventbrite.co.uk/d/<place>/<query>/` | The page's JSON-LD `ItemList` (event links, dates only) for `?page=1`, `2`… until a page adds nothing new (at most 5 pages), then details for those ids. A category search pages through 20 at a time; a plain place search (`/d/<place>/events/`) always returns the same 40. |
+| | A category page `eventbrite.com/b/<place>/<category>/` | Only ever lists 8 events, so it is saved as the matching search, `/d/<place>/<category>--events/`, and read as above (up to 100 events). Page 1 is requested as `?page=1`, because without it Eventbrite redirects the search back to the 8-event category page. |
 | `fatsoma` | An organiser page `fatsoma.com/p/<vanity>` | `GET /v1/pages?filter[vanity-name]=<vanity>` → the page id → `GET /v1/events?filter[page.id]=<id>` |
 | | An event page `fatsoma.com/e/<vanity>/<name>` | `GET /v1/events?filter[vanity-name]=<vanity>` |
 | | A city page `fatsoma.com/l/<country>/<city>` | The page itself, once, to read the API query it embeds (`filter[location.lat-lon]=<lat>,<lon>`; London has ~2,900 events), then `GET /v1/events` with that filter |
@@ -49,7 +50,8 @@ coordinates, online flag, cancelled flag, series id, summary, price range, organ
 `tags` (Eventbrite category, subcategory and format). It has no full description (below).
 
 **Fatsoma events** come with `include=location,page,categories`, `filter[status]=active`,
-`filter[starts-at][gte]=<now>` and `sort=starts-at`, 50 per page. Filtering on the start
+`filter[starts-at][gte]=<now>` and `sort=starts-at,id` (the id stops events with the same start
+shifting between pages), 50 per page. Filtering on the start
 leaves out months-long listings that began in the past (London has nightly shows listed from
 February to June), which would otherwise use up the cap. Each event has starts/ends with
 an offset, an HTML description, `price-min`/`price-max` in pence, currency, `asset-url` (cover),
@@ -121,6 +123,22 @@ survives the nightly sync.
   is shown for Eventbrite only, because Fatsoma's API owns its descriptions.
 - Migration `20261022000000_eventbrite_fatsoma_sources.sql`: re-adds `event_sources_kind_check`
   with the two new kinds. Re-runnable.
+
+## What counts as "missing"
+
+The sync flags an upcoming event for review when it disappears from its source. A capped listing
+only shows part of the picture, so each fetch reports its coverage (`ConnectorResult.coverage`)
+and `planSync` only flags events the fetch could have seen:
+
+| Fetch | Coverage | Flagged when missing |
+|---|---|---|
+| A single event, a whole organiser or Fatsoma list under the cap | `complete` | Any upcoming event |
+| An organiser or Fatsoma city list cut off at 250 (soonest first) | `{ until: <last start> }` | Only events starting before the cut-off. London alone has ~2,900 Fatsoma events, so 250 reach about 2–3 days ahead; later events are picked up as the window moves |
+| An Eventbrite search or category (ranked by relevance) | `sample` | Never: events come and go from the results. A cancellation is still flagged when it shows up |
+
+Coordinates count as unchanged within a millionth of a degree (~10 cm). Eventbrite sends the same
+point with float noise from call to call (51.463368, then 51.46336799999999), which otherwise made
+a third of its events "update" every night.
 
 ## Not repeating data
 
