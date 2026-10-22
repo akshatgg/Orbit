@@ -166,7 +166,7 @@ export function sortResults(ranked: RankedEvent[], sort: SearchFilters["sort"], 
   return [...ranked].sort((a, b) => open(a) - open(b) || byStart(a, b));
 }
 
-/** Soonest upcoming events (for the browse view). */
+/** Soonest upcoming events (the home feed's fallback when nothing ranks). */
 export async function listHappeningSoon(viewer: Viewer, now: Date, limit = 6): Promise<RankedEvent[]> {
   const events = await listCandidates({ to: new Date(now.getTime() + 14 * DAY), now, limit: 40 });
   // Explore shows everything, including events you've booked (marked on the card); only For You hides them.
@@ -176,33 +176,69 @@ export async function listHappeningSoon(viewer: Viewer, now: Date, limit = 6): P
   return sortResults(ranked, "date", now).slice(0, limit);
 }
 
+/** Rows one PostgREST request returns at most (`max_rows`); longer lists are read in ranges. */
+const MAX_ROWS = 1000;
+const MAX_RANGES = 20;
+
+/** Light columns of every published, not-ended event, soonest first, however many there are. */
+async function upcomingRows<T>(columns: string, now: Date, { inPerson = false } = {}): Promise<T[]> {
+  const supabase = await createClient();
+  const rows: T[] = [];
+  for (let range = 0; range < MAX_RANGES; range++) {
+    let q = supabase
+      .from("events")
+      .select(columns)
+      .eq("status", "published")
+      .is("duplicate_of", null)
+      .or(notEndedFilter(now));
+    if (inPerson) q = q.neq("format", "online");
+    const { data, error } = await q
+      .order("starts_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(range * MAX_ROWS, (range + 1) * MAX_ROWS - 1);
+    if (error) throw error;
+    rows.push(...((data ?? []) as unknown as T[]));
+    if ((data ?? []).length < MAX_ROWS) break;
+  }
+  return rows;
+}
+
+export const EXPLORE_PAGE_SIZE = 24;
+
+export type UpcomingPage = { results: RankedEvent[]; total: number; page: number; pageCount: number };
+
+/** Every upcoming event, soonest first, one page at a time (a series counts once, at its next date). */
+export async function listUpcomingPage(viewer: Viewer, now: Date, page: number): Promise<UpcomingPage> {
+  const rows = nextOfEachSeries(await upcomingRows<{ id: string; series_key: string | null; starts_at: string }>("id, series_key, starts_at", now));
+  const pageCount = Math.max(1, Math.ceil(rows.length / EXPLORE_PAGE_SIZE));
+  const current = Math.min(Math.max(1, page), pageCount);
+  const ids = rows.slice((current - 1) * EXPLORE_PAGE_SIZE, current * EXPLORE_PAGE_SIZE).map((r) => r.id);
+  if (!ids.length) return { results: [], total: rows.length, page: current, pageCount };
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("events").select(DISCOVERY_SELECT).in("id", ids);
+  if (error) throw error;
+  const events = (await withCounts((data ?? []) as unknown as DiscoveryEvent[])) as DiscoveryEvent[];
+  const ranked = rankEvents(events, viewer.profile, {
+    followedOrganiserIds: viewer.followedOrganiserIds, state: viewer.state, now,
+  }, { keepPersonal: true });
+  return { results: sortResults(ranked, "date", now), total: rows.length, page: current, pageCount };
+}
+
 /** Upcoming event counts per category id (for the browse view). */
 export async function countUpcomingByCategory(now: Date): Promise<Map<string, number>> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("events")
-    .select("id, category_id, series_key")
-    .eq("status", "published")
-    .is("duplicate_of", null)
-    .or(notEndedFilter(now))
-    .limit(2000);
-  return countEventsByCategory((data ?? []) as { id: string; category_id: string | null; series_key: string | null }[]);
+  const rows = await upcomingRows<{ id: string; category_id: string | null; series_key: string | null }>("id, category_id, series_key", now)
+    .catch(() => []);
+  return countEventsByCategory(rows);
 }
 
 /** Places upcoming in-person events are in, as country → city lists (Location filter, header search). */
 export const listUpcomingPlaces = cache(async (): Promise<PlaceGroup[]> => {
   await connection(); // per request: the time below must not be baked into a prerender
-  const supabase = await createClient();
-  const now = new Date();
-  const { data } = await supabase
-    .from("events")
-    .select("id, city, country, series_key")
-    .eq("status", "published")
-    .is("duplicate_of", null)
-    .neq("format", "online")
-    .or(notEndedFilter(now))
-    .limit(2000);
-  return groupPlaces((data ?? []) as { id: string; city: string | null; country: string | null; series_key: string | null }[]);
+  // Every page's nav reads this: a failed read leaves the place lists empty rather than the page broken.
+  const rows = await upcomingRows<{ id: string; city: string | null; country: string | null; series_key: string | null }>(
+    "id, city, country, series_key", new Date(), { inPerson: true },
+  ).catch(() => []);
+  return groupPlaces(rows);
 });
 
 // ─── Calendar ───────────────────────────────────────────────────────────────

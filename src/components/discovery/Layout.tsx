@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { ButtonLink } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 /**
@@ -54,6 +55,18 @@ export function SectionHeading({ id, eyebrow, title, count, action }: {
       </div>
       {action}
     </div>
+  );
+}
+
+/** Previous / next links under a paged list, with where you are in it. */
+export function Pager({ page, pageCount, hrefFor }: { page: number; pageCount: number; hrefFor: (page: number) => string }) {
+  if (pageCount <= 1) return null;
+  return (
+    <nav aria-label="Pages" className="mt-8 flex items-center justify-between gap-3 px-4">
+      {page > 1 ? <ButtonLink href={hrefFor(page - 1)} variant="secondary" size="sm">Previous</ButtonLink> : <span />}
+      <span className="text-xs tabular-nums text-muted">Page {page} of {pageCount}</span>
+      {page < pageCount ? <ButtonLink href={hrefFor(page + 1)} variant="secondary" size="sm">Next</ButtonLink> : <span />}
+    </nav>
   );
 }
 
