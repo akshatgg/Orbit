@@ -6,11 +6,10 @@ import { deleteEvents, removeEvents, setEventsCategory } from "@/app/admin/event
 import { Badge, VerifiedMark } from "@/components/ui/Badge";
 import { buttonClass } from "@/components/ui/Button";
 import { EVENT_STATUS, sourceLabel, type Tone } from "@/lib/admin/labels";
-import { shortSeriesLabel } from "@/lib/events/series";
 import type { EventStatus, RegistrationMode } from "@/types/database";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EventMenu } from "./EventActions";
-import { IconEyeOff, IconStar, IconFlag, IconTrash } from "./icons";
+import { IconChevronDown, IconEyeOff, IconStar, IconFlag, IconTrash } from "./icons";
 import { table } from "./primitives";
 import { toast } from "./Toaster";
 
@@ -32,9 +31,41 @@ export type EventTableRow = {
   pending: number;
   organiserId: string | null;
   sourceUrl: string | null;
-  /** How a recurring event repeats ("Every week on Saturday until …"); each date is its own row. */
+  /** Dates of one recurring series share it; the table shows them as one block. */
+  seriesKey: string | null;
   seriesLabel: string | null;
+  /** "Mon" — UK time, like `when`. */
+  weekday: string;
 };
+
+type Block = { kind: "event"; row: EventTableRow } | { kind: "series"; key: string; rows: EventTableRow[] };
+
+/** Rows in order, with every series on the page folded into one block where its first date sits. */
+function toBlocks(rows: EventTableRow[]): Block[] {
+  const bySeries = new Map<string, EventTableRow[]>();
+  for (const r of rows) if (r.seriesKey) bySeries.set(r.seriesKey, [...(bySeries.get(r.seriesKey) ?? []), r]);
+  const blocks: Block[] = [];
+  const placed = new Set<string>();
+  for (const r of rows) {
+    const dates = r.seriesKey ? bySeries.get(r.seriesKey)! : [];
+    if (dates.length < 2) blocks.push({ kind: "event", row: r });
+    else if (!placed.has(r.seriesKey!)) {
+      placed.add(r.seriesKey!);
+      blocks.push({ kind: "series", key: r.seriesKey!, rows: dates });
+    }
+  }
+  return blocks;
+}
+
+const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/** "Every week on Wednesday" (the source's words, end date dropped) or the weekdays it falls on. */
+function repeatSummary(rows: EventTableRow[]) {
+  const label = rows[0].seriesLabel?.replace(/\s+until\b.*$/i, "").trim();
+  if (label) return label;
+  const days = WEEK.filter((d) => rows.some((r) => r.weekday === d));
+  return `Every ${days.join(", ")}`;
+}
 
 const checkboxClass =
   "size-4 shrink-0 cursor-pointer rounded-[5px] border border-ink/25 bg-ink/[0.06] accent-orange transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -50,6 +81,8 @@ export function EventsTable({ rows, categories, sourceNames }: {
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"remove" | "delete" | null>(null);
   const [category, setCategory] = useState("");
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const blocks = useMemo(() => toBlocks(rows), [rows]);
   const [pending, startTransition] = useTransition();
   const allSelected = rows.length > 0 && selected.size === rows.length;
   const someSelected = selected.size > 0 && !allSelected;
@@ -62,6 +95,28 @@ export function EventsTable({ rows, categories, sourceNames }: {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }
+
+  /** Ticks or clears every date of a series at once. */
+  function toggleMany(seriesIds: string[]) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const all = seriesIds.every((id) => next.has(id));
+      for (const id of seriesIds) {
+        if (all) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleOpen(key: string) {
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
@@ -129,13 +184,13 @@ export function EventsTable({ rows, categories, sourceNames }: {
   }
 
 
-  function renderRow(e: EventTableRow) {
+  function renderRow(e: EventTableRow, nested: boolean) {
               const st: { label: string; tone: Tone } = EVENT_STATUS[e.status];
               const checked = selected.has(e.id);
               return (
                 <tr
                   key={e.id}
-                  className={`${table.tr} ${checked ? "bg-accent/[0.06]" : ""} ${e.status === "removed" ? "opacity-60" : ""}`}
+                  className={`${table.tr} ${checked ? "bg-accent/[0.06]" : ""} ${e.status === "removed" ? "opacity-60" : ""} ${nested ? "bg-ink/[0.02]" : ""}`}
                 >
                   <td className={`${table.td} w-10 pr-0`}>
                     <input
@@ -146,11 +201,10 @@ export function EventsTable({ rows, categories, sourceNames }: {
                       aria-label={`Select ${e.title}`}
                     />
                   </td>
-                  <td className={`${table.td} min-w-52 max-w-80`}>
+                  <td className={`${table.td} min-w-52 max-w-80 ${nested ? "pl-8" : ""}`}>
                     <Link href={`/events/${e.id}`} target="_blank" className="line-clamp-1 font-medium transition-colors hover:text-accent">{e.title}</Link>
                     <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-subtle">
                       {e.category ?? "No category"}
-                      {shortSeriesLabel(e.seriesLabel) && <span className="line-clamp-1">· {shortSeriesLabel(e.seriesLabel)}</span>}
                       {e.featured && <Badge tone="brand"><IconStar size={11} /> Featured</Badge>}
                       {e.needsReview && <Badge tone="warning"><IconFlag size={11} /> Needs review</Badge>}
                     </span>
@@ -279,7 +333,71 @@ export function EventsTable({ rows, categories, sourceNames }: {
             </tr>
           </thead>
           <tbody>
-            {rows.map((e) => renderRow(e))}
+            {blocks.map((block) => {
+              if (block.kind === "event") return renderRow(block.row, false);
+              const ids = block.rows.map((r) => r.id);
+              const ticked = ids.filter((id) => selected.has(id)).length;
+              const expanded = open.has(block.key);
+              const first = block.rows[0];
+              const statuses = new Set(block.rows.map((r) => r.status));
+              const st: { label: string; tone: Tone } | null = statuses.size === 1 ? EVENT_STATUS[first.status] : null;
+              return [
+                <tr key={block.key} className={`${table.tr} ${ticked === ids.length ? "bg-accent/[0.06]" : ""}`}>
+                  <td className={`${table.td} w-10 pr-0`}>
+                    <input
+                      ref={(el) => { if (el) el.indeterminate = ticked > 0 && ticked < ids.length; }}
+                      type="checkbox"
+                      className={checkboxClass}
+                      checked={ticked === ids.length}
+                      onChange={() => toggleMany(ids)}
+                      aria-label={`Select all ${ids.length} dates of ${first.title}`}
+                    />
+                  </td>
+                  <td className={`${table.td} min-w-52 max-w-80`}>
+                    <Link href={`/events/${first.id}`} target="_blank" className="line-clamp-1 font-medium transition-colors hover:text-accent">{first.title}</Link>
+                    <span className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-subtle">
+                      <button
+                        type="button"
+                        onClick={() => toggleOpen(block.key)}
+                        aria-expanded={expanded}
+                        aria-label={`${expanded ? "Hide" : "Show"} all ${ids.length} dates of ${first.title}`}
+                        className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent transition-colors hover:bg-accent/20"
+                      >
+                        {ids.length} dates
+                        <IconChevronDown size={12} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+                      </button>
+                      <span className="line-clamp-1">{repeatSummary(block.rows)}</span>
+                      {block.rows.some((r) => r.needsReview) && <Badge tone="warning"><IconFlag size={11} /> Needs review</Badge>}
+                    </span>
+                  </td>
+                  <td className={`${table.td} whitespace-nowrap text-muted tabular-nums`}>
+                    {first.when}
+                    <span className="block text-xs text-subtle">+{ids.length - 1} more</span>
+                  </td>
+                  <td className={table.td}>
+                    {first.organiser ? <span className="line-clamp-1">{first.organiser.name}</span> : <span className="text-muted">—</span>}
+                  </td>
+                  <td className={`${table.td} text-muted`}>{sourceLabel(first.source, sourceNames)}</td>
+                  <td className={table.td}>{st ? <Badge tone={st.tone}>{st.label}</Badge> : <Badge>Mixed</Badge>}</td>
+                  <td className={`${table.td} text-right text-xs text-muted`}>
+                    {first.registrationMode === "tickets" ? block.rows.reduce((n, r) => n + r.going, 0) : first.registrationMode === "external" ? "external" : "info"}
+                  </td>
+                  <td className={`${table.td} text-right`}>
+                    <button
+                      type="button"
+                      onClick={() => toggleOpen(block.key)}
+                      aria-expanded={expanded}
+                      aria-label={`${expanded ? "Hide" : "Show"} all ${ids.length} dates`}
+                      title={`${expanded ? "Hide" : "Show"} all ${ids.length} dates`}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition-colors hover:bg-ink/[0.08] hover:text-fg aria-expanded:bg-ink/[0.08] aria-expanded:text-fg"
+                    >
+                      <IconChevronDown size={18} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+                    </button>
+                  </td>
+                </tr>,
+                ...(expanded ? block.rows.map((r) => renderRow(r, true)) : []),
+              ];
+            })}
           </tbody>
         </table>
       </div>
