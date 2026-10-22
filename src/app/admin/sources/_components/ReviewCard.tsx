@@ -5,7 +5,7 @@ import type { ActionState } from "../actions";
 import { ActionButton } from "./ActionButton";
 
 const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
 
 function Side({ heading, event, label }: { heading: string; event: ReviewEvent | null; label: (s: string) => string }) {
   if (!event) {

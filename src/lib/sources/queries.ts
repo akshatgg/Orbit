@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { EventSource, SourceEventDetails, SourceRun } from "./types";
 import { IMPORTED_KINDS, sourceIdFromKey, sourceKey, type ImportedKind } from "./types";
+import { daysAway } from "./review";
 
 // Admin screens read through the signed-in admin's client, so RLS still applies.
 
@@ -154,28 +155,108 @@ async function withOriginals(events: ReviewEvent[]) {
   return new Map(((data ?? []) as unknown as ReviewEvent[]).map((e) => [e.id, e]));
 }
 
-export async function listReviewQueue({ limit = 100 }: { limit?: number } = {}) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select(REVIEW_EVENT_SELECT)
-    .eq("needs_review", true)
-    .order("starts_at", { ascending: true })
-    .limit(limit);
-  if (error) throw new Error(error.message);
-  const events = (data ?? []) as unknown as ReviewEvent[];
-  const originals = await withOriginals(events);
-  const { byId } = await sourceLabels();
+// ─── Review dashboard ──────────────────────────────────────────────────────
 
-  return events.map<ReviewItem>((event) => {
-    if (event.duplicate_of) return { event, original: originals.get(event.duplicate_of) ?? null, reason: "duplicate" };
+export type ReviewCounts = { missing: number; duplicates: number; hidden: number };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** How many events wait in each part of the review dashboard. */
+export async function reviewCounts(): Promise<ReviewCounts> {
+  const supabase = await createClient();
+  const head = () => supabase.from("events").select("id", { count: "exact", head: true });
+  const [missing, duplicates, hidden] = await Promise.all([
+    head().eq("needs_review", true).is("duplicate_of", null),
+    head().eq("needs_review", true).not("duplicate_of", "is", null),
+    head().eq("needs_review", false).not("duplicate_of", "is", null).gte("starts_at", new Date(Date.now() - DAY_MS).toISOString()),
+  ]);
+  return { missing: missing.count ?? 0, duplicates: duplicates.count ?? 0, hidden: hidden.count ?? 0 };
+}
+
+export type MissingItem = { event: ReviewEvent; reason: "missing" | "flagged"; daysAway: number; sourceName: string };
+
+/**
+ * Events flagged for review that aren't duplicates (missing from their feed, or flagged another
+ * way), soonest first, a page at a time; optionally one source's. `sources` counts them per source
+ * for the filter.
+ */
+export async function listMissingReview({ page = 1, pageSize = 50, sourceId = null }: {
+  page?: number; pageSize?: number; sourceId?: string | null;
+} = {}) {
+  const supabase = await createClient();
+  let query = supabase
+    .from("events")
+    .select(REVIEW_EVENT_SELECT, { count: "exact" })
+    .eq("needs_review", true)
+    .is("duplicate_of", null);
+  if (sourceId) query = query.eq("source", sourceKey(sourceId));
+  const from = (page - 1) * pageSize;
+  const [{ data, error, count }, keys, { byId }] = await Promise.all([
+    query.order("starts_at", { ascending: true }).order("id").range(from, from + pageSize - 1),
+    flaggedSourceKeys(),
+    sourceLabels(),
+  ]);
+  if (error) throw new Error(error.message);
+  const now = new Date();
+  const items = ((data ?? []) as unknown as ReviewEvent[]).map<MissingItem>((event) => {
     // A source event that the latest successful run didn't verify has gone missing (or was cancelled upstream).
     const source = byId.get(sourceIdFromKey(event.source) ?? "");
     const missing =
-      source?.last_run_at && source.last_status === "ok" &&
+      !!source?.last_run_at && source.last_status === "ok" &&
       new Date(event.last_verified_at).getTime() < new Date(source.last_run_at).getTime() - 60 * 60 * 1000;
-    return { event, original: null, reason: missing ? "missing" : "flagged" };
+    return {
+      event, reason: missing ? "missing" : "flagged", daysAway: daysAway(event.starts_at, now),
+      sourceName: source?.name ?? (sourceIdFromKey(event.source) ? "Deleted source" : event.source),
+    };
   });
+
+  const perSource = new Map<string, number>();
+  for (const key of keys) perSource.set(key, (perSource.get(key) ?? 0) + 1);
+  const sources = [...perSource]
+    .map(([key, n]) => {
+      const id = sourceIdFromKey(key);
+      return { id, name: id ? (byId.get(id)?.name ?? "Deleted source") : key, count: n };
+    })
+    .filter((s): s is { id: string; name: string; count: number } => !!s.id)
+    .sort((a, b) => b.count - a.count);
+  return { items, total: count ?? 0, sources };
+}
+
+/** The `source` of every non-duplicate event waiting for review (for per-source counts). */
+async function flaggedSourceKeys() {
+  const supabase = await createClient();
+  const keys: string[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from("events")
+      .select("source")
+      .eq("needs_review", true)
+      .is("duplicate_of", null)
+      .order("id")
+      .range(from, from + 999);
+    if (error) throw new Error(error.message);
+    keys.push(...((data ?? []) as { source: string }[]).map((r) => r.source));
+    if ((data ?? []).length < 1000) return keys;
+  }
+}
+
+/** Possible duplicates waiting for a decision, each with the event it may duplicate; a page at a time. */
+export async function listDuplicateReview({ page = 1, pageSize = 20 }: { page?: number; pageSize?: number } = {}) {
+  const supabase = await createClient();
+  const from = (page - 1) * pageSize;
+  const { data, error, count } = await supabase
+    .from("events")
+    .select(REVIEW_EVENT_SELECT, { count: "exact" })
+    .eq("needs_review", true)
+    .not("duplicate_of", "is", null)
+    .order("starts_at", { ascending: true })
+    .order("id")
+    .range(from, from + pageSize - 1);
+  if (error) throw new Error(error.message);
+  const events = (data ?? []) as unknown as ReviewEvent[];
+  const originals = await withOriginals(events);
+  const items = events.map<ReviewItem>((event) => ({ event, original: originals.get(event.duplicate_of!) ?? null, reason: "duplicate" }));
+  return { items, total: count ?? 0 };
 }
 
 /** Duplicates that an admin chose to keep hidden (resolved, but still reversible). */

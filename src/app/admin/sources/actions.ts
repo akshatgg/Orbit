@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
 import { importRemoteImage } from "@/lib/sources/cloudinary-import";
 import { importedDetailsSchema } from "@/lib/sources/details-schema";
+import { parseIdList } from "@/lib/sources/review";
 import { detectDuplicates, runSource } from "@/lib/sources/engine";
 import { DEFAULT_ATTRIBUTION, resolveFeedUrl } from "@/lib/sources/platforms";
 import { IMPORTED_KINDS as IMPORTED_SOURCE_KINDS, SOURCE_KINDS, sourceIdFromKey, sourceKey } from "@/lib/sources/types";
@@ -197,6 +198,28 @@ export async function resolveReview(_prev: ActionState, formData: FormData): Pro
     ok: true,
     message: { not_duplicate: "Marked as not a duplicate — it's visible again.", keep_hidden: "Kept hidden as a duplicate.", reviewed: "Marked reviewed." }[decision],
   };
+}
+
+/**
+ * "Mark reviewed" for many events at once (the review dashboard's selection). Only clears events
+ * that still wait for review and aren't duplicates: a duplicate needs its own decision.
+ */
+export async function markReviewedBulk(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const ids = parseIdList(formData.get("ids"));
+  if (!ids) return { ok: false, error: "Pick at least one event (up to 500 at a time)." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("events")
+    .update({ needs_review: false })
+    .in("id", ids)
+    .eq("needs_review", true)
+    .is("duplicate_of", null)
+    .select("id");
+  if (error) return { ok: false, error: error.message };
+  const n = data?.length ?? 0;
+  revalidatePath(PATH, "layout");
+  return { ok: true, message: `Marked ${n} event${n === 1 ? "" : "s"} reviewed.` };
 }
 
 const IMPORTED_KINDS = new Set<string>(IMPORTED_SOURCE_KINDS);
