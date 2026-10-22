@@ -107,7 +107,7 @@ export type NormalizedEvent = {
 /**
  * How much of a listing a fetch read, so the sync only calls an event "missing" when it could have
  * been seen: everything (the default), everything starting before `until` (a soonest-first list cut
- * off at the cap), or a "sample" (a relevance-ranked search, where events come and go).
+ * off at the cap), or a "sample" (a search or listing, where events come and go; see ADD_ONLY_KINDS).
  */
 export type ListingCoverage = "complete" | "sample" | { until: string };
 

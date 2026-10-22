@@ -132,9 +132,21 @@ function resolveMeetupSearch(input: string): FeedUrlResult {
       error: "Paste a Meetup event link (…/events/123/) or a search link (…/find/?location=…).",
     };
   }
-  // A find URL without `location` is fine: Meetup's page supplies its default coordinates,
-  // which the connector reads from __NEXT_DATA__.
+  if (isFind && meetupFindMissingLocation(url.toString())) return { ok: false, error: MEETUP_LOCATION_ERROR };
   return finalCheck(url.toString());
+}
+
+export const MEETUP_LOCATION_ERROR =
+  "Add a city to this Meetup search link: pick a location on Meetup, then copy the link again. It should contain &location=…, e.g. https://www.meetup.com/find/?categoryId=546&source=EVENTS&location=gb--London";
+
+/**
+ * A Meetup find link without `location`: Meetup then centres the search on wherever the request
+ * comes from, so the same link returns Europe one night and India the next.
+ */
+export function meetupFindMissingLocation(input: string): boolean {
+  const url = parseLoose(input);
+  if (!url || !/^\/find\/?$/.test(url.pathname)) return false;
+  return !url.searchParams.get("location")?.trim();
 }
 
 // ─── Eventbrite ───────────────────────────────────────────────────────────

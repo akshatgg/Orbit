@@ -48,7 +48,7 @@ const URL_COPY: Record<SourceKind, { label: string; hint: string; placeholder: s
   },
   "meetup-search": {
     label: "Meetup link",
-    hint: "A single event link imports one event; a find page (…/find/?categoryId=…) imports every matching event. Without a location parameter, Meetup’s default location is used.",
+    hint: "A single event link imports one event; a find page imports the matching events near its city, so pick a location on Meetup first (…/find/?categoryId=…&location=gb--London).",
     placeholder: "https://www.meetup.com/find/?location=…",
   },
   eventbrite: {

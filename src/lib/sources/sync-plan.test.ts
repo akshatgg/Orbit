@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { EXTERNAL_LABELS, SKIPPED_FIELDS, buildInsertRow, changedFields, planSync, provenanceUrl, syncedFields, type ExistingSourceEvent } from "./sync-plan";
+import {
+  ADD_ONLY_KINDS, EXTERNAL_LABELS, SKIPPED_FIELDS, buildInsertRow, changedFields, planSync, provenanceUrl, syncedFields,
+  type ExistingSourceEvent,
+} from "./sync-plan";
 
 import type { NormalizedEvent } from "./types";
 
@@ -370,5 +373,12 @@ describe("planSync: recurring series", () => {
     const relabelled = { ...temp, seriesLabel: "Every week on Wednesday until January 14, 2027" };
     const plan = planSync([existingFrom(temp)], [relabelled], { now: NOW, feedUrl: FEED, previousRunStartedAt });
     expect(plan.updates[0].patch).toEqual({ series_label: relabelled.seriesLabel });
+  });
+});
+
+describe("add-only kinds", () => {
+  it("covers the platform searches and listings, not full calendars", () => {
+    expect([...ADD_ONLY_KINDS].sort()).toEqual(["eventbrite", "fatsoma", "luma-discover", "meetup-search"]);
+    for (const kind of ["ical", "luma", "meetup"] as const) expect(ADD_ONLY_KINDS.has(kind)).toBe(false);
   });
 });

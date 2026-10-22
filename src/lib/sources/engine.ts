@@ -10,7 +10,7 @@ import { ENRICH_BUDGET_MS, RUN_ENRICH_DEADLINE_MS, type EnrichRunState } from ".
 import { certainDuplicate, findDuplicates, pairKey, type DuplicateCandidate } from "./duplicates";
 import { withInterests } from "./interests";
 import { groupRepeats } from "./repeats";
-import { EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
+import { ADD_ONLY_KINDS, EXISTING_EVENT_SELECT, SKIPPED_FIELDS, buildInsertRow, planSync, type ExistingSourceEvent } from "./sync-plan";
 import { sourceKey, type EventSource, type InterestHint, type NormalizedEvent, type RefreshSummary, type RunError, type RunSummary, type RunTrigger } from "./types";
 
 // Trusted server code only: callers must have checked CRON_SECRET or requireAdmin() first.
@@ -154,7 +154,9 @@ export async function runSource(
       db.from("events").select(EXISTING_EVENT_SELECT).eq("source", key).order("id").range(from, to),
     );
     const plan = planSync(existing, fetched.events, {
-      now, feedUrl: source.url, previousRunStartedAt, skip: SKIPPED_FIELDS[source.kind], coverage: fetched.coverage,
+      now, feedUrl: source.url, previousRunStartedAt, skip: SKIPPED_FIELDS[source.kind],
+      // A search or listing only adds and updates: events that drop out of it are still on the platform.
+      coverage: ADD_ONLY_KINDS.has(source.kind) ? "sample" : fetched.coverage,
     });
     const verifiedAt = now.toISOString();
 
