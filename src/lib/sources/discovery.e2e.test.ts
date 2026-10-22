@@ -110,21 +110,15 @@ describe.skipIf(!enabled)("discovery sources end to end", () => {
     expect(await countEvents(db, meetupSearchId)).toBe(before);
   }, 180_000);
 
-  it("imports a Meetup find link with no location parameter", async () => {
+  it("refuses a Meetup find link with no location", async () => {
     const db = client();
     const id = await ensureSource(db, "meetup-search", MEETUP_NO_LOCATION, "Meetup no-location (e2e)");
-    await db.from("event_sources").update({ enabled: false }).in("kind", ["luma-discover", "meetup-search"]).neq("id", id);
-    await db.from("event_sources").update({ enabled: true }).eq("id", id);
-
     const result = await runSource(id, { trigger: "manual" });
-    expect(result.status).toBe("ok");
-    expect(result.found).toBeGreaterThan(0);
-    expect(await countEvents(db, id)).toBeGreaterThan(0);
-
-    // Clean up this one-off source and its rows.
-    await db.from("events").delete().eq("source", `source:${id}`);
+    expect(result.status).toBe("error");
+    expect(result.errors.map((e) => e.message).join(" ")).toMatch(/Add a city to this Meetup search link/);
+    expect(await countEvents(db, id)).toBe(0);
     await db.from("event_sources").delete().eq("id", id);
-  }, 90_000);
+  }, 30_000);
 
   it("imports a single Luma event link with its venue, city and coordinates", async () => {
     const db = client();

@@ -19,7 +19,9 @@ import {
 } from "./meetup-search";
 import { parseMeetupLinkedEvent } from "./meetup-page";
 import { withSeriesDates } from "./meetup-series";
-import { cleanEvent, eventbriteLink, fatsomaLink, lumaDiscoverSlug, lumaNearSlug } from "./platforms";
+import {
+  MEETUP_LOCATION_ERROR, cleanEvent, eventbriteLink, fatsomaLink, lumaDiscoverSlug, lumaNearSlug, meetupFindMissingLocation,
+} from "./platforms";
 import type { ConnectorResult, ListingCoverage, NormalizedEvent, RunError, SourceConnector, SourceKind } from "./types";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -98,6 +100,7 @@ async function lumaCategoryEvents(category: LumaCategory, near: string | null): 
 const meetupSearchConnector: SourceConnector = {
   kind: "meetup-search",
   async fetchEvents(source, { now }) {
+    if (meetupFindMissingLocation(source.url)) throw new Error(MEETUP_LOCATION_ERROR);
     const html = await fetchHtml(source.url);
     const args = parseMeetupFindPage(html);
     if (!args) {

@@ -84,6 +84,13 @@ export const SKIPPED_FIELDS: Partial<Record<SourceKind, readonly (keyof SyncedFi
   eventbrite: ["description"],
 };
 
+/**
+ * Kinds that read a platform's search or listing rather than a full calendar. Events drop out of
+ * those lists all the time while their pages stay up, so a run only adds and updates: it never
+ * flags an event as missing (a cancellation the platform reports is still flagged).
+ */
+export const ADD_ONLY_KINDS: ReadonlySet<SourceKind> = new Set(["luma-discover", "meetup-search", "eventbrite", "fatsoma"]);
+
 /** Public provenance link: the event's own page, else the feed's site (never the full feed URL,
  *  which can contain a private token). */
 export function provenanceUrl(event: Pick<NormalizedEvent, "url">, feedUrl: string) {

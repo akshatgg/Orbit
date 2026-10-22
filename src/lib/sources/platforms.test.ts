@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseIcal } from "./ical";
 import {
-  cleanEvent, eventbriteLink, fatsomaLink, isPlatformHostedImage, lumaNearSlug, lumaPageUrl, platformImage, resolveFeedUrl,
+  MEETUP_LOCATION_ERROR, cleanEvent, eventbriteLink, fatsomaLink, meetupFindMissingLocation, isPlatformHostedImage, lumaNearSlug, lumaPageUrl, platformImage, resolveFeedUrl,
 } from "./platforms";
 
 const fixture = (name: string) => readFileSync(fileURLToPath(new URL(`./__fixtures__/${name}`, import.meta.url)), "utf8");
@@ -87,19 +87,26 @@ describe("resolveFeedUrl — discovery", () => {
     }
   });
 
-  it("accepts a find link with or without a location, or a single event link", () => {
+  it("accepts a find link with a location, or a single event link", () => {
     expect(resolveFeedUrl("meetup-search", "https://www.meetup.com/find/?location=in--Bengaluru&source=EVENTS&categoryId=652")).toEqual({
       ok: true,
       url: "https://www.meetup.com/find/?location=in--Bengaluru&source=EVENTS&categoryId=652",
-    });
-    expect(resolveFeedUrl("meetup-search", "https://www.meetup.com/find/?categoryId=652&source=EVENTS")).toEqual({
-      ok: true,
-      url: "https://www.meetup.com/find/?categoryId=652&source=EVENTS",
     });
     expect(resolveFeedUrl("meetup-search", "https://www.meetup.com/london-software-craftsmanship/events/317008447/")).toEqual({
       ok: true,
       url: "https://www.meetup.com/london-software-craftsmanship/events/317008447/",
     });
+  });
+
+  it("asks for a city on a find link without one (Meetup would search near whoever fetches it)", () => {
+    for (const input of [
+      "https://www.meetup.com/find/?categoryId=652&source=EVENTS",
+      "https://www.meetup.com/find/?categoryId=571&source=EVENTS&distance=anyDistance&location=",
+    ]) {
+      expect(resolveFeedUrl("meetup-search", input), input).toEqual({ ok: false, error: MEETUP_LOCATION_ERROR });
+    }
+    expect(meetupFindMissingLocation("https://www.meetup.com/find/?categoryId=571&location=gb--London")).toBe(false);
+    expect(meetupFindMissingLocation("https://www.meetup.com/london-software-craftsmanship/events/317008447/")).toBe(false);
   });
 
   it("rejects non-event/non-find Meetup links", () => {
