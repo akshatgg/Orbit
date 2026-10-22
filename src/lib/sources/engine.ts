@@ -211,6 +211,11 @@ export async function runSource(
       else summary.flaggedMissing += ids.length;
     }
 
+    for (const ids of chunks(plan.unflagged)) {
+      const { error } = await db.from("events").update({ needs_review: false }).in("id", ids).eq("source", key).is("duplicate_of", null);
+      if (error) errors.push({ message: `Couldn't clear review flags: ${error.message}` });
+    }
+
     const hints = new Map(fetched.events.map((e) => [e.sourceEventId, e.interestHints ?? []]));
     await tagInterests(db, key, errors, { sourceTags: source.default_tags, hints });
     await fillCovers(db, key, fetched.events, errors);
