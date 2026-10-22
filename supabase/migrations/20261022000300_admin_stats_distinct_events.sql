@@ -1,6 +1,6 @@
 -- Upcoming events on the admin overview count each event once: a recurring series is one event
 -- however many dates it has, and a duplicate copy from a second source isn't counted. The number
--- of dates is reported separately (upcoming_dates).
+-- of dates is reported separately (upcoming_dates, dates_this_week).
 create or replace function public.admin_stats()
 returns jsonb language plpgsql stable security definer set search_path = '' as $$
 declare
@@ -24,6 +24,9 @@ begin
                             where status = 'published' and duplicate_of is null
                               and coalesce(ends_at, starts_at) >= now()),
     'events_this_week',   (select count(distinct coalesce(series_key, id::text)) from public.events
+                            where status = 'published' and duplicate_of is null and starts_at >= now()
+                              and starts_at < now() + interval '7 days'),
+    'dates_this_week',    (select count(*) from public.events
                             where status = 'published' and duplicate_of is null and starts_at >= now()
                               and starts_at < now() + interval '7 days'),
     'needs_review',       (select count(*) from public.events

@@ -12,6 +12,7 @@ export type AdminStats = {
   /** Every upcoming date of those events. */
   upcoming_dates: number;
   events_this_week: number;
+  dates_this_week: number;
   needs_review: number;
   registrations: number;
   registrations_7d: number;
@@ -20,7 +21,7 @@ export type AdminStats = {
 
 export const EMPTY_STATS: AdminStats = {
   users: 0, onboarded: 0, verified_students: 0, signups_7d: 0, organisers_pending: 0,
-  organisers_approved: 0, upcoming_events: 0, upcoming_dates: 0, events_this_week: 0, needs_review: 0,
+  organisers_approved: 0, upcoming_events: 0, upcoming_dates: 0, events_this_week: 0, dates_this_week: 0, needs_review: 0,
   registrations: 0, registrations_7d: 0, check_ins: 0,
 };
 

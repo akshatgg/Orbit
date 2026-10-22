@@ -100,7 +100,7 @@ async function Content() {
 
   return (
     <div className="space-y-5">
-      <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <KpiTile label="Users" value={compactNumber(s.users)} hint={`+${s.signups_7d} this week`} href="/admin/users" accent />
         <KpiTile label="Onboarded" value={`${percent(s.onboarded, s.users)}%`} hint={`${s.onboarded} of ${s.users} users`} />
         <KpiTile label="Verified students" value={compactNumber(s.verified_students)} hint={`${percent(s.verified_students, s.users)}% of users`} href="/admin/users" />
@@ -111,9 +111,11 @@ async function Content() {
           href="/admin/organisers"
           alert={s.organisers_pending > 0}
         />
-        <KpiTile label="Upcoming events" value={compactNumber(s.upcoming_events)} hint={s.upcoming_dates ? `${compactNumber(s.upcoming_dates)} dates · not yet finished` : "Published, not yet finished"} href="/admin/events" accent />
-        <KpiTile label="Events this week" value={s.events_this_week} hint="Starting in the next 7 days" href="/admin/events?when=upcoming" />
         <KpiTile label="Registrations" value={compactNumber(s.registrations)} hint={`${s.registrations_7d} in the last 7 days`} />
+        <KpiTile label="Upcoming events" value={compactNumber(s.upcoming_events)} hint="Different events, a series once" href="/admin/events" accent />
+        <KpiTile label="Upcoming dates" value={compactNumber(s.upcoming_dates)} hint="Every date, not yet finished" href="/admin/events" />
+        <KpiTile label="Events this week" value={s.events_this_week} hint="Starting in the next 7 days" href="/admin/events?when=upcoming" />
+        <KpiTile label="Dates this week" value={s.dates_this_week} hint="Every date in the next 7 days" href="/admin/events?when=upcoming" />
         <KpiTile label="Check-ins" value={compactNumber(s.check_ins)} hint={`${percent(s.check_ins, s.registrations)}% of registrations`} />
       </section>
 
