@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getCurrentUser, getMyOrganisers, getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { hasHostGoal, landingPath } from "./flow";
@@ -51,15 +52,18 @@ async function writeProfile(input: unknown, mode: Mode, extra: { onboarded_at?: 
 }
 
 /**
- * /onboarding: saves the profile answers and marks onboarding done. Returns where to go next
- * (Studio for hosts, otherwise the safe `next` path or For You); the wizard decides whether the
- * organisation step comes first.
+ * /onboarding: saves the profile answers and marks onboarding done. Hosts stay in the wizard (the
+ * organisation step comes next); everyone else is sent on from here (the safe `next` path or For
+ * You). Redirecting in the action matters: a refreshed session cookie re-renders /onboarding, which
+ * now counts them as onboarded and would otherwise bounce them to Preferences.
  */
 export async function completeOnboarding(input: unknown, next?: string | null): Promise<SaveProfileResult & { landing?: string }> {
   const result = await writeProfile(input, "onboarding", { onboarded_at: new Date().toISOString() });
   if (!result.ok) return result;
   const goals = (input as { goals?: string[] }).goals ?? [];
-  return { ...result, landing: landingPath(goals, next) };
+  const landing = landingPath(goals, next);
+  if (!hasHostGoal(goals)) redirect(landing);
+  return { ...result, landing };
 }
 
 /** /profile/preferences: saves edits without touching onboarding state. */

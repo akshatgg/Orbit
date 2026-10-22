@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { orbitLoaderMetrics, type OrbitLoaderSize } from "./orbit-loader-sizes";
+import { OrbitLogo } from "@/components/brand/OrbitLogo";
 
 const RINGS = [
   { scale: 1.0, cls: "loader-spin-1", color: "rgb(190 178 255 / 0.9)", width: 1.5, dot: true },
@@ -58,7 +58,7 @@ export function OrbitLoader({ size = "md", fullscreen = false, label = "Loading"
             ))}
           </div>
           <div className="loader-breathe relative">
-            <Image src="/brand/orbit-mark.png" alt="" width={mark} height={mark} priority className="drop-shadow-[0_10px_24px_rgb(0_0_0/0.55)]" />
+            <OrbitLogo size={mark} priority className="drop-shadow-[0_10px_24px_rgb(0_0_0/0.55)]" />
           </div>
         </div>
 

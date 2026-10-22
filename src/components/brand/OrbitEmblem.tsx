@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { OrbitLogo } from "@/components/brand/OrbitLogo";
 
 const RINGS = [
   { inset: "2%", cls: "emblem-spin-1", color: "rgb(169 155 255 / 0.6)", width: 1.25, dot: true },
@@ -28,7 +28,7 @@ export function OrbitEmblem({ size = 132 }: { size?: number }) {
       </div>
 
       <div className="emblem-bob relative">
-        <Image src="/brand/orbit-mark.png" alt="" width={size} height={size} priority className="drop-shadow-[0_14px_28px_rgb(0_0_0/0.55)]" />
+        <OrbitLogo size={size} priority className="drop-shadow-[0_14px_28px_rgb(0_0_0/0.55)]" />
       </div>
 
       {/* floor glow */}

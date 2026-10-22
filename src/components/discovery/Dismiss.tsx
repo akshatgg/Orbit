@@ -67,7 +67,7 @@ export function DismissProvider({ children }: { children: ReactNode }) {
   return (
     <DismissContext.Provider value={{ hidden, dismiss }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto max-w-md px-4 lg:bottom-6 lg:left-64" role="status" aria-live="polite">
+      <div className="pointer-events-none fixed inset-x-0 bottom-24 z-30 mx-auto max-w-md px-4 md:bottom-6" role="status" aria-live="polite">
         {toast && (
           <div className="glass-strong pointer-events-auto flex items-center gap-3 rounded-[20px] py-2.5 pl-4 pr-2.5 text-sm">
             <p className="min-w-0 flex-1 truncate text-muted">
