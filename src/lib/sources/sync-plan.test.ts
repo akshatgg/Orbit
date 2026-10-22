@@ -304,6 +304,42 @@ describe("planSync: listing coverage", () => {
   });
 });
 
+describe("planSync: events missing on their own day", () => {
+  // NOW is Fri 16 Oct 2026, 13:00 in London (BST).
+  const at = (id: string, startsAt: string, over: Partial<ExistingSourceEvent> = {}) =>
+    existingFrom(incoming(id, { startsAt, endsAt: null }), over);
+  const run = (existing: ExistingSourceEvent[], incomingEvents: NormalizedEvent[] = []) =>
+    planSync(existing, incomingEvents, { now: NOW, feedUrl: FEED, previousRunStartedAt });
+
+  it("doesn't flag an event that drops out on its own day (registration closed)", () => {
+    const tonight = at("tonight", "2026-10-16T21:30:00.000Z"); // 22:30 London
+    expect(run([tonight]).flagged).toEqual([]);
+  });
+
+  it("still flags a missing event on a later day, by the event's own time zone", () => {
+    const pastMidnight = at("late", "2026-10-16T23:30:00.000Z"); // 00:30 on the 17th in London
+    const nextWeek = at("next", "2026-10-23T18:00:00.000Z");
+    expect(run([pastMidnight, nextWeek]).flagged.map((f) => f.id)).toEqual([pastMidnight.id, nextWeek.id]);
+    const newYork = at("ny", "2026-10-16T23:30:00.000Z", { timezone: "America/New_York" }); // 19:30 on the 16th there
+    expect(run([newYork]).flagged).toEqual([]);
+  });
+
+  it("clears an earlier missing flag once the event's day arrives", () => {
+    const flaggedYesterday = at("old", "2026-10-16T19:00:00.000Z", { needs_review: true });
+    const plan = run([flaggedYesterday]);
+    expect(plan.unflagged).toEqual([flaggedYesterday.id]);
+    expect(plan.flagged).toEqual([]);
+  });
+
+  it("keeps a cancellation reported today, and never touches a duplicate", () => {
+    const cancelled = at("gone", "2026-10-16T19:00:00.000Z");
+    const plan = run([cancelled], [incoming("gone", { startsAt: "2026-10-16T19:00:00.000Z", endsAt: null, cancelled: true })]);
+    expect(plan.flagged).toEqual([{ id: cancelled.id, reason: "cancelled" }]);
+    const duplicate = at("dup", "2026-10-16T19:00:00.000Z", { needs_review: true, duplicate_of: "other" });
+    expect(run([duplicate]).unflagged).toEqual([]);
+  });
+});
+
 describe("planSync: recurring series", () => {
   const series = { seriesKey: "meetup:group:weekly referral", seriesLabel: "Every week on Wednesday" };
   const temp = incoming("event_fbrkztyjcpbgb@meetup.com", { ...series, startsAt: "2026-11-04T11:30:00.000Z", endsAt: "2026-11-04T12:30:00.000Z" });

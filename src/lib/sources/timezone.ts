@@ -51,3 +51,16 @@ export function zonedTimeToUtc(
   if (wall - offsetAt(second, tz) === second) return new Date(second);
   return new Date(Math.max(first, second)); // inside a DST gap
 }
+
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/** The calendar day ("2026-10-22") an instant falls on in `tz` (London when `tz` isn't valid). */
+export function localDay(ms: number, tz: string): string {
+  const zone = isValidTimezone(tz) ? tz : DEFAULT_TIMEZONE;
+  let f = dayFormatters.get(zone);
+  if (!f) {
+    f = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" });
+    dayFormatters.set(zone, f);
+  }
+  return f.format(new Date(ms));
+}
