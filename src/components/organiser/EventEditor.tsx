@@ -221,7 +221,7 @@ export function EventEditor({ organiser, categories, initial, eventId: initialId
 
       {/* Same column as the page (main layout: max-w-3xl / lg:max-w-6xl with px), and from lg up it starts
           after the 16rem sidebar instead of running under it. */}
-      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-20 pb-[max(env(safe-area-inset-bottom),0.75rem)] lg:left-64">
+      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-20 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
         <div className="mx-auto max-w-3xl px-3 md:px-6 lg:max-w-6xl lg:px-10">
           <div className="glass-strong pointer-events-auto space-y-2 rounded-[24px] p-2.5">
             {notice && (

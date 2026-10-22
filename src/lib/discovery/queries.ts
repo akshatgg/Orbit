@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { connection } from "next/server";
 import type { Category, Profile, RegistrationStatus } from "@/types/database";
 import {
   EVENT_CARD_SELECT, getMyEventState, withCounts, type EventWithCounts, type MyEventState,
@@ -188,9 +189,11 @@ export async function countUpcomingByCategory(now: Date): Promise<Map<string, nu
   return countEventsByCategory((data ?? []) as { id: string; category_id: string | null; series_key: string | null }[]);
 }
 
-/** Places upcoming in-person events are in, as country → city lists (for the Location filter). */
-export async function listUpcomingPlaces(now: Date): Promise<PlaceGroup[]> {
+/** Places upcoming in-person events are in, as country → city lists (Location filter, header search). */
+export const listUpcomingPlaces = cache(async (): Promise<PlaceGroup[]> => {
+  await connection(); // per request: the time below must not be baked into a prerender
   const supabase = await createClient();
+  const now = new Date();
   const { data } = await supabase
     .from("events")
     .select("id, city, country, series_key")
@@ -200,7 +203,7 @@ export async function listUpcomingPlaces(now: Date): Promise<PlaceGroup[]> {
     .or(notEndedFilter(now))
     .limit(2000);
   return groupPlaces((data ?? []) as { id: string; city: string | null; country: string | null; series_key: string | null }[]);
-}
+});
 
 // ─── Calendar ───────────────────────────────────────────────────────────────
 

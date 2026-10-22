@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useCollapsibleSidebar } from "@/components/nav/sidebar";
 import { SidebarIcon } from "@/components/nav/SidebarIcon";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { OrbitLogo } from "@/components/brand/OrbitLogo";
 import {
   IconArrowLeft, IconBadge, IconCalendar, IconGrid, IconMenu, IconRss, IconTag, IconUpload, IconUsers, IconX,
 } from "./icons";
@@ -37,7 +37,7 @@ function Brand({ onClick, expanded = true }: { onClick?: () => void; expanded?: 
         expanded ? "px-1" : "justify-center"
       }`}
     >
-      <Image src="/brand/orbit-mark.png" alt="" width={28} height={28} className="shrink-0" />
+      <OrbitLogo size={28} className="shrink-0" />
       {expanded && (
         <>
           <span className="whitespace-nowrap text-[13px] font-semibold tracking-[0.2em]">ORBIT</span>

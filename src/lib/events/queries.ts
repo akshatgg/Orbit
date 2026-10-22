@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 /** Columns every event list needs. Use with `.select(EVENT_CARD_SELECT)`. */
 export const EVENT_CARD_SELECT = `
-  id, title, summary, cover_url, starts_at, ends_at, timezone, format, venue_name, address, city, tags,
+  id, title, summary, cover_url, starts_at, ends_at, timezone, format, venue_name, address, city, country, tags,
   university, registration_mode, external_url, external_label, requires_approval, capacity,
   registration_deadline, price_min, price_max, currency, status, is_featured, organiser_id,
   category_id, source, source_url, published_at, created_at, series_key, series_label,
@@ -15,7 +15,7 @@ export const EVENT_CARD_SELECT = `
 export type EventCardData = Pick<
   OrbitEvent,
   | "id" | "title" | "summary" | "cover_url" | "starts_at" | "ends_at" | "timezone" | "format"
-  | "venue_name" | "address" | "city" | "tags" | "university" | "registration_mode" | "external_url"
+  | "venue_name" | "address" | "city" | "country" | "tags" | "university" | "registration_mode" | "external_url"
   | "external_label" | "requires_approval" | "capacity" | "registration_deadline" | "price_min"
   | "price_max" | "currency" | "status" | "is_featured" | "organiser_id" | "category_id" | "source"
   | "source_url" | "published_at" | "created_at" | "series_key" | "series_label"
