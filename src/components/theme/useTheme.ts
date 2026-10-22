@@ -14,12 +14,12 @@ const listeners = new Set<() => void>();
 function subscribe(onChange: () => void) {
   listeners.add(onChange);
   window.addEventListener("storage", onChange);
-  const mq = window.matchMedia("(prefers-color-scheme: dark)");
-  mq.addEventListener("change", onChange);
+  // The pre-paint script fires this when automatic switches between day and night.
+  window.addEventListener("orbit-theme", onChange);
   return () => {
     listeners.delete(onChange);
     window.removeEventListener("storage", onChange);
-    mq.removeEventListener("change", onChange);
+    window.removeEventListener("orbit-theme", onChange);
   };
 }
 
@@ -37,10 +37,10 @@ const serverResolved = (): ResolvedTheme => "dark";
 function readResolved(): ResolvedTheme {
   const attr = document.documentElement.getAttribute("data-theme");
   if (attr === "light" || attr === "dark") return attr;
-  return resolveTheme(readPreference(), window.matchMedia("(prefers-color-scheme: dark)").matches);
+  return resolveTheme(readPreference(), new Date().getHours());
 }
 
-/** Current theme preference ("system" | "light" | "dark"), what is on screen, and setters. */
+/** Current theme preference ("system" = automatic by time of day | "light" | "dark"), what is on screen, and setters. */
 export function useTheme() {
   const preference = useSyncExternalStore(subscribe, readPreference, serverPreference);
   const resolved = useSyncExternalStore(subscribe, readResolved, serverResolved);
@@ -49,7 +49,7 @@ export function useTheme() {
     if (window.__orbitTheme) window.__orbitTheme(next);
     else {
       try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch { /* storage unavailable */ }
-      document.documentElement.setAttribute("data-theme", resolveTheme(next, window.matchMedia("(prefers-color-scheme: dark)").matches));
+      document.documentElement.setAttribute("data-theme", resolveTheme(next, new Date().getHours()));
     }
     listeners.forEach((l) => l());
   }, []);

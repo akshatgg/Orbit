@@ -4,23 +4,23 @@ import { Skeleton } from "@/components/ui/Skeleton";
 /**
  * Header for the discovery screens. `brand` (For You, This Week, Calendar): on phones and tablets the
  * shared TopBar above already shows the logo, theme toggle and search, so only the page action (when
- * `mobileAction`) shows here; from lg up a normal page heading shows. Other screens keep a plain title.
+ * `mobileAction`) shows here; from md up (under the DesktopHeader) a normal page heading shows. Other screens keep a plain title.
  */
 export function DiscoveryHeader({ title, subtitle, action, brand = false, mobileAction = true }: {
   title: string; subtitle?: ReactNode; action?: ReactNode; brand?: boolean; mobileAction?: boolean;
 }) {
   if (brand) {
     return (
-      <header className="px-4 pt-4 lg:pb-4 lg:pt-[var(--page-top,2rem)]">
-        {action && mobileAction && <div className="-mb-1 flex justify-end lg:hidden">{action}</div>}
-        <div className="hidden items-start justify-between gap-3 lg:flex">
+      <header className="px-4 pt-4 md:pb-4 md:pt-[var(--page-top,2rem)]">
+        {action && mobileAction && <div className="-mb-1 flex justify-end md:hidden">{action}</div>}
+        <div className="hidden items-start justify-between gap-3 md:flex">
           <div className="min-w-0">
             <h1 className="text-4xl font-semibold leading-tight tracking-tight">{title}</h1>
             {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
           </div>
           {action}
         </div>
-        <h1 className="sr-only lg:hidden">{title}</h1>
+        <h1 className="sr-only md:hidden">{title}</h1>
       </header>
     );
   }
@@ -76,6 +76,7 @@ export function IconLink({ href, label, path, download }: { href: string; label:
 
 export const ICONS = {
   search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.3-4.3",
+  calendar: "M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z",
   sliders: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4",
   download: "M12 4v11m0 0-4-4m4 4 4-4M5 19h14",
   user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8a7 7 0 0 1 14 0",

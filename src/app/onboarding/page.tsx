@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser, getMyOrganisers, getProfile } from "@/lib/auth";
-import { initialGoals, safeNextPath } from "@/lib/profile/flow";
+import { hasHostGoal, initialGoals, safeNextPath } from "@/lib/profile/flow";
 import { draftFromProfile } from "@/lib/profile/schema";
 import { createClient } from "@/lib/supabase/server";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -29,8 +29,12 @@ async function Onboarding({ searchParams }: { searchParams: PageProps<"/onboardi
   if (!profile) redirect("/login");
 
   if (profile.onboarded_at) {
-    // Already set up. The "host" door sends people on to their organisation instead.
-    if (params.intent === "host") redirect((await getMyOrganisers()).length ? "/organiser" : "/organiser/apply");
+    // Already set up. Hosts go on to their organisation (or its application, if they haven't got one
+    // yet: also where a host lands if this re-renders just after the wizard saved), everyone else
+    // to their preferences.
+    if (params.intent === "host" || hasHostGoal(profile.goals)) {
+      redirect((await getMyOrganisers()).length ? "/organiser" : "/organiser/apply");
+    }
     redirect("/profile/preferences");
   }
 

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { Suspense } from "react";
 import type Stripe from "stripe";
 import { CheckoutMessage, CheckoutSuccess } from "@/components/payments/CheckoutResult";
@@ -11,6 +10,7 @@ import { fulfilCheckoutSession } from "@/lib/payments/fulfil";
 import { checkoutOutcome } from "@/lib/payments/logic";
 import { getStripe } from "@/lib/payments/stripe";
 import { createClient } from "@/lib/supabase/server";
+import { OrbitLogo } from "@/components/brand/OrbitLogo";
 
 export const metadata: Metadata = { title: "Payment", robots: { index: false, follow: false } };
 
@@ -20,7 +20,7 @@ export default function Page({ searchParams }: PageProps<"/checkout/success">) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-4 pb-16 pt-[max(env(safe-area-inset-top),1.5rem)]">
       <div className="flex justify-center py-4">
-        <Image src="/brand/orbit-mark.png" alt="ORBIT" width={40} height={40} />
+        <OrbitLogo size={40} alt="ORBIT" />
       </div>
       <Suspense
         fallback={

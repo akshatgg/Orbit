@@ -140,7 +140,10 @@ students and graduates (`src/lib/ranking`).
 ## Design: two themes
 
 `html[data-theme="dark"|"light"]`, set before paint by the inline script in `src/components/theme/theme.ts`
-(preference in `localStorage["orbit-theme"]`: system / light / dark). Dark is "Clear glass", light is "Daylight".
+(preference in `localStorage["orbit-theme"]`: system / light / dark; "system" is shown as **Auto**: light from
+7:00 to 19:00 on the device's clock, dark otherwise, switching by itself). Dark is "Clear glass", light is "Daylight".
+The logo is one image everywhere: `<OrbitLogo>` (`src/components/brand/OrbitLogo.tsx`, file `LOGO_SRC` in
+`src/lib/brand.ts`); its black centre is fully opaque so it never looks grey on the light theme.
 Typeface: Instrument Sans (`font-sans` and `font-display`).
 
 - Tokens (`globals.css`): `bg-bg`, `bg-surface`, `border-line`, `text-fg`, `text-muted`, `text-subtle`, `text-accent`

@@ -4,8 +4,8 @@ import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { RankedCard } from "@/components/discovery/Cards";
 import { EventRows } from "@/components/events/EventRow";
+import { EventTile } from "@/components/events/EventTile";
 import { CategoryRail } from "@/components/discovery/CategoryRail";
 import { FilterBar } from "@/components/discovery/FilterBar";
 import { ICONS, SearchSkeleton, SectionHeading } from "@/components/discovery/Layout";
@@ -45,7 +45,7 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
   const categories = (await listCategories()) as Category[];
   const now = new Date();
   const searching = isSearching(filters);
-  const [categoryCounts, places] = await Promise.all([countUpcomingByCategory(now), listUpcomingPlaces(now)]);
+  const [categoryCounts, places] = await Promise.all([countUpcomingByCategory(now), listUpcomingPlaces()]);
 
   return (
     <div className="space-y-6 lg:space-y-10">
@@ -122,7 +122,7 @@ async function Results({ filters, viewer, categories, now }: {
         ) : (
           <>
             <PhoneRows ranked={results} viewer={viewer} now={now} byDay={filters.sort === "date"} />
-            <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
+            <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-9 lg:grid-cols-4">
               {results.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
             </ul>
           </>
@@ -138,13 +138,10 @@ async function Results({ filters, viewer, categories, now }: {
 function ResultItem({ r, viewer }: { r: RankedEvent; viewer: Viewer }) {
   return (
     <li>
-      <RankedCard
+      <EventTile
         event={r.event}
-        counts={r.event.counts}
         saved={viewer.state.saved.has(r.event.id)}
         registration={viewer.state.registrations.get(r.event.id)}
-        reason={r.reason}
-        tile
       />
     </li>
   );
@@ -183,7 +180,7 @@ async function Browse({ viewer, now }: { viewer: Viewer; now: Date }) {
         ) : (
           <>
             <PhoneRows ranked={soon} viewer={viewer} now={now} byDay />
-            <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-4 lg:grid-cols-3">
+            <ul className="hidden px-4 md:grid md:grid-cols-2 md:gap-x-5 md:gap-y-9 lg:grid-cols-4">
               {soon.map((r) => <ResultItem key={r.event.id} r={r} viewer={viewer} />)}
             </ul>
           </>

@@ -35,6 +35,7 @@ function ev(over: Partial<RankableEvent> = {}): RankableEvent {
     venue_name: null,
     address: null,
     city: "London",
+    country: null,
     tags: [],
     university: null,
     registration_mode: "tickets",
