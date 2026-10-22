@@ -1,5 +1,5 @@
 // ORBIT service worker: offline fallback + push notifications.
-const CACHE = "orbit-v2";
+const CACHE = "orbit-v3";
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {
