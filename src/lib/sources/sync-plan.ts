@@ -7,7 +7,7 @@ import { normaliseCountry } from "@/lib/places";
 
 /** Columns of events that a sync reads for one source. */
 export const EXISTING_EVENT_SELECT =
-  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, city, country, latitude, longitude, registration_mode, external_url, source_url, series_key, series_label, status, needs_review, last_verified_at";
+  "id, source_event_id, title, summary, description, starts_at, ends_at, timezone, format, venue_name, address, city, country, latitude, longitude, registration_mode, external_url, source_url, series_key, series_label, status, needs_review, duplicate_of, last_verified_at";
 
 export type ExistingSourceEvent = {
   id: string;
@@ -32,6 +32,7 @@ export type ExistingSourceEvent = {
   series_label: string | null;
   status: string;
   needs_review: boolean;
+  duplicate_of: string | null;
   last_verified_at: string;
 };
 
@@ -185,6 +186,8 @@ export type SyncPlan = {
   unchanged: string[];
   /** Upcoming events no longer in the feed, or cancelled at the source → needs_review. */
   flagged: { id: string; reason: "missing" | "cancelled" }[];
+  /** Flagged events that no longer need a decision: back in the feed, or already started. */
+  unflagged: string[];
 };
 
 const LIVE_STATUSES = new Set(["published", "draft"]);
@@ -207,7 +210,7 @@ export function planSync(
     coverage?: ListingCoverage;
   },
 ): SyncPlan {
-  const plan: SyncPlan = { inserts: [], updates: [], unchanged: [], flagged: [] };
+  const plan: SyncPlan = { inserts: [], updates: [], unchanged: [], flagged: [], unflagged: [] };
   const byId = new Map(existing.filter((e) => e.source_event_id).map((e) => [e.source_event_id!, e]));
   const seenIds = new Set<string>();
   // A series date can change id upstream (Meetup gives unannounced dates a temporary id and a
@@ -248,10 +251,20 @@ export function planSync(
       plan.inserts.push(event);
       continue;
     }
+    // Flagged as missing or cancelled, but the source lists it again (as live): nothing to decide.
+    if (current.needs_review && !current.duplicate_of) plan.unflagged.push(current.id);
     const patch: SyncPlan["updates"][number]["patch"] = changedFields(current, syncedFields(event, feedUrl), skip);
     if (rekeyed) patch.source_event_id = event.sourceEventId;
     if (Object.keys(patch).length) plan.updates.push({ id: current.id, sourceEventId: event.sourceEventId, patch });
     else plan.unchanged.push(current.id);
+  }
+
+  // A flag on an event that has started is moot: there's nothing left to keep or take down.
+  const unflagged = new Set(plan.unflagged);
+  for (const e of existing) {
+    if (e.needs_review && !e.duplicate_of && !unflagged.has(e.id) && new Date(e.starts_at).getTime() <= now.getTime()) {
+      plan.unflagged.push(e.id);
+    }
   }
 
   if (coverage === "sample") return plan;

@@ -140,7 +140,9 @@ const meetupSearchConnector: SourceConnector = {
       })
       .slice(0, MEETUP_SEARCH_MAX_EVENTS);
 
-    return { events: await withSeriesDates(unique, { now, referer: source.url, errors }), errors } satisfies ConnectorResult;
+    // Meetup ranks search results by relevance and the list reshuffles daily: an event that drops
+    // out of it hasn't gone anywhere, so a search never flags events as missing.
+    return { events: await withSeriesDates(unique, { now, referer: source.url, errors }), errors, coverage: "sample" } satisfies ConnectorResult;
   },
 };
 

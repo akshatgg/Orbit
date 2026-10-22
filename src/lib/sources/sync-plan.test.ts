@@ -51,6 +51,7 @@ const existingFrom = (n: NormalizedEvent, over: Partial<ExistingSourceEvent> = {
     series_label: f.series_label,
     status: "published",
     needs_review: false,
+    duplicate_of: null,
     last_verified_at: "2026-10-15T03:00:00+00:00",
     ...over,
   };
@@ -163,6 +164,27 @@ describe("planSync", () => {
     const reviewedEarlier = existingFrom(incoming("b"), { last_verified_at: "2026-10-14T03:00:00+00:00" });
     const removed = existingFrom(incoming("c"), { status: "removed" });
     const plan = planSync([flagged, reviewedEarlier, removed], [], { now: NOW, feedUrl: FEED, previousRunStartedAt });
+    expect(plan.flagged).toEqual([]);
+  });
+
+  it("clears a flag when the event is back in the feed, or has started", () => {
+    const back = existingFrom(incoming("back"), { needs_review: true });
+    const stillCancelled = existingFrom(incoming("cancelled"), { needs_review: true });
+    const started = existingFrom(incoming("started", { startsAt: "2026-10-10T18:00:00.000Z", endsAt: null }), { needs_review: true });
+    const stillMissing = existingFrom(incoming("missing"), { needs_review: true });
+    const duplicate = existingFrom(incoming("dup"), { needs_review: true, duplicate_of: "orbit-1" });
+    const plan = planSync(
+      [back, stillCancelled, started, stillMissing, duplicate],
+      [incoming("back"), incoming("cancelled", { cancelled: true }), incoming("dup")],
+      { now: NOW, feedUrl: FEED, previousRunStartedAt },
+    );
+    expect(plan.unflagged.sort()).toEqual(["db-back", "db-started"]);
+    expect(plan.flagged).toEqual([]);
+  });
+
+  it("never flags events missing from a sample (a relevance-ranked search)", () => {
+    const gone = existingFrom(incoming("gone"));
+    const plan = planSync([gone], [], { now: NOW, feedUrl: FEED, previousRunStartedAt, coverage: "sample" });
     expect(plan.flagged).toEqual([]);
   });
 
