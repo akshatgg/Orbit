@@ -23,7 +23,11 @@ export const fatsomaSourceId = (id: string) => `fatsoma-${id}`;
 export const fatsomaPageLookupUrl = (vanity: string) =>
   `${FATSOMA_API}/pages?filter%5Bvanity-name%5D=${encodeURIComponent(vanity)}`;
 
-export type FatsomaFilter = { pageId: string } | { vanity: string } | { latLon: [number, number] };
+/** Whose events: an organiser page, one event, or a Discover search (near a point, in a category, or both). */
+export type FatsomaFilter =
+  | { pageId: string }
+  | { vanity: string }
+  | { latLon?: [number, number] | null; categoryId?: string | null };
 
 /**
  * One page of active events starting from now, soonest first. Filtering on the start (not the end)
@@ -33,7 +37,8 @@ export function fatsomaEventsUrl(filter: FatsomaFilter, page: number, now: Date)
   const url = new URL(`${FATSOMA_API}/events`);
   if ("pageId" in filter) url.searchParams.set("filter[page.id]", filter.pageId);
   if ("vanity" in filter) url.searchParams.set("filter[vanity-name]", filter.vanity);
-  if ("latLon" in filter) url.searchParams.set("filter[location.lat-lon]", filter.latLon.join(","));
+  if ("latLon" in filter && filter.latLon) url.searchParams.set("filter[location.lat-lon]", filter.latLon.join(","));
+  if ("categoryId" in filter && filter.categoryId) url.searchParams.set("filter[categories.id]", filter.categoryId);
   url.searchParams.set("filter[status]", "active");
   url.searchParams.set("filter[starts-at][gte]", now.toISOString().slice(0, 19));
   url.searchParams.set("include", "location,page,categories");

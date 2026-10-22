@@ -16,6 +16,8 @@ const LUMA_CATEGORY = "https://luma.com/tech?near=bengaluru";
 const MEETUP_SEARCH = "https://www.meetup.com/find/?location=in--Bengaluru&source=EVENTS";
 const MEETUP_NO_LOCATION = "https://www.meetup.com/find/?categoryId=652&source=EVENTS";
 const MEETUP_EVENT = "https://www.meetup.com/london-software-craftsmanship/events/317008447/";
+const FATSOMA_DISCOVER =
+  "https://www.fatsoma.com/discover?category-id=bcd84c45-a1cb-4658-b3f4-601fda4a1c6a&lat-lng=51.5072178%2C-0.1275862&location=London%2C%20UK";
 
 describe.skipIf(!enabled)("discovery sources end to end", () => {
   function client() {
@@ -175,4 +177,23 @@ describe.skipIf(!enabled)("discovery sources end to end", () => {
     expect(noCity.status).toBe("error");
     expect(noCity.errors.map((e) => e.message).join(" ")).toMatch(/Add the city to the link, e\.g\. https:\/\/luma\.com\/tech\?near=bengaluru/);
   }, 90_000);
+
+  it("imports a Fatsoma Discover search: one category near one place", async () => {
+    const db = client();
+    const id = await ensureSource(db, "fatsoma", FATSOMA_DISCOVER, "Fatsoma Sports & Fitness in London (e2e)");
+    const result = await runSource(id, { trigger: "manual" });
+    expect(result.status).toBe("ok");
+    expect(result.found).toBeGreaterThan(0);
+    const { data: events, error } = await db
+      .from("events")
+      .select("external_url, latitude, longitude")
+      .eq("source", `source:${id}`)
+      .limit(250);
+    if (error) throw error;
+    expect(events!.length).toBe(result.found);
+    expect(events!.every((e) => /^https:\/\/www\.fatsoma\.com\/e\//.test(e.external_url ?? ""))).toBe(true);
+    // Near London: every event with a map point is within about 100 km of it.
+    const located = events!.filter((e) => e.latitude !== null && e.longitude !== null);
+    expect(located.every((e) => Math.abs(Number(e.latitude) - 51.5) < 1 && Math.abs(Number(e.longitude) + 0.13) < 1.5)).toBe(true);
+  });
 });

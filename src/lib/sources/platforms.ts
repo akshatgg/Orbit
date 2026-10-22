@@ -193,16 +193,51 @@ function resolveEventbrite(input: string): FeedUrlResult {
 const FATSOMA_HOSTS = new Set(["fatsoma.com", "www.fatsoma.com"]);
 const FATSOMA_SLUG = /^[a-z0-9][a-z0-9_-]{0,99}$/i;
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export type FatsomaLink =
   | { type: "page"; vanity: string; url: string }
   | { type: "event"; vanity: string; url: string }
-  | { type: "city"; url: string };
+  | { type: "city"; url: string }
+  | { type: "discover"; categoryId: string | null; latLon: [number, number] | null; url: string };
 
-/** What a Fatsoma link points at: an organiser (/p/…), one event (/e/…) or a city (/l/gb/london). */
+/** "51.5072178,-0.1275862" → [lat, lon], or null when it isn't a point on the map. */
+function latLonParam(value: string | null): [number, number] | null {
+  const match = value?.trim().match(/^(-?\d{1,3}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)$/);
+  if (!match) return null;
+  const [lat, lon] = [Number(match[1]), Number(match[2])];
+  return Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? [lat, lon] : null;
+}
+
+/**
+ * The Discover page (/discover?category-id=…&lat-lng=…&location=London, UK): a category, a place,
+ * or both. Neither is just "everything on Fatsoma", which isn't a source.
+ */
+function fatsomaDiscover(url: URL): FatsomaLink | null {
+  const rawCategory = url.searchParams.get("category-id");
+  const rawLatLon = url.searchParams.get("lat-lng");
+  const categoryId = rawCategory && UUID.test(rawCategory) ? rawCategory.toLowerCase() : null;
+  const latLon = latLonParam(rawLatLon);
+  if ((rawCategory && !categoryId) || (rawLatLon && !latLon) || (!categoryId && !latLon)) return null;
+  const clean = new URL("https://www.fatsoma.com/discover");
+  if (categoryId) clean.searchParams.set("category-id", categoryId);
+  if (latLon) {
+    clean.searchParams.set("lat-lng", latLon.join(","));
+    const place = url.searchParams.get("location")?.trim().slice(0, 100);
+    if (place) clean.searchParams.set("location", place);
+  }
+  return { type: "discover", categoryId, latLon, url: clean.toString() };
+}
+
+/**
+ * What a Fatsoma link points at: an organiser (/p/…), one event (/e/…), a city (/l/gb/london) or a
+ * Discover search (/discover?category-id=…&lat-lng=…).
+ */
 export function fatsomaLink(input: string): FatsomaLink | null {
   const url = parseLoose(input);
   if (!url || !FATSOMA_HOSTS.has(url.hostname.toLowerCase())) return null;
   const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length === 1 && segments[0] === "discover") return fatsomaDiscover(url);
   const [section, first, second] = segments;
   if (!first || !FATSOMA_SLUG.test(first)) return null;
   if (section === "p" && segments.length <= 3) {
@@ -222,7 +257,8 @@ function resolveFatsoma(input: string): FeedUrlResult {
   if (!link) {
     return {
       ok: false,
-      error: "Paste a Fatsoma organiser page (…/p/name), event page (…/e/abc123/name) or city page (…/l/gb/london).",
+      error:
+        "Paste a Fatsoma organiser page (…/p/name), event page (…/e/abc123/name), city page (…/l/gb/london) or Discover page with a category or location picked (…/discover?category-id=…).",
     };
   }
   return finalCheck(link.url);
