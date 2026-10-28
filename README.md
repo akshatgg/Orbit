@@ -105,7 +105,7 @@ Push notifications on iPhone need iOS 16.4+ and the app opened from the home scr
 | Payments | Stripe Connect (Express, destination charges) |
 | Notifications | Web Push (VAPID) · email, both sent by the Orbit API |
 | Hosting | [Vercel](https://vercel.com) with daily cron jobs |
-| Testing | Vitest (275 tests) · ESLint · TypeScript strict |
+| Testing | Vitest · ESLint · TypeScript strict |
 
 ## Getting started
 
