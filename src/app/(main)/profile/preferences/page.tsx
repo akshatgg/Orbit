@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { requireProfile } from "@/lib/auth";
 import { draftFromProfile } from "@/lib/profile/schema";
-import { createClient } from "@/lib/supabase/server";
+import { listCategories } from "@/lib/events/queries";
 import { BackLink } from "@/components/nav/BackLink";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -28,9 +28,8 @@ export default function PreferencesPage() {
 
 async function Preferences() {
   const profile = await requireProfile();
-  const supabase = await createClient();
-  const { data } = await supabase.from("categories").select("slug, name, group").order("sort_order");
-  return <PreferencesForm initial={draftFromProfile(profile)} categories={(data ?? []) as CategoryOption[]} />;
+  const categories: CategoryOption[] = (await listCategories()).map(({ slug, name, group }) => ({ slug, name, group }));
+  return <PreferencesForm initial={draftFromProfile(profile)} categories={categories} />;
 }
 
 function PreferencesSkeleton() {

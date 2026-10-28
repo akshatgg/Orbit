@@ -1,14 +1,13 @@
 import { requireProfile } from "@/lib/auth";
 import { buildIcs } from "@/lib/calendar";
 import { formatEventLocation } from "@/lib/discovery/export";
-import { getViewer, listMyCalendar } from "@/lib/discovery/queries";
+import { listMyCalendar } from "@/lib/discovery/queries";
 
 /** Upcoming saved + registered events as an .ics file (opens in Apple / Google / Outlook). */
 export async function GET(request: Request) {
-  const profile = await requireProfile();
-  const viewer = await getViewer(profile);
+  await requireProfile();
   const now = new Date();
-  const entries = await listMyCalendar(viewer, { from: now });
+  const entries = await listMyCalendar({ from: now });
   const origin = new URL(request.url).origin;
 
   const ics = buildIcs(

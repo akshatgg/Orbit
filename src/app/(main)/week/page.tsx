@@ -38,7 +38,7 @@ async function Week() {
   const profile = await requireProfile();
   const viewer = await getViewer(profile);
   const now = new Date();
-  const ranked = await getRankedFeed(viewer, { days: 7, now });
+  const ranked = await getRankedFeed({ days: 7 });
   const today = dayKey(now);
 
   if (ranked.length === 0) {

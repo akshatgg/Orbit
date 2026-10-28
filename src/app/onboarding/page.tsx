@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, getMyOrganisers, getProfile } from "@/lib/auth";
 import { hasHostGoal, initialGoals, safeNextPath } from "@/lib/profile/flow";
 import { draftFromProfile } from "@/lib/profile/schema";
-import { createClient } from "@/lib/supabase/server";
+import { listCategories } from "@/lib/events/queries";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { OnboardingWizard } from "@/components/profile/OnboardingWizard";
 import type { CategoryOption } from "@/components/profile/ProfileSteps";
@@ -38,14 +38,13 @@ async function Onboarding({ searchParams }: { searchParams: PageProps<"/onboardi
     redirect("/profile/preferences");
   }
 
-  const supabase = await createClient();
-  const { data } = await supabase.from("categories").select("slug, name, group").order("sort_order");
+  const categories: CategoryOption[] = (await listCategories()).map(({ slug, name, group }) => ({ slug, name, group }));
   const draft = draftFromProfile(profile);
 
   return (
     <OnboardingWizard
       initial={{ ...draft, goals: initialGoals(params.intent, draft.goals) }}
-      categories={(data ?? []) as CategoryOption[]}
+      categories={categories}
       next={safeNextPath(params.next)}
       email={user.email ?? ""}
       university={profile.university ?? ""}

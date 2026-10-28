@@ -30,9 +30,9 @@ export default function Page({ searchParams }: PageProps<"/tickets">) {
 
 async function Content({ searchParams }: { searchParams: PageProps<"/tickets">["searchParams"] }) {
   // Signed in is enough: someone can register for a first event before finishing setup.
-  const user = await requireUser();
+  await requireUser();
   const { tab } = await searchParams;
-  const { upcoming, past } = splitTickets(await listMyTickets(user.id));
+  const { upcoming, past } = splitTickets(await listMyTickets());
   const showPast = tab === "past";
   const rows = showPast ? past : upcoming;
 

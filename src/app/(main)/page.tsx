@@ -27,7 +27,7 @@ async function Feed({ searchParams }: { searchParams: PageProps<"/">["searchPara
   const profile = await requireProfile();
   const viewer = await getViewer(profile);
   const now = new Date();
-  const ranked = await getRankedFeed(viewer, { days: HORIZON_DAYS, now });
+  const ranked = await getRankedFeed({ days: HORIZON_DAYS });
   const params = await searchParams;
   const { country, city } = parseSearchFilters(params);
   const noInterests =

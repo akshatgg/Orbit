@@ -2,22 +2,23 @@
 
 import { revalidatePath } from "next/cache";
 import type { InteractionKind, UserEventKind } from "@/types/database";
-import { getCurrentUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { api, ApiError } from "@/lib/api/client";
+import { apiMessage } from "@/lib/api/errors";
+import { authed, sessionToken } from "@/lib/api/session";
 
 type Result = { ok: true; on: boolean } | { ok: false; error: string };
 
+const NOT_FOUND = { "Event not found": "Event not found", "Organiser not found": "Organiser not found" };
+
 /** Turns a personal mark (saved / dismissed / external_registered / attended) on or off. */
 export async function setEventMark(eventId: string, kind: UserEventKind, on: boolean): Promise<Result> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "Sign in first" };
-  const supabase = await createClient();
-
-  const { error } = on
-    ? await supabase.from("user_events").upsert({ user_id: user.id, event_id: eventId, kind })
-    : await supabase.from("user_events").delete().match({ user_id: user.id, event_id: eventId, kind });
-  if (error) return { ok: false, error: error.message };
-
+  try {
+    const path = `/events/${encodeURIComponent(eventId)}/marks/${kind}`;
+    if (on) await authed.put(path);
+    else await authed.del(path);
+  } catch (error) {
+    return { ok: false, error: apiMessage(error, NOT_FOUND) };
+  }
   revalidatePath("/", "layout");
   return { ok: true, on };
 }
@@ -32,13 +33,13 @@ export async function dismissEvent(eventId: string, dismissed = true) {
 
 /** Follow / unfollow an organiser. */
 export async function setFollow(organiserId: string, follow: boolean): Promise<Result> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "Sign in first" };
-  const supabase = await createClient();
-  const { error } = follow
-    ? await supabase.from("follows").upsert({ user_id: user.id, organiser_id: organiserId })
-    : await supabase.from("follows").delete().match({ user_id: user.id, organiser_id: organiserId });
-  if (error) return { ok: false, error: error.message };
+  try {
+    const path = `/organisers/${encodeURIComponent(organiserId)}/follow`;
+    if (follow) await authed.put(path);
+    else await authed.del(path);
+  } catch (error) {
+    return { ok: false, error: apiMessage(error, NOT_FOUND) };
+  }
   revalidatePath("/", "layout");
   return { ok: true, on: follow };
 }
@@ -46,10 +47,10 @@ export async function setFollow(organiserId: string, follow: boolean): Promise<R
 /** Records a view / apply click / share / calendar add for organiser stats. Never throws. */
 export async function logInteraction(eventId: string, kind: InteractionKind) {
   try {
-    const user = await getCurrentUser();
-    const supabase = await createClient();
-    await supabase.from("event_interactions").insert({ event_id: eventId, kind, user_id: user?.id ?? null });
-  } catch {
+    const token = (await sessionToken()) ?? undefined;
+    await api.post(`/events/${encodeURIComponent(eventId)}/interactions`, { body: { kind }, token });
+  } catch (error) {
     // Analytics must never break the page.
+    if (!(error instanceof ApiError)) console.error("[interactions]", error);
   }
 }

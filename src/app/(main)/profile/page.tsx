@@ -121,8 +121,8 @@ async function HeroAndInterests() {
 }
 
 async function SavedSection() {
-  const profile = await requireProfile();
-  const { saved } = await getMyEventLists(profile.id);
+  await requireProfile();
+  const { saved } = await getMyEventLists();
   return (
     <>
       <SectionHeading title="Saved events" count={saved.length} />
@@ -132,8 +132,8 @@ async function SavedSection() {
 }
 
 async function FollowingSection() {
-  const profile = await requireProfile();
-  const organisers = await getFollowedOrganisers(profile.id);
+  await requireProfile();
+  const organisers = await getFollowedOrganisers();
   return (
     <>
       <SectionHeading title="Following" count={organisers.length} />
@@ -143,8 +143,8 @@ async function FollowingSection() {
 }
 
 async function PastSection() {
-  const profile = await requireProfile();
-  const { past } = await getMyEventLists(profile.id);
+  await requireProfile();
+  const { past } = await getMyEventLists();
   return (
     <>
       <SectionHeading title="Past events" count={past.length} />

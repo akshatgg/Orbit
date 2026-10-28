@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { Category } from "@/types/database";
 import { EventCover } from "@/components/events/EventCover";
 import { EventRows } from "@/components/events/EventRow";
 import { EventTile } from "@/components/events/EventTile";
@@ -8,7 +7,6 @@ import { ButtonLink } from "@/components/ui/Button";
 import { placeValue } from "@/lib/discovery/filter-bar";
 import { parseSearchFilters, placeLabel, searchHref, type SearchFilters } from "@/lib/discovery/filters";
 import { listHappeningSoon, listUpcomingPlaces, searchEvents, type RankedEvent, type Viewer } from "@/lib/discovery/queries";
-import { listCategories } from "@/lib/events/queries";
 import { cityVariants, placeOf } from "@/lib/places";
 import { DismissProvider } from "./Dismiss";
 import { CategoryIcons, PosterCarousel, posterPicks } from "./HomeSections";
@@ -52,7 +50,7 @@ export async function HomeFeed({ viewer, ranked, view, place, now, nudge }: {
 }) {
   const places = await listUpcomingPlaces();
   const state = viewer.state;
-  const picks = posterPicks(ranked.length ? ranked : await listHappeningSoon(viewer, now, 8));
+  const picks = posterPicks(ranked.length ? ranked : await listHappeningSoon(8));
 
   // The events for the chosen tab, soonest first.
   let items: RankedEvent[];
@@ -64,8 +62,7 @@ export async function HomeFeed({ viewer, ranked, view, place, now, nudge }: {
     const filters = parseSearchFilters({
       date: view === "all" ? undefined : view, country: place.country ?? undefined, city: place.city || undefined, sort: "date",
     });
-    const categories = (await listCategories()) as Pick<Category, "id" | "slug">[];
-    items = (await searchEvents(filters, viewer, categories, now)).results;
+    items = (await searchEvents(filters)).results;
     moreHref = searchHref(filters);
   }
   const byDate = [...items].sort((a, b) => Date.parse(a.event.starts_at) - Date.parse(b.event.starts_at));

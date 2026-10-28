@@ -18,6 +18,7 @@ import {
 } from "@/lib/discovery/queries";
 import { FILTER_KEYS } from "@/lib/discovery/filter-bar";
 import { listCategories } from "@/lib/events/queries";
+import { ALL_INTERESTS } from "@/lib/taxonomy";
 
 export const metadata: Metadata = { title: "Explore" };
 
@@ -47,7 +48,11 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
   const now = new Date();
   const searching = isSearching(filters);
   const [counts, places] = await Promise.all([getDiscoveryCounts(), listUpcomingPlaces()]);
-  const categoryCount = (id: string) => (counts.total === null ? undefined : counts.byCategory.get(id) ?? 0);
+  const categoryCount = (slug: string) => (counts.total === null ? undefined : counts.byCategory.get(slug) ?? 0);
+  // Interest counts only when every interest was counted (otherwise a missing one would read as 0).
+  const interestCounts = counts.total !== null && ALL_INTERESTS.every((i) => counts.byInterest.has(i.value))
+    ? Object.fromEntries(counts.byInterest)
+    : undefined;
 
   return (
     <div className="space-y-6 lg:space-y-10">
@@ -56,7 +61,7 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
         <CategoryRail
           filters={filters}
           total={counts.total}
-          categories={categories.map((c) => ({ value: c.slug, label: c.name, count: categoryCount(c.id) }))}
+          categories={categories.map((c) => ({ value: c.slug, label: c.name, count: categoryCount(c.slug) }))}
         />
         <FilterBar
           filters={filters}
@@ -64,14 +69,14 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
           categories={categories.map((c) => ({
             value: c.slug,
             label: c.name,
-            count: categoryCount(c.id),
+            count: categoryCount(c.slug),
           }))}
-          interestCounts={counts.total === null ? undefined : Object.fromEntries(counts.byInterest)}
+          interestCounts={interestCounts}
           places={places}
         />
       </div>
       {searching ? (
-        <Results filters={filters} viewer={viewer} categories={categories} now={now} />
+        <Results filters={filters} viewer={viewer} now={now} />
       ) : (
         <Browse viewer={viewer} now={now} page={Number(raw.page) || 1} />
       )}
@@ -106,10 +111,10 @@ function SearchBox({ filters }: { filters: SearchFilters }) {
   );
 }
 
-async function Results({ filters, viewer, categories, now }: {
-  filters: SearchFilters; viewer: Viewer; categories: Category[]; now: Date;
+async function Results({ filters, viewer, now }: {
+  filters: SearchFilters; viewer: Viewer; now: Date;
 }) {
-  const { results, truncated } = await searchEvents(filters, viewer, categories, now);
+  const { results, truncated } = await searchEvents(filters);
   return (
     <>
       <section aria-labelledby="results">
@@ -168,7 +173,7 @@ function PhoneRows({ ranked, viewer, now, byDay }: { ranked: RankedEvent[]; view
 
 /** No search or filter ("All events"): every upcoming event, soonest first, a page at a time. */
 async function Browse({ viewer, now, page }: { viewer: Viewer; now: Date; page: number }) {
-  const upcoming = await listUpcomingPage(viewer, now, page);
+  const upcoming = await listUpcomingPage(page);
   return (
     <section aria-labelledby="upcoming">
       <SectionHeading id="upcoming" eyebrow="Soonest first" title="All upcoming events" count={upcoming.total} />
