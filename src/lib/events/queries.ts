@@ -1,5 +1,6 @@
 import "server-only";
 import type { Category, OrbitEvent, Organiser, RegistrationStatus } from "@/types/database";
+import { api, ApiError } from "@/lib/api/client";
 import { createClient } from "@/lib/supabase/server";
 
 /** Columns every event list needs. Use with `.select(EVENT_CARD_SELECT)`. */
@@ -47,24 +48,19 @@ export async function withCounts(events: EventCardData[]): Promise<EventWithCoun
 
 /** Published events that haven't ended yet, soonest first. */
 export async function listUpcomingEvents({ limit = 100 }: { limit?: number } = {}) {
-  const supabase = await createClient();
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("events")
-    .select(EVENT_CARD_SELECT)
-    .eq("status", "published")
-    .is("duplicate_of", null)
-    .or(`ends_at.gte.${nowIso},and(ends_at.is.null,starts_at.gte.${nowIso})`)
-    .order("starts_at", { ascending: true })
-    .limit(limit);
-  if (error) throw error;
-  return (data ?? []) as unknown as EventCardData[];
+  const page = await api.get<{ items: EventCardData[] }>("/events/upcoming", {
+    query: { page_size: Math.min(limit, 100) },
+  });
+  return page.items;
 }
 
 export async function getEventCard(id: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("events").select(EVENT_CARD_SELECT).eq("id", id).maybeSingle();
-  return data as unknown as EventCardData | null;
+  try {
+    return await api.get<EventCardData>(`/events/${id}`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 export type MyEventState = {
@@ -104,7 +100,5 @@ export async function getMyEventState(userId: string | null | undefined, eventId
 }
 
 export async function listCategories() {
-  const supabase = await createClient();
-  const { data } = await supabase.from("categories").select("*").order("sort_order");
-  return data ?? [];
+  return api.get<Category[]>("/categories");
 }
