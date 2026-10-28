@@ -74,6 +74,23 @@ export const api = {
   patch: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: "PATCH" }),
   put: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: "PUT" }),
   del: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: "DELETE" }),
+
+  /**
+   * A read that must not take the page down.
+   *
+   * Returns `fallback` when the backend is unreachable or answers 5xx — an API
+   * restart should cost a section, not the whole route. A 4xx still throws:
+   * that is a bug in the call, and swallowing it would hide the bug.
+   */
+  getOr: async <T>(path: string, fallback: T, options?: RequestOptions): Promise<T> => {
+    try {
+      return await request<T>(path, { ...options, method: "GET" });
+    } catch (error) {
+      if (error instanceof ApiError && error.status !== 0 && error.status < 500) throw error;
+      console.warn(`[orbit-api] ${path} unavailable, using fallback:`, error instanceof Error ? error.message : error);
+      return fallback;
+    }
+  },
 };
 
 /** True when the backend URL is configured; lets unconfigured previews render. */
