@@ -103,6 +103,7 @@ export type Announcement = {
   created_at: string;
   author?: SocialUser | null;
   event_id?: string | null;
+  event_title?: string | null;
   event?: { id: string; title: string } | null;
 };
 

@@ -197,7 +197,7 @@ function Membership({ group }: { group: GroupDetail }) {
 }
 
 function AnnouncementItem({ announcement: a }: { announcement: Announcement }) {
-  const event = a.event ?? (a.event_id ? { id: a.event_id, title: "the event" } : null);
+  const event = a.event ?? (a.event_id ? { id: a.event_id, title: a.event_title ?? "See the event" } : null);
   return (
     <li className="glass rounded-[20px] p-4">
       <div className="flex items-center gap-2 text-xs text-muted">

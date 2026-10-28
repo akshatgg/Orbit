@@ -12,9 +12,9 @@ import { NotificationBell } from "@/components/social/NotificationBell";
 
 type NavLink = { href: string; label: string; match: (p: string) => boolean; className?: string };
 
-// Circles shows from lg and Communities from xl (the two pages link to each other); below that the
-// search keeps its room and both stay one tap away on the profile page. Messages is an icon with
-// its unread count, next to the bell.
+// Circles (which switches to Communities with one tap) shows from xl, where the search still keeps
+// its room; narrower, both are on the profile page. Messages and notifications are icons with their
+// unread counts at every width.
 const LINKS: readonly NavLink[] = [
   { href: "/search", label: "Explore", match: (p: string) => p.startsWith("/search") },
   { href: "/calendar", label: "Calendar", match: (p: string) => p.startsWith("/calendar") },
@@ -22,10 +22,9 @@ const LINKS: readonly NavLink[] = [
   {
     href: "/circles",
     label: "Circles",
-    match: (p: string) => p.startsWith("/circles") || p.startsWith("/join/circle"),
-    className: "hidden lg:inline-flex",
+    match: (p: string) => p.startsWith("/circles") || p.startsWith("/communities") || p.startsWith("/join/circle"),
+    className: "hidden xl:inline-flex",
   },
-  { href: "/communities", label: "Communities", match: (p: string) => p.startsWith("/communities"), className: "hidden xl:inline-flex" },
 ];
 
 const STUDIO: NavLink = { href: "/organiser", label: "Studio", match: (p: string) => p.startsWith("/organiser") };
@@ -43,8 +42,8 @@ function Icon({ path, className = "h-[18px] w-[18px]" }: { path: string; classNa
 
 /**
  * Tablet and laptop (md+) navigation: one bar across the top, like Eventbrite or Meetup. Logo on the
- * left, search with a place picker in the middle, then the main pages, Create event, the theme
- * toggle, messages, notifications and the profile. Phones keep their own top bar and tab bar.
+ * left, search with a place picker in the middle, then the main pages, Create event (an icon below
+ * xl), the theme toggle (lg+), messages, notifications and the profile. Phones keep their own top bar and tab bar.
  */
 export function DesktopHeader({ places, showStudio, createHref, avatar }: {
   places: PlaceGroup[];
@@ -76,7 +75,7 @@ export function DesktopHeader({ places, showStudio, createHref, avatar }: {
         })}
         <Link
           href={createHref}
-          className="bg-gradient ml-1.5 hidden rounded-full px-4 py-2 text-sm font-semibold text-bg transition duration-200 ease-out hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none lg:inline-flex"
+          className="bg-gradient ml-1.5 hidden rounded-full px-4 py-2 text-sm font-semibold text-bg transition duration-200 ease-out hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none xl:inline-flex"
         >
           Create event
         </Link>
@@ -84,11 +83,12 @@ export function DesktopHeader({ places, showStudio, createHref, avatar }: {
           href={createHref}
           aria-label="Create event"
           title="Create event"
-          className="bg-gradient ml-1 flex h-9 w-9 items-center justify-center rounded-full text-bg transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden"
+          className="bg-gradient ml-1 flex h-9 w-9 items-center justify-center rounded-full text-bg transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent xl:hidden"
         >
           <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
         </Link>
-        <ThemeToggle className="ml-1 h-9 w-9" />
+        {/* Below lg the bar is tight: the theme lives on the profile page (Appearance) there. */}
+        <ThemeToggle className="ml-1 hidden h-9 w-9 lg:flex" />
         <MessagesLink className="ml-0.5 h-9 w-9" active={pathname.startsWith("/messages")} />
         <NotificationBell placement="header" className="ml-0.5 h-9 w-9" />
         <Link
