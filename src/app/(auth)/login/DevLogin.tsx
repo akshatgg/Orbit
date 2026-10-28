@@ -2,46 +2,82 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
-// One-tap sign-in as a seeded demo account. Only rendered in local development
+import { buttonClass } from "@/components/ui/Button";
+import { inputClass } from "@/components/ui/Field";
+
+// Email + password sign-in against the Orbit API. Only rendered in local development
 // (NEXT_PUBLIC_DEV_LOGIN=1 lives in .env.development.local and is never set in production).
-const ACCOUNTS = [
-  { email: "student@imperial.ac.uk", label: "Student" },
-  { email: "newbie@orbit.test", label: "New user" },
-  { email: "organiser@orbit.test", label: "Organiser" },
-  { email: "pending@orbit.test", label: "Pending org" },
-  { email: "admin@orbit.test", label: "Admin" },
-  { email: "akshatg9536@gmail.com", label: "Super admin" },
-];
+// The API sets the session cookie; on localhost it is shared with the app.
+const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8090";
+
+function nextPath() {
+  const next = new URLSearchParams(window.location.search).get("next") ?? "/";
+  return next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/";
+}
 
 export function DevLogin() {
   const router = useRouter();
-  const [busy, setBusy] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function signIn(email: string) {
-    setBusy(email);
-    const { error } = await createClient().auth.signInWithPassword({ email, password: "password123" });
-    setBusy(null);
-    if (!error) router.replace(new URLSearchParams(window.location.search).get("next") ?? "/");
+  async function signIn(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+      if (res.ok) {
+        router.replace(nextPath());
+        router.refresh();
+        return;
+      }
+      setError(res.status === 401 ? "Wrong email or password" : "Couldn't sign in. Try again.");
+    } catch {
+      setError("Couldn't reach the Orbit API.");
+    }
+    setBusy(false);
   }
 
   return (
-    <div className="mt-6 w-full rounded-[22px] border border-dashed border-ink/15 bg-ink/[0.025] p-4">
-      <p className="mb-3 text-center font-display text-xs text-muted">Dev sign-in</p>
-      <div className="grid grid-cols-2 gap-2">
-        {ACCOUNTS.map((a) => (
-          <button
-            key={a.email}
-            onClick={() => signIn(a.email)}
-            disabled={busy !== null}
-            data-testid={`dev-login-${a.label.toLowerCase().replace(/\s+/g, "-")}`}
-            className="rounded-full border border-ink/10 bg-ink/[0.045] px-2 py-2 text-xs text-muted transition-colors hover:bg-ink/[0.08] hover:text-fg disabled:opacity-50"
-          >
-            {busy === a.email ? "…" : a.label}
-          </button>
-        ))}
-      </div>
-    </div>
+    <form onSubmit={signIn} className="mt-6 w-full space-y-2 rounded-[22px] border border-dashed border-ink/15 bg-ink/[0.025] p-4">
+      <p className="mb-1 text-center font-display text-xs text-muted">Dev sign-in</p>
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Email"
+        aria-label="Dev email"
+        data-testid="dev-login-email"
+        className={inputClass}
+      />
+      <input
+        type="password"
+        required
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        aria-label="Dev password"
+        data-testid="dev-login-password"
+        className={inputClass}
+      />
+      <button
+        type="submit"
+        disabled={busy}
+        data-testid="dev-login-submit"
+        className={buttonClass({ variant: "secondary", full: true })}
+      >
+        {busy ? "Signing in…" : "Sign in with password"}
+      </button>
+      {error && <p role="alert" className="text-center text-xs text-orange">{error}</p>}
+    </form>
   );
 }

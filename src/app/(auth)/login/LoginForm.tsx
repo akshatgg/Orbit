@@ -15,11 +15,13 @@ function nextPath() {
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [linkExpired, setLinkExpired] = useState(false);
+  const [signInError, setSignInError] = useState<"link" | "auth" | null>(null);
 
   useEffect(() => {
+    // The API sends a failed email link to ?error=link and a failed Google sign-in to ?error=auth.
+    const error = new URLSearchParams(window.location.search).get("error");
     // eslint-disable-next-line react-hooks/set-state-in-effect -- window.location is only readable on the client
-    setLinkExpired(new URLSearchParams(window.location.search).get("error") === "link");
+    setSignInError(error === "link" || error === "auth" ? error : null);
   }, []);
 
   function signInWithGoogle() {
@@ -45,9 +47,11 @@ export function LoginForm() {
 
   return (
     <div className="glass-strong mt-9 w-full space-y-4 rounded-[24px] p-5">
-      {linkExpired && (
+      {signInError && (
         <p role="alert" className="rounded-2xl border border-orange/25 bg-orange/10 px-4 py-3 text-center text-sm text-orange">
-          That login link has expired or was already used. Request a new one.
+          {signInError === "link"
+            ? "That login link has expired or was already used. Request a new one."
+            : "Google sign-in didn't finish. Try again."}
         </p>
       )}
       <button
