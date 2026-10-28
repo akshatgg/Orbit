@@ -23,9 +23,11 @@ export class ApiError extends Error {
   }
 }
 
-type Query = Record<string, string | number | boolean | undefined | null>;
+type QueryValue = string | number | boolean | undefined | null;
+/** Query parameters; an array repeats the key (`?tag=a&tag=b`). */
+export type Query = Record<string, QueryValue | readonly QueryValue[]>;
 
-type RequestOptions = Omit<RequestInit, "body"> & {
+export type RequestOptions = Omit<RequestInit, "body"> & {
   query?: Query;
   body?: unknown;
   /** Seconds to cache the response for. Omit for per-request freshness. */
@@ -34,38 +36,47 @@ type RequestOptions = Omit<RequestInit, "body"> & {
   token?: string;
 };
 
-async function request<T>(path: string, { query, body, revalidate, token, headers, ...init }: RequestOptions = {}): Promise<T> {
+async function send(path: string, { query, body, revalidate, token, headers, ...init }: RequestOptions = {}): Promise<Response> {
   const url = new URL(`${BACKEND_URL}${API_PREFIX}${path}`);
-  for (const [key, value] of Object.entries(query ?? {})) {
-    if (value !== undefined && value !== null && value !== "") {
-      url.searchParams.set(key, String(value));
+  for (const [key, raw] of Object.entries(query ?? {})) {
+    for (const value of Array.isArray(raw) ? raw : [raw]) {
+      if (value !== undefined && value !== null && value !== "") {
+        url.searchParams.append(key, String(value));
+      }
     }
   }
 
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
   let response: Response;
   try {
     response = await fetch(url, {
       ...init,
       headers: {
-        ...(body === undefined ? {} : { "content-type": "application/json" }),
+        ...(body === undefined || isForm ? {} : { "content-type": "application/json" }),
         ...(token ? { authorization: `Bearer ${token}` } : {}),
         ...headers,
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(12_000),
+      body: body === undefined ? undefined : isForm ? (body as FormData) : JSON.stringify(body),
+      signal: init.signal ?? AbortSignal.timeout(12_000),
+      redirect: init.redirect ?? "follow",
       ...(revalidate === undefined ? { cache: "no-store" } : { next: { revalidate } }),
     });
   } catch (cause) {
     throw new ApiError(0, `Cannot reach the Orbit API at ${BACKEND_URL}`, cause);
   }
 
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
-    throw new ApiError(response.status, payload?.detail ?? response.statusText, payload);
+  if (!response.ok && !(init.redirect === "manual" && response.status >= 300 && response.status < 400)) {
+    const payload = (await response.json().catch(() => null)) as { detail?: unknown } | null;
+    const detail = typeof payload?.detail === "string" ? payload.detail : response.statusText;
+    throw new ApiError(response.status, detail, payload);
   }
+  return response;
+}
 
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const response = await send(path, options);
+  const text = response.status === 204 ? "" : await response.text();
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 export const api = {
@@ -74,6 +85,8 @@ export const api = {
   patch: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: "PATCH" }),
   put: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: "PUT" }),
   del: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: "DELETE" }),
+  /** The raw response (files, redirects); throws `ApiError` like the others. */
+  raw: (path: string, options?: RequestOptions) => send(path, { method: "GET", ...options }),
 };
 
 /** True when the backend URL is configured; lets unconfigured previews render. */
