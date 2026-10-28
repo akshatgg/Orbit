@@ -9,8 +9,8 @@ import {
 import { IconCheck, IconExternal, IconEyeOff, IconPencil, IconPlay, IconPlus, IconTrash } from "@/components/admin/icons";
 import { MenuLink, MenuSeparator, RowMenu } from "@/components/admin/RowMenu";
 import {
-  eventCountsBySource, latestRunBySource, listDuplicateReview, listHiddenDuplicates, listImportedEvents, listMissingReview, listRecentRuns,
-  listSources, reviewCounts, sourceLabels, type SourceWithDefaults,
+  labelFrom, listDuplicateReview, listHiddenDuplicates, listImportedEvents, listMissingReview, listRecentRuns,
+  sourcesOverview, type SourceWithDefaults,
 } from "@/lib/sources/queries";
 import { startsInLabel } from "@/lib/sources/review";
 import { SOURCE_KIND_LABELS, type SourceRun } from "@/lib/sources/types";
@@ -39,7 +39,7 @@ const host = (url: string) => {
   }
 };
 
-const runSummary = (run: SourceRun | undefined) =>
+const runSummary = (run: SourceRun | null | undefined) =>
   run
     ? `${run.found} found · ${run.inserted} new · ${run.updated} updated · ${run.unchanged} same${run.flagged_missing ? ` · ${run.flagged_missing} flagged` : ""}${run.enriched ? ` · ${run.enriched} with details` : ""}`
     : "—";
@@ -101,7 +101,7 @@ function EventCount({ count }: { count: SourceEventCount | undefined }) {
   );
 }
 
-function FeedCard({ source, run, eventCount }: { source: SourceWithDefaults; run: SourceRun | undefined; eventCount: SourceEventCount | undefined }) {
+function FeedCard({ source, run, eventCount }: { source: SourceWithDefaults; run: SourceRun | null; eventCount: SourceEventCount | undefined }) {
   return (
     <article className="glass rounded-[20px] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -198,8 +198,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/admin/sou
   const page = Math.max(1, Math.floor(Number(one(sp.page)) || 1));
   const source = UUID.test(one(sp.source) ?? "") ? one(sp.source)! : null;
 
-  const sources = await listSources();
-  const [counts, eventCounts] = await Promise.all([reviewCounts(), eventCountsBySource(sources.map((s) => s.id))]);
+  const { sources, eventCounts, reviewCounts: counts } = await sourcesOverview();
   const enabled = sources.filter((s) => s.enabled).length;
   const totalEvents = [...eventCounts.values()].reduce((sum, c) => sum + c.events, 0);
   const lastRefresh = sources.map((s) => s.last_run_at).filter((v): v is string => !!v).sort().at(-1) ?? null;
@@ -255,7 +254,7 @@ function TabIntro({ children }: { children: React.ReactNode }) {
 
 // ─── Sources ───────────────────────────────────────────────────────────────
 
-async function SourcesTab({ sources, eventCounts }: {
+function SourcesTab({ sources, eventCounts }: {
   sources: SourceWithDefaults[]; eventCounts: Map<string, SourceEventCount>;
 }) {
   if (sources.length === 0) {
@@ -265,14 +264,13 @@ async function SourcesTab({ sources, eventCounts }: {
       </Empty>
     );
   }
-  const latest = await latestRunBySource(sources.map((s) => s.id));
   return (
     <>
       {/* Up to 2xl: cards. The table is only used when there is room for every column. */}
       <ul className="grid gap-3 lg:grid-cols-2 2xl:hidden">
         {sources.map((s) => (
           <li key={s.id}>
-            <FeedCard source={s} run={latest.get(s.id)} eventCount={eventCounts.get(s.id)} />
+            <FeedCard source={s} run={s.latest_run} eventCount={eventCounts.get(s.id)} />
           </li>
         ))}
       </ul>
@@ -301,7 +299,7 @@ async function SourcesTab({ sources, eventCounts }: {
                   {s.last_status && <div className="mt-1"><Badge tone={s.last_status === "ok" ? "success" : "danger"}>{s.last_status}</Badge></div>}
                 </td>
                 <td className={`${table.td} max-w-[18rem] text-xs text-muted`}>
-                  {runSummary(latest.get(s.id))}
+                  {runSummary(s.latest_run)}
                   {s.last_error && <p className="mt-1 max-w-xs break-words text-red-300">{s.last_error}</p>}
                 </td>
                 <td className={table.td}><EventCount count={eventCounts.get(s.id)} /></td>
@@ -399,7 +397,8 @@ async function MissingTab({ page, source }: { page: number; source: string | nul
 // ─── Possible duplicates ───────────────────────────────────────────────────
 
 async function DuplicatesTab({ page }: { page: number }) {
-  const [{ items, total }, { label }] = await Promise.all([listDuplicateReview({ page, pageSize: DUPLICATES_PAGE }), sourceLabels()]);
+  const { items, total } = await listDuplicateReview({ page, pageSize: DUPLICATES_PAGE });
+  const label = labelFrom(items.flatMap((i) => [i.event, i.original]));
   if (total === 0) {
     return <Empty title="No possible duplicates">Pairs with a close start and a similar title show up here. Exact matches are hidden automatically.</Empty>;
   }
@@ -425,7 +424,8 @@ async function DuplicatesTab({ page }: { page: number }) {
 // ─── Hidden duplicates ─────────────────────────────────────────────────────
 
 async function HiddenTab() {
-  const [hidden, { label }] = await Promise.all([listHiddenDuplicates({ limit: 200 }), sourceLabels()]);
+  const hidden = await listHiddenDuplicates({ limit: 200 });
+  const label = labelFrom(hidden.flatMap((h) => [h.event, h.original]));
   if (hidden.length === 0) {
     return <Empty title="No hidden duplicates">Duplicates you choose to keep hidden are listed here, so you can bring one back.</Empty>;
   }

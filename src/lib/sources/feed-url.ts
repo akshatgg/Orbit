@@ -1,8 +1,7 @@
-// Platform-specific handling for Luma, Meetup, Eventbrite and Fatsoma sources: feed URLs, feed
-// clean-up, page links.
+// What an admin pastes into the source form → the feed URL the Orbit API fetches
+// (Luma, Meetup, Eventbrite and Fatsoma links), plus each platform's default credit line.
 
-import { LIMITS, clamp, orNull } from "./text";
-import type { NormalizedEvent, SourceKind } from "./types";
+import type { SourceKind } from "./types";
 import { checkFeedUrl } from "./url-guard";
 
 export type FeedUrlResult = { ok: true; url: string } | { ok: false; error: string };
@@ -285,71 +284,4 @@ export function resolveFeedUrl(kind: SourceKind, input: string): FeedUrlResult {
   if (kind === "eventbrite") return resolveEventbrite(input);
   if (kind === "fatsoma") return resolveFatsoma(input);
   return finalCheck(input);
-}
-
-// Luma's feed DESCRIPTION is only a stub:
-//   "Get up-to-date information at: https://luma.com/<slug>\n\nAddress:\n…\n\nHosted by <host>"
-// or, for external entries (calev-…): "Find more information on https://luma.com/<calendar>".
-const LUMA_LINK = /https:\/\/(?:www\.)?(?:luma\.com|lu\.ma)\/[A-Za-z0-9_-]+/;
-const HOSTED_BY = /^Hosted by (.+)$/m;
-
-/** Platform tidy-up after parsing the feed. Other kinds pass through unchanged. */
-export function cleanEvent(kind: SourceKind, event: NormalizedEvent): NormalizedEvent {
-  if (kind !== "luma" && kind !== "luma-discover") return event;
-  const stub = event.description ?? "";
-  const host = stub.match(HOSTED_BY)?.[1]?.trim();
-  return {
-    ...event,
-    url: event.url ?? stub.match(LUMA_LINK)?.[0] ?? null,
-    description: null,
-    summary: host ? orNull(clamp(`Hosted by ${host}`, LIMITS.summary)) : null,
-  };
-}
-
-const MEETUP_PAGE_HOSTS = new Set(["meetup.com", "www.meetup.com"]);
-// Numeric ids, or the lowercase-letter ids Meetup gives unannounced dates of a series.
-const MEETUP_EVENT_PATH = /\/events\/(?:\d+|[a-z]{10,})\/?$/;
-
-/** The Meetup event page to read for location details, or null when it isn't one. */
-export function meetupPageUrl(event: { source_event_id: string | null; external_url: string | null }): string | null {
-  if (!event.external_url) return null;
-  try {
-    const url = new URL(event.external_url);
-    if (url.protocol !== "https:" || !MEETUP_PAGE_HOSTS.has(url.hostname.toLowerCase())) return null;
-    return MEETUP_EVENT_PATH.test(url.pathname) ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-/** The Luma page to read for an imported event, or null when it isn't a Luma event page. */
-export function lumaPageUrl(event: { source_event_id: string | null; external_url: string | null }): string | null {
-  if (!event.source_event_id?.startsWith("evt-") || !event.external_url) return null;
-  try {
-    const url = new URL(event.external_url);
-    return url.protocol === "https:" && LUMA_PAGE_HOSTS.has(url.hostname.toLowerCase()) ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-const PLATFORM_IMAGE_HOSTS: Partial<Record<SourceKind, ReadonlySet<string>>> = {
-  eventbrite: new Set(["img.evbuc.com", "cdn.evbuc.com"]),
-  fatsoma: new Set(["cdn2.fatsoma.com", "fatsoma.imgix.net"]),
-};
-
-/** An https image on the platform's own hosts (accepted on import), or null. */
-export function platformImage(kind: SourceKind, value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && PLATFORM_IMAGE_HOSTS[kind]?.has(url.hostname) ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-/** True for a cover still hotlinked from the platform (not yet copied into ORBIT's Cloudinary). */
-export function isPlatformHostedImage(kind: SourceKind, url: string | null | undefined): boolean {
-  return !!url && platformImage(kind, url) !== null;
 }

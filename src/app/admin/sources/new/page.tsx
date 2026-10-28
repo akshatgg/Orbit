@@ -22,8 +22,7 @@ export default function NewSourcePage() {
 }
 
 async function NewForm() {
-  // Supabase reads the session cookie to attach the access token, and token expiry is
-  // compared with the clock — so this can't be prerendered.
+  // Reads the session cookie to call the API as the admin, so this can't be prerendered.
   await connection();
   const { organisers, categories } = await listFormOptions();
   return <div><SourceForm organisers={organisers} categories={categories} /></div>;

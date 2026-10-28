@@ -2,63 +2,58 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { authed } from "@/lib/api/session";
 import { adminEventSchema, fieldErrors, type FieldErrors } from "@/lib/admin/event-form";
-import { adminContext, friendlyDbError, logAdminAction, revalidateEverywhere, type ActionResult } from "@/lib/admin/server";
-import { releaseImages } from "@/lib/cloudinary-release";
-import { notifyEventChanged } from "@/lib/notifications";
+import { adminContext, adminError, revalidateEverywhere, type ActionResult } from "@/lib/admin/server";
 
 const id = z.uuid();
 const reasonSchema = z.string().trim().max(500, "Keep it under 500 characters");
 
-type Patch = Record<string, unknown>;
+type EventRef = { id: string; title: string; registration_mode: string; tags: string[] };
 
-async function updateEvent(eventId: string, patch: Patch, action: string, details: Patch = {}) {
-  const { supabase } = await adminContext();
+/** Every admin action on one event: re-check the caller, read the title for the message, then act. */
+async function onEvent(eventId: string, act: (id: string) => Promise<unknown>) {
+  await adminContext();
   const parsed = id.safeParse(eventId);
   if (!parsed.success) return { ok: false as const, error: "Invalid event" };
-  const { data, error } = await supabase
-    .from("events")
-    .update(patch)
-    .eq("id", parsed.data)
-    .select("id, title")
-    .maybeSingle();
-  if (error) return { ok: false as const, error: friendlyDbError(error) };
-  if (!data) return { ok: false as const, error: "Event not found" };
-  await logAdminAction(supabase, action, "event", data.id, { title: data.title, ...details });
-  revalidateEverywhere();
-  return { ok: true as const, title: data.title as string };
+  try {
+    const event = await authed.get<EventRef>(`/admin/events/${parsed.data}`);
+    await act(parsed.data);
+    revalidateEverywhere();
+    return { ok: true as const, title: event.title };
+  } catch (error) {
+    return { ok: false as const, error: adminError(error) };
+  }
 }
 
 export async function setFeatured(eventId: string, featured: boolean): Promise<ActionResult> {
-  const r = await updateEvent(eventId, { is_featured: featured === true }, featured ? "event.feature" : "event.unfeature");
+  const r = await onEvent(eventId, (e) => authed.post(`/admin/events/${e}/feature`, { body: { on: featured === true } }));
   return r.ok ? { ok: true, message: featured ? `Featured “${r.title}”` : `Unfeatured “${r.title}”` } : r;
 }
 
+/** Cancels with a public reason; the API notifies the guests. */
 export async function cancelEvent(eventId: string, reason?: string): Promise<ActionResult> {
   const parsedReason = reasonSchema.safeParse(reason ?? "");
   if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
   if (!parsedReason.data) return { ok: false, error: "Add a reason — guests will see it" };
-  const r = await updateEvent(eventId, { status: "cancelled", cancel_reason: parsedReason.data }, "event.cancel", { reason: parsedReason.data });
-  if (!r.ok) return r;
-  try {
-    await notifyEventChanged(eventId, "cancelled");
-  } catch (e) {
-    console.error("[admin] notifyEventChanged failed", e);
-  }
-  return { ok: true, message: `Cancelled “${r.title}” — guests will be notified` };
+  const r = await onEvent(eventId, (e) => authed.post(`/admin/events/${e}/cancel`, { body: { reason: parsedReason.data } }));
+  return r.ok ? { ok: true, message: `Cancelled “${r.title}” — guests will be notified` } : r;
 }
 
 export async function removeEvent(eventId: string, reason?: string): Promise<ActionResult> {
   const parsedReason = reasonSchema.safeParse(reason ?? "");
   if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
-  const r = await updateEvent(eventId, { status: "removed", is_featured: false }, "event.remove",
-    parsedReason.data ? { reason: parsedReason.data } : {});
+  const r = await onEvent(eventId, (e) =>
+    parsedReason.data
+      ? authed.post(`/admin/events/${e}/remove`, { body: { reason: parsedReason.data } })
+      : authed.post("/admin/events/bulk/remove", { body: { ids: [e] } }),
+  );
   return r.ok ? { ok: true, message: `Removed “${r.title}” from ORBIT` } : r;
 }
 
 /**
- * Bulk remove: hides every picked event from ORBIT in one request. Same soft-delete and audit
- * trail as `removeEvent`, so each row still shows up in the logs on its own.
+ * Bulk remove: hides every picked event from ORBIT in one request (unfeatured too).
+ * The API logs one audit row per event.
  */
 export async function removeEvents(eventIds: string[], reason?: string): Promise<ActionResult> {
   const parsed = z.array(id).min(1, "Pick at least one event").max(200).safeParse(eventIds);
@@ -67,22 +62,22 @@ export async function removeEvents(eventIds: string[], reason?: string): Promise
   const parsedReason = reasonSchema.safeParse(reason ?? "");
   if (!parsedReason.success) return { ok: false, error: parsedReason.error.issues[0].message };
 
-  const { supabase } = await adminContext();
-  const { data, error } = await supabase
-    .from("events")
-    .update({ status: "removed", is_featured: false })
-    .in("id", unique)
-    .select("id, title");
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  const removed = data ?? [];
-  if (removed.length === 0) return { ok: false, error: "Those events no longer exist" };
-
-  const details = { bulk: true, ...(parsedReason.data ? { reason: parsedReason.data } : {}) };
-  await Promise.all(removed.map((e) => logAdminAction(supabase, "event.remove", "event", e.id, { title: e.title, ...details })));
+  await adminContext();
+  let updated: number;
+  let only: string | null = null;
+  try {
+    if (unique.length === 1) only = (await authed.get<EventRef>(`/admin/events/${unique[0]}`)).title;
+    ({ updated } = await authed.post<{ updated: number }>("/admin/events/bulk/remove", {
+      body: { ids: unique, ...(parsedReason.data ? { reason: parsedReason.data } : {}) },
+    }));
+  } catch (error) {
+    return { ok: false, error: adminError(error, { "Those events no longer exist": "Those events no longer exist" }) };
+  }
+  if (updated === 0) return { ok: false, error: "Those events no longer exist" };
   revalidateEverywhere();
   return {
     ok: true,
-    message: removed.length === 1 ? `Removed “${removed[0].title}” from ORBIT` : `Removed ${removed.length} events from ORBIT`,
+    message: updated === 1 && only ? `Removed “${only}” from ORBIT` : `Removed ${updated} events from ORBIT`,
   };
 }
 
@@ -99,64 +94,64 @@ export async function setEventsCategory(eventIds: string[], categoryId: string |
   }
 
   const unique = [...new Set(parsed.data)];
-  const { supabase } = await adminContext();
-  const { data: category } = value
-    ? await supabase.from("categories").select("name").eq("id", value).maybeSingle()
-    : { data: null };
-  const { data, error } = await supabase
-    .from("events")
-    .update({ category_id: value })
-    .in("id", unique)
-    .select("id, title");
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  const updated = data ?? [];
-  if (updated.length === 0) return { ok: false, error: "Those events no longer exist" };
-
-  await Promise.all(
-    updated.map((e) => logAdminAction(supabase, "event.category", "event", e.id, { title: e.title, bulk: true, category_id: value })),
-  );
+  await adminContext();
+  let updated: number;
+  let categoryName: string | undefined;
+  try {
+    if (value) {
+      const { items } = await authed.get<{ items: { id: string; name: string }[] }>("/admin/categories");
+      categoryName = items.find((c) => c.id === value)?.name;
+      if (!categoryName) return { ok: false, error: "That category no longer exists" };
+    }
+    ({ updated } = await authed.post<{ updated: number }>("/admin/events/bulk/category", {
+      body: { ids: unique, category_id: value },
+    }));
+  } catch (error) {
+    return { ok: false, error: adminError(error, { "Category not found": "That category no longer exists" }) };
+  }
+  if (updated === 0) return { ok: false, error: "Those events no longer exist" };
   revalidateEverywhere();
   return {
     ok: true,
     message: value === null
-      ? `Cleared the category on ${updated.length} event${updated.length === 1 ? "" : "s"}`
-      : `Moved ${updated.length} event${updated.length === 1 ? "" : "s"} to “${category?.name ?? "another category"}”`,
+      ? `Cleared the category on ${updated} event${updated === 1 ? "" : "s"}`
+      : `Moved ${updated} event${updated === 1 ? "" : "s"} to “${categoryName ?? "another category"}”`,
   };
 }
 
 export async function restoreEvent(eventId: string): Promise<ActionResult> {
-  const r = await updateEvent(eventId, { status: "published", cancel_reason: null }, "event.restore");
+  const r = await onEvent(eventId, (e) => authed.post(`/admin/events/${e}/restore`));
   return r.ok ? { ok: true, message: `“${r.title}” is published again` } : r;
 }
+
+type DeleteResult = { deleted: number | boolean; registrations?: number; images?: number };
 
 /**
  * Hard delete: removes the rows themselves and everything the schema cascades from an event —
  * registrations, tickets, questions, saved items, check-in history. Admin only, not reversible.
+ * The API also releases Cloudinary covers no other event uses.
  */
 async function hardDeleteEvents(ids: string[]): Promise<ActionResult> {
-  const { supabase } = await adminContext();
-  const { data, error: readError } = await supabase.from("events").select("id, title, cover_url").in("id", ids);
-  if (readError) return { ok: false, error: friendlyDbError(readError) };
-  const doomed = data ?? [];
-  if (doomed.length === 0) return { ok: false, error: "Those events no longer exist" };
-
-  const eventIds = doomed.map((e) => e.id);
-  const { count: registrations } = await supabase
-    .from("registrations")
-    .select("id", { count: "exact", head: true })
-    .in("event_id", eventIds);
-
-  const { error } = await supabase.from("events").delete().in("id", eventIds);
-  if (error) return { ok: false, error: friendlyDbError(error) };
-  // Their Cloudinary covers go too, unless another event (e.g. another date of a series) uses them.
-  const images = await releaseImages(doomed.map((e) => e.cover_url as string | null));
-
-  await Promise.all(
-    doomed.map((e) => logAdminAction(supabase, "event.delete", "event", e.id, { title: e.title, permanent: true })),
-  );
+  await adminContext();
+  let result: DeleteResult;
+  let title: string | null = null;
+  try {
+    if (ids.length === 1) {
+      title = (await authed.get<EventRef>(`/admin/events/${ids[0]}`)).title;
+      result = await authed.del<DeleteResult>(`/admin/events/${ids[0]}`);
+    } else {
+      result = await authed.post<DeleteResult>("/admin/events/bulk/delete", { body: { ids } });
+    }
+  } catch (error) {
+    return { ok: false, error: adminError(error, { "Event not found": "Those events no longer exist" }) };
+  }
+  const count = typeof result.deleted === "number" ? result.deleted : result.deleted ? 1 : 0;
+  if (count === 0) return { ok: false, error: "Those events no longer exist" };
   revalidateEverywhere();
 
-  const what = doomed.length === 1 ? `“${doomed[0].title}”` : `${doomed.length} events`;
+  const registrations = result.registrations ?? 0;
+  const images = result.images ?? 0;
+  const what = count === 1 && title ? `“${title}”` : `${count} event${count === 1 ? "" : "s"}`;
   const guests = registrations ? ` and ${registrations} registration${registrations === 1 ? "" : "s"}` : "";
   const pictures = images ? ` · ${images} image${images === 1 ? "" : "s"} removed` : "";
   return { ok: true, message: `Deleted ${what}${guests} permanently${pictures}` };
@@ -174,7 +169,8 @@ export async function deleteEvents(eventIds: string[]): Promise<ActionResult> {
   return hardDeleteEvents([...new Set(parsed.data)]);
 }
 
-export async function markReviewed(eventId: string): Promise<ActionResult> {  const r = await updateEvent(eventId, { needs_review: false, last_verified_at: new Date().toISOString() }, "event.reviewed");
+export async function markReviewed(eventId: string): Promise<ActionResult> {
+  const r = await onEvent(eventId, (e) => authed.post(`/admin/events/${e}/reviewed`));
   return r.ok ? { ok: true, message: `Marked “${r.title}” as reviewed` } : r;
 }
 
@@ -182,36 +178,26 @@ export type EventFormState = { error?: string; fieldErrors?: FieldErrors } | nul
 
 /** Create (eventId null) or edit an admin-managed event. Bound with the id, used with useActionState. */
 export async function saveEvent(eventId: string | null, _prev: EventFormState, formData: FormData): Promise<EventFormState> {
-  const { supabase } = await adminContext();
+  await adminContext();
   const parsed = adminEventSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: "Check the highlighted fields", fieldErrors: fieldErrors(parsed.error) };
-  const values = parsed.data;
+  const { tags, ...values } = parsed.data;
 
-  if (eventId) {
-    if (!id.safeParse(eventId).success) return { error: "Invalid event" };
-    const { data: existing } = await supabase.from("events").select("registration_mode, tags").eq("id", eventId).maybeSingle();
-    if (!existing) return { error: "Event not found" };
-    if (existing.registration_mode === "tickets") {
-      return { error: "This event sells ORBIT tickets — edit it from the organiser's event page" };
+  try {
+    if (eventId) {
+      if (!id.safeParse(eventId).success) return { error: "Invalid event" };
+      const existing = await authed.get<EventRef>(`/admin/events/${eventId}`);
+      if (existing.registration_mode === "tickets") {
+        return { error: "This event sells ORBIT tickets — edit it from the organiser's event page" };
+      }
+      // Tags edited by hand are final: the API locks them, so syncs stop adding interests.
+      const tagsEdited = [...(existing.tags ?? [])].sort().join("\n") !== [...tags].sort().join("\n");
+      await authed.patch(`/admin/events/${eventId}`, { body: { ...values, ...(tagsEdited ? { tags } : {}) } });
+    } else {
+      await authed.post("/admin/events", { body: { ...values, tags, currency: "GBP" } });
     }
-    // Tags edited by hand are final: syncs stop adding interests, so a removed one stays removed.
-    const before = [...((existing.tags as string[] | null) ?? [])].sort().join("\n");
-    const tagsEdited = before !== [...values.tags].sort().join("\n");
-    const { error } = await supabase
-      .from("events")
-      .update({ ...values, ...(tagsEdited ? { tags_locked: true } : {}), last_verified_at: new Date().toISOString() })
-      .eq("id", eventId);
-    if (error) return { error: friendlyDbError(error) };
-    await logAdminAction(supabase, "event.update", "event", eventId, { title: values.title });
-  } else {
-    const { data, error } = await supabase
-      .from("events")
-      .insert({ ...values, status: "published", source: "manual", currency: "GBP" })
-      .select("id")
-      .single();
-    if (error) return { error: friendlyDbError(error) };
-    eventId = data.id as string;
-    await logAdminAction(supabase, "event.create", "event", eventId, { title: values.title });
+  } catch (error) {
+    return { error: adminError(error, { "Event not found": "Event not found" }) };
   }
 
   revalidateEverywhere();

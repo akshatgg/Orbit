@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { EventForm } from "@/components/admin/EventForm";
 import { AdminHeader, TableSkeleton } from "@/components/admin/primitives";
 import { requireAdmin } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { importOptions } from "@/lib/admin/options";
 import { saveEvent } from "../actions";
 
 export const metadata: Metadata = { title: "Add event · Admin" };
@@ -21,16 +21,12 @@ export default function Page() {
 
 async function Content() {
   await requireAdmin();
-  const supabase = await createClient();
-  const [{ data: organisers }, { data: categories }] = await Promise.all([
-    supabase.from("organisers").select("id, name").eq("status", "approved").order("name"),
-    supabase.from("categories").select("id, name").order("sort_order"),
-  ]);
+  const { organisers, categories } = await importOptions();
   return (
     <EventForm
       action={saveEvent.bind(null, null)}
-      organisers={organisers ?? []}
-      categories={categories ?? []}
+      organisers={organisers.filter((o) => o.status === "approved")}
+      categories={categories}
       submitLabel="Publish event"
     />
   );

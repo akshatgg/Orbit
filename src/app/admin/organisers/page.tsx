@@ -12,9 +12,7 @@ import { AdminHeader, CountTabs, Empty, SectionLabel, TableSkeleton, hrefWith, t
 import { Toaster } from "@/components/admin/Toaster";
 import { requireAdmin } from "@/lib/auth";
 import { ORGANISER_STATUS } from "@/lib/admin/labels";
-import {
-  listOrganisersWithCounts, membersFor, personName, profilesByIds, type AdminOrganiser, type MemberRow, type PersonLite,
-} from "@/lib/admin/queries";
+import { listOrganisersWithCounts, membersFor, personName, type AdminOrganiser, type MemberRow } from "@/lib/admin/queries";
 import { labelFor, ORGANISER_KINDS } from "@/lib/taxonomy";
 import type { OrganiserStatus } from "@/types/database";
 
@@ -49,10 +47,6 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/organ
   if (tab === "pending") rows.reverse(); // oldest application first
 
   const members = await membersFor(rows.map((o) => o.id));
-  const people = await profilesByIds([
-    ...rows.flatMap((o) => [o.created_by, o.reviewed_by]),
-    ...[...members.values()].flat().map((m) => m.user_id),
-  ]);
 
   return (
     <>
@@ -92,7 +86,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/organ
             </thead>
             <tbody>
               {rows.map((o) => (
-                <OrganiserRow key={o.id} org={o} members={members.get(o.id) ?? []} people={people} />
+                <OrganiserRow key={o.id} org={o} members={members.get(o.id) ?? []} />
               ))}
             </tbody>
           </table>
@@ -102,9 +96,14 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/organ
   );
 }
 
-function OrganiserRow({ org, members, people }: { org: AdminOrganiser; members: MemberRow[]; people: Map<string, PersonLite> }) {
-  const applicant = org.created_by ? people.get(org.created_by) : undefined;
-  const reviewer = org.reviewed_by ? people.get(org.reviewed_by) : undefined;
+/** The applicant is the first owner (the person who created the organiser). */
+function applicantOf(members: MemberRow[]) {
+  const owner = members.find((m) => m.role === "owner");
+  return owner ? { full_name: owner.full_name, email: owner.email } : undefined;
+}
+
+function OrganiserRow({ org, members }: { org: AdminOrganiser; members: MemberRow[] }) {
+  const applicant = applicantOf(members);
   return (
     <tr className={table.tr}>
       <td className={table.td}>
@@ -124,7 +123,7 @@ function OrganiserRow({ org, members, people }: { org: AdminOrganiser; members: 
             </>
           }
         >
-          <OrganiserDetails org={org} members={members} people={people} applicant={applicant} reviewer={reviewer} />
+          <OrganiserDetails org={org} members={members} applicant={applicant} />
         </Drawer>
       </td>
       <td className={`${table.td} text-muted`}>{labelFor(ORGANISER_KINDS, org.kind).replace("University team / department", "University")}</td>
@@ -149,8 +148,8 @@ function OrganiserRow({ org, members, people }: { org: AdminOrganiser; members: 
   );
 }
 
-function OrganiserDetails({ org, members, people, applicant, reviewer }: {
-  org: AdminOrganiser; members: MemberRow[]; people: Map<string, PersonLite>; applicant?: PersonLite; reviewer?: PersonLite;
+function OrganiserDetails({ org, members, applicant }: {
+  org: AdminOrganiser; members: MemberRow[]; applicant?: { full_name: string | null; email: string | null };
 }) {
   const status = ORGANISER_STATUS[org.status as OrganiserStatus];
   return (
@@ -190,11 +189,15 @@ function OrganiserDetails({ org, members, people, applicant, reviewer }: {
         {org.reviewed_at && (
           <>
             <dt className="text-subtle">Reviewed</dt>
-            <dd>{dateFmt.format(new Date(org.reviewed_at))}{reviewer ? ` by ${personName(reviewer)}` : ""}</dd>
+            <dd>{dateFmt.format(new Date(org.reviewed_at))}</dd>
           </>
         )}
-        <dt className="text-subtle">Payments</dt>
-        <dd>{org.stripe_charges_enabled ? "Stripe connected" : "Not connected"}</dd>
+        {org.stripe_charges_enabled !== undefined && (
+          <>
+            <dt className="text-subtle">Payments</dt>
+            <dd>{org.stripe_charges_enabled ? "Stripe connected" : "Not connected"}</dd>
+          </>
+        )}
       </dl>
 
       <section>
@@ -204,13 +207,12 @@ function OrganiserDetails({ org, members, people, applicant, reviewer }: {
         ) : (
           <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-ink/[0.025]">
             {members.map((m) => {
-              const p = people.get(m.user_id);
               return (
                 <li key={m.user_id} className="flex items-center gap-3 px-3 py-2">
-                  <Avatar src={p?.avatar_url} name={personName(p)} size={28} />
+                  <Avatar src={null} name={personName(m)} size={28} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate">{personName(p)}</span>
-                    <span className="block truncate text-xs text-muted">{p?.email}</span>
+                    <span className="block truncate">{personName(m)}</span>
+                    <span className="block truncate text-xs text-muted">{m.email}</span>
                   </span>
                   <Badge tone={m.role === "owner" ? "brand" : "neutral"}>{m.role}</Badge>
                 </li>

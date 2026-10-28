@@ -11,16 +11,20 @@ import { Toaster } from "@/components/admin/Toaster";
 import { RemoveAdminButton, VerifyStudentButton } from "@/components/admin/UserActions";
 import { isSuperAdmin, requireAdmin } from "@/lib/auth";
 import { sanitiseSearch } from "@/lib/admin/labels";
-import { USER_TYPE_FILTERS, describeUser, parseTypeFilter, typeFilterClause } from "@/lib/admin/users";
-import { createClient } from "@/lib/supabase/server";
+import { USER_TYPE_FILTERS, describeUser, parseTypeFilter } from "@/lib/admin/users";
+import { authed } from "@/lib/api/session";
 import type { Profile } from "@/types/database";
 
 export const metadata: Metadata = { title: "Users · Admin" };
 
 const PAGE_SIZE = 25;
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" });
-const COLS = "id, email, full_name, avatar_url, university, course, role, is_verified_student, onboarded_at, created_at, user_type, goals";
-type Row = Pick<Profile, "id" | "email" | "full_name" | "avatar_url" | "university" | "course" | "role" | "is_verified_student" | "onboarded_at" | "created_at" | "user_type" | "goals">;
+type Row = Pick<Profile, "id" | "email" | "full_name" | "avatar_url" | "university" | "course" | "role" | "is_verified_student" | "onboarded_at" | "created_at" | "user_type"> & {
+  /** Present once `GET /admin/users` includes it. */
+  goals?: string[] | null;
+};
+type AdminRow = Pick<Profile, "id" | "email" | "full_name" | "role"> & { avatar_url?: string | null };
+type Page<T> = { items: T[]; total: number };
 
 export default function Page({ searchParams }: PageProps<"/admin/users">) {
   return (
@@ -42,24 +46,14 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
   const only = sp.only === "unverified" ? "unverified" : sp.only === "verified" ? "verified" : "";
   const type = parseTypeFilter(sp.type);
   const page = Math.max(1, Number.parseInt(typeof sp.page === "string" ? sp.page : "", 10) || 1);
-  const supabase = await createClient();
 
-  let query = supabase.from("profiles").select(COLS, { count: "exact" });
-  if (q) query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%,university.ilike.%${q}%,course.ilike.%${q}%`);
-  if (only) query = query.eq("is_verified_student", only === "verified");
-  const typeClause = typeFilterClause(type);
-  if (typeClause) query = query.or(typeClause);
-  if (type === "host") query = query.contains("goals", ["host"]);
-  query = query.order("created_at", { ascending: false }).range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
-
-  const [{ data, count, error }, { data: admins }] = await Promise.all([
-    query,
-    supabase.from("profiles").select(COLS).in("role", ["admin", "super_admin"]).order("role", { ascending: false }).order("created_at"),
+  const [usersPage, adminsPage] = await Promise.all([
+    authed.get<Page<Row>>("/admin/users", { query: { q, only, type, page, page_size: PAGE_SIZE } }),
+    authed.get<Page<AdminRow>>("/admin/admins"),
   ]);
-  if (error) throw error;
-  const rows = (data ?? []) as Row[];
-  const adminRows = (admins ?? []) as Row[];
-  const total = count ?? 0;
+  const rows = usersPage.items;
+  const adminRows = adminsPage.items;
+  const total = usersPage.total;
 
   return (
     <div className="space-y-6">
@@ -67,7 +61,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
         <ul className="divide-y divide-line/60">
           {adminRows.map((a) => (
             <li key={a.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
-              <Avatar src={a.avatar_url} name={a.full_name ?? a.email} size={36} />
+              <Avatar src={a.avatar_url ?? null} name={a.full_name ?? a.email} size={36} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium">{a.full_name ?? a.email}</span>
                 <span className="block truncate text-xs text-subtle">{a.email}</span>
@@ -96,7 +90,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/users
             {type && <input type="hidden" name="type" value={type} />}
             <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-subtle" />
             <label htmlFor="user-q" className="sr-only">Search users</label>
-            <input id="user-q" name="q" defaultValue={q} placeholder="Search name, email, university, course" className={`${inputClass} py-2 pl-9`} />
+            <input id="user-q" name="q" defaultValue={q} placeholder="Search name or email" className={`${inputClass} py-2 pl-9`} />
           </Form>
           <SegmentedLinks
             label="Filter"
