@@ -155,7 +155,6 @@ See [`.env.example`](.env.example) for the full list.
 | `NEXT_PUBLIC_APP_URL` | Canonical URLs, sitemap and share previews |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Push notifications (the API holds the private key) |
 | `CRON_SECRET` | Protects `/api/cron/*`, which forwards to the API's `/api/cron/*` with the same secret |
-| `PLATFORM_FEE_PERCENT` | The fee shown on the payouts page (keep equal to the API's) |
 | `GOOGLE_SITE_VERIFICATION` | Optional Search Console tag |
 
 Email, Stripe, Cloudinary and VAPID private keys are configured on the Orbit API. Every optional
