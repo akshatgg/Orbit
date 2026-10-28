@@ -1,8 +1,8 @@
 // Row types for the ORBIT database.
-// `supabase.ts` is generated from the schema — run `npm run db:types` after changing migrations.
-import type { Tables } from "./supabase";
+// `schema.ts` holds the generated table shapes.
+import type { Tables } from "./schema";
 
-export type { Database, Tables, TablesInsert, TablesUpdate } from "./supabase";
+export type { Database, Tables, TablesInsert, TablesUpdate } from "./schema";
 
 export type Profile = Tables<"profiles">;
 export type Organiser = Tables<"organisers">;

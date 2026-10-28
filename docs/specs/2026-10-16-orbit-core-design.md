@@ -11,7 +11,7 @@ are the launch audience, not the product's identity.
 3. **Reminders** — Web Push + email (Resend) before saved events and deadlines.
 
 ## Platform
-PWA on Next.js 16 + Supabase, hosted free on `*.vercel.app`. Capacitor wrap later
+PWA on Next.js 16 with a Postgres backend (today the Orbit API), hosted free on `*.vercel.app`. Capacitor wrap later
 only if app-store listings are needed. Cost during the pilot: £0.
 
 ## Sign-in
@@ -52,7 +52,7 @@ Tables: `profiles`, `categories`, `events` (with `source`, `source_url`,
 `source_event_id`, `last_verified_at` for provenance), `user_events`
 (saved/registered/attended/dismissed). RLS: users see only their own profile and
 actions; everyone signed in reads events and categories; only admins write them.
-Schema: `supabase/migrations/20261016000000_init.sql`.
+Schema: the Orbit API's Alembic migrations (backend repo).
 
 ## Testing
 Unit tests for ranking and CSV parsing; one browser test for

@@ -1,102 +1,67 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
-import type { EventSource, SourceEventDetails, SourceRun } from "./types";
-import { IMPORTED_KINDS, sourceIdFromKey, sourceKey, type ImportedKind } from "./types";
-import { daysAway } from "./review";
+import { importOptions } from "@/lib/admin/options";
+import { isNotFound } from "@/lib/api/errors";
+import { authed } from "@/lib/api/session";
+import { IMPORTED_KINDS, type EventSource, type ImportedKind, type SourceEventDetails, type SourceRun } from "./types";
 
-// Admin screens read through the signed-in admin's client, so RLS still applies.
+// Admin screens read the Orbit API's /admin/sources endpoints as the signed-in admin.
+
+type Page<T> = { items: T[]; total: number; page: number; page_size: number };
 
 export type SourceWithDefaults = EventSource & {
-  organiser: { name: string } | null;
-  category: { name: string } | null;
+  organiser_name: string | null;
+  category_name: string | null;
+  latest_run: SourceRun | null;
 };
 
+/** How many events each source has in ORBIT (any status): a recurring series counts once. */
+export type SourceEventCount = { events: number; dates: number };
+
+export type ReviewCounts = { missing: number; duplicates: number; hidden: number };
+
+type OverviewSource = SourceWithDefaults & { event_count: number; date_count: number };
+
+/** Every source with its latest run and event counts, plus the review dashboard's counts. */
+export async function sourcesOverview() {
+  const overview = await authed.get<{ sources: OverviewSource[]; review_counts: ReviewCounts }>("/admin/sources/overview");
+  const eventCounts = new Map<string, SourceEventCount>(
+    overview.sources.map((s) => [s.id, { events: s.event_count, dates: s.date_count }]),
+  );
+  return { sources: overview.sources as SourceWithDefaults[], eventCounts, reviewCounts: overview.review_counts };
+}
+
 export async function listSources() {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("event_sources")
-    .select("*, organiser:organisers ( name ), category:categories ( name )")
-    .order("created_at", { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as SourceWithDefaults[];
+  return (await authed.get<Page<SourceWithDefaults>>("/admin/sources")).items;
 }
 
 export async function getSource(id: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("event_sources").select("*").eq("id", id).maybeSingle();
-  return data as EventSource | null;
+  try {
+    return await authed.get<SourceWithDefaults>(`/admin/sources/${id}`);
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw error;
+  }
 }
 
 export type RunWithSource = SourceRun & { source: { name: string } | null };
 
 export async function listRecentRuns({ sourceId, limit = 25 }: { sourceId?: string; limit?: number } = {}) {
-  const supabase = await createClient();
-  let query = supabase
-    .from("source_runs")
-    .select("*, source:event_sources ( name )")
-    .order("started_at", { ascending: false })
-    .limit(limit);
-  if (sourceId) query = query.eq("source_id", sourceId);
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return (data ?? []) as unknown as RunWithSource[];
-}
-
-/** The most recent run per source. */
-export async function latestRunBySource(sourceIds: string[]) {
-  const map = new Map<string, SourceRun>();
-  if (sourceIds.length === 0) return map;
-  const supabase = await createClient();
-  const results = await Promise.all(
-    sourceIds.map((id) =>
-      supabase.from("source_runs").select("*").eq("source_id", id).order("started_at", { ascending: false }).limit(1).maybeSingle(),
-    ),
-  );
-  results.forEach(({ data }, i) => {
-    if (data) map.set(sourceIds[i], data as SourceRun);
+  const { items } = await authed.get<Page<SourceRun & { source_name: string }>>("/admin/sources/runs", {
+    query: { source_id: sourceId, limit },
   });
-  return map;
+  return items.map<RunWithSource>(({ source_name, ...run }) => ({ ...run, source: { name: source_name } }));
 }
 
-/** How many events each source has in ORBIT (any status). */
-export type SourceEventCount = { events: number; dates: number };
-
-/** Per source: events (a recurring series counts once) and dates (every row). */
-export async function eventCountsBySource(sourceIds: string[]): Promise<Map<string, SourceEventCount>> {
-  const supabase = await createClient();
-  const counts = await Promise.all(
-    sourceIds.map(async (id) => {
-      const rows: { id: string; series_key: string | null }[] = [];
-      for (let from = 0; ; from += 1000) {
-        const { data } = await supabase.from("events").select("id, series_key").eq("source", `source:${id}`).order("id").range(from, from + 999);
-        rows.push(...((data ?? []) as typeof rows));
-        if ((data?.length ?? 0) < 1000) break;
-      }
-      return { events: new Set(rows.map((r) => r.series_key ?? r.id)).size, dates: rows.length };
-    }),
-  );
-  return new Map(sourceIds.map((id, i) => [id, counts[i]]));
-}
-
+/** Approved organisers and every category, for a source's defaults. */
 export async function listFormOptions() {
-  const supabase = await createClient();
-  const [{ data: organisers }, { data: categories }] = await Promise.all([
-    supabase.from("organisers").select("id, name, status").eq("status", "approved").order("name"),
-    supabase.from("categories").select("id, name").order("sort_order"),
-  ]);
+  const { organisers, categories } = await importOptions();
   return {
-    organisers: (organisers ?? []) as { id: string; name: string }[],
-    categories: (categories ?? []) as { id: string; name: string }[],
+    organisers: organisers.filter((o) => o.status === "approved").map(({ id, name }) => ({ id, name })),
+    categories: categories.map(({ id, name }) => ({ id, name })),
   };
 }
 
 // ─── Review queue ──────────────────────────────────────────────────────────
-
-export const REVIEW_EVENT_SELECT = `
-  id, title, summary, description, starts_at, ends_at, venue_name, address, format, status, source,
-  source_url, source_event_id, external_url, duplicate_of, needs_review, last_verified_at, created_at,
-  organiser:organisers ( name ), category:categories ( name )
-`;
 
 export type ReviewEvent = {
   id: string;
@@ -110,6 +75,8 @@ export type ReviewEvent = {
   format: string;
   status: string;
   source: string;
+  /** The source's name ("Deleted source" once it's gone). */
+  source_name: string;
   source_url: string | null;
   source_event_id: string | null;
   external_url: string | null;
@@ -117,8 +84,9 @@ export type ReviewEvent = {
   needs_review: boolean;
   last_verified_at: string;
   created_at: string;
-  organiser: { name: string } | null;
-  category: { name: string } | null;
+  organiser_id: string | null;
+  organiser: { id: string; name: string } | null;
+  category: { id: string; name: string } | null;
 };
 
 export type ReviewItem = {
@@ -127,53 +95,22 @@ export type ReviewItem = {
   reason: "duplicate" | "missing" | "flagged";
 };
 
-export async function countReviewQueue() {
-  const supabase = await createClient();
-  const { count } = await supabase.from("events").select("id", { count: "exact", head: true }).eq("needs_review", true);
-  return count ?? 0;
+type Pair = { event: ReviewEvent; original: ReviewEvent | null };
+
+/** "source:<id>" (or a built-in source) → its name, from the events a list already holds. */
+export function labelFrom(events: (ReviewEvent | null)[]) {
+  const names = new Map(events.filter((e): e is ReviewEvent => !!e).map((e) => [e.source, e.source_name]));
+  return (source: string) => names.get(source) ?? source;
 }
-
-/** Name lookup for "source:<id>" keys, plus labels for built-in sources. */
-export async function sourceLabels() {
-  const supabase = await createClient();
-  const { data } = await supabase.from("event_sources").select("id, name, last_run_at, last_status");
-  const sources = (data ?? []) as Pick<EventSource, "id" | "name" | "last_run_at" | "last_status">[];
-  const byId = new Map(sources.map((s) => [s.id, s]));
-  const label = (source: string) => {
-    const id = sourceIdFromKey(source);
-    if (id) return byId.get(id)?.name ?? "Deleted source";
-    return ({ orbit: "ORBIT (organiser)", manual: "Added by an admin", csv: "CSV import" } as Record<string, string>)[source] ?? source;
-  };
-  return { label, byId };
-}
-
-async function withOriginals(events: ReviewEvent[]) {
-  const ids = [...new Set(events.map((e) => e.duplicate_of).filter(Boolean))] as string[];
-  if (ids.length === 0) return new Map<string, ReviewEvent>();
-  const supabase = await createClient();
-  const { data } = await supabase.from("events").select(REVIEW_EVENT_SELECT).in("id", ids);
-  return new Map(((data ?? []) as unknown as ReviewEvent[]).map((e) => [e.id, e]));
-}
-
-// ─── Review dashboard ──────────────────────────────────────────────────────
-
-export type ReviewCounts = { missing: number; duplicates: number; hidden: number };
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** How many events wait in each part of the review dashboard. */
 export async function reviewCounts(): Promise<ReviewCounts> {
-  const supabase = await createClient();
-  const head = () => supabase.from("events").select("id", { count: "exact", head: true });
-  const [missing, duplicates, hidden] = await Promise.all([
-    head().eq("needs_review", true).is("duplicate_of", null),
-    head().eq("needs_review", true).not("duplicate_of", "is", null),
-    head().eq("needs_review", false).not("duplicate_of", "is", null).gte("starts_at", new Date(Date.now() - DAY_MS).toISOString()),
-  ]);
-  return { missing: missing.count ?? 0, duplicates: duplicates.count ?? 0, hidden: hidden.count ?? 0 };
+  return authed.get<ReviewCounts>("/admin/sources/review/counts");
 }
 
 export type MissingItem = { event: ReviewEvent; reason: "missing" | "flagged"; daysAway: number; sourceName: string };
+
+type MissingRow = ReviewEvent & { reason: "missing" | "flagged"; days_away: number };
 
 /**
  * Events flagged for review that aren't duplicates (missing from their feed, or flagged another
@@ -183,97 +120,32 @@ export type MissingItem = { event: ReviewEvent; reason: "missing" | "flagged"; d
 export async function listMissingReview({ page = 1, pageSize = 50, sourceId = null }: {
   page?: number; pageSize?: number; sourceId?: string | null;
 } = {}) {
-  const supabase = await createClient();
-  let query = supabase
-    .from("events")
-    .select(REVIEW_EVENT_SELECT, { count: "exact" })
-    .eq("needs_review", true)
-    .is("duplicate_of", null);
-  if (sourceId) query = query.eq("source", sourceKey(sourceId));
-  const from = (page - 1) * pageSize;
-  const [{ data, error, count }, keys, { byId }] = await Promise.all([
-    query.order("starts_at", { ascending: true }).order("id").range(from, from + pageSize - 1),
-    flaggedSourceKeys(),
-    sourceLabels(),
-  ]);
-  if (error) throw new Error(error.message);
-  const now = new Date();
-  const items = ((data ?? []) as unknown as ReviewEvent[]).map<MissingItem>((event) => {
-    // A source event that the latest successful run didn't verify has gone missing (or was cancelled upstream).
-    const source = byId.get(sourceIdFromKey(event.source) ?? "");
-    const missing =
-      !!source?.last_run_at && source.last_status === "ok" &&
-      new Date(event.last_verified_at).getTime() < new Date(source.last_run_at).getTime() - 60 * 60 * 1000;
-    return {
-      event, reason: missing ? "missing" : "flagged", daysAway: daysAway(event.starts_at, now),
-      sourceName: source?.name ?? (sourceIdFromKey(event.source) ? "Deleted source" : event.source),
-    };
-  });
-
-  const perSource = new Map<string, number>();
-  for (const key of keys) perSource.set(key, (perSource.get(key) ?? 0) + 1);
-  const sources = [...perSource]
-    .map(([key, n]) => {
-      const id = sourceIdFromKey(key);
-      return { id, name: id ? (byId.get(id)?.name ?? "Deleted source") : key, count: n };
-    })
-    .filter((s): s is { id: string; name: string; count: number } => !!s.id)
-    .sort((a, b) => b.count - a.count);
-  return { items, total: count ?? 0, sources };
-}
-
-/** The `source` of every non-duplicate event waiting for review (for per-source counts). */
-async function flaggedSourceKeys() {
-  const supabase = await createClient();
-  const keys: string[] = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabase
-      .from("events")
-      .select("source")
-      .eq("needs_review", true)
-      .is("duplicate_of", null)
-      .order("id")
-      .range(from, from + 999);
-    if (error) throw new Error(error.message);
-    keys.push(...((data ?? []) as { source: string }[]).map((r) => r.source));
-    if ((data ?? []).length < 1000) return keys;
-  }
+  const result = await authed.get<Page<MissingRow> & { sources: { source: string; id: string | null; name: string; count: number }[] }>(
+    "/admin/sources/review/missing",
+    { query: { page, page_size: pageSize, source_id: sourceId } },
+  );
+  const items = result.items.map<MissingItem>(({ reason, days_away, ...event }) => ({
+    event,
+    reason,
+    daysAway: days_away,
+    sourceName: event.source_name,
+  }));
+  const sources = result.sources
+    .filter((s): s is { source: string; id: string; name: string; count: number } => !!s.id)
+    .map(({ id, name, count }) => ({ id, name, count }));
+  return { items, total: result.total, sources };
 }
 
 /** Possible duplicates waiting for a decision, each with the event it may duplicate; a page at a time. */
 export async function listDuplicateReview({ page = 1, pageSize = 20 }: { page?: number; pageSize?: number } = {}) {
-  const supabase = await createClient();
-  const from = (page - 1) * pageSize;
-  const { data, error, count } = await supabase
-    .from("events")
-    .select(REVIEW_EVENT_SELECT, { count: "exact" })
-    .eq("needs_review", true)
-    .not("duplicate_of", "is", null)
-    .order("starts_at", { ascending: true })
-    .order("id")
-    .range(from, from + pageSize - 1);
-  if (error) throw new Error(error.message);
-  const events = (data ?? []) as unknown as ReviewEvent[];
-  const originals = await withOriginals(events);
-  const items = events.map<ReviewItem>((event) => ({ event, original: originals.get(event.duplicate_of!) ?? null, reason: "duplicate" }));
-  return { items, total: count ?? 0 };
+  const result = await authed.get<Page<Pair>>("/admin/sources/review/duplicates", { query: { page, page_size: pageSize } });
+  return { items: result.items.map<ReviewItem>((r) => ({ ...r, reason: "duplicate" })), total: result.total };
 }
 
 /** Duplicates that an admin chose to keep hidden (resolved, but still reversible). */
 export async function listHiddenDuplicates({ limit = 50 }: { limit?: number } = {}) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select(REVIEW_EVENT_SELECT)
-    .eq("needs_review", false)
-    .not("duplicate_of", "is", null)
-    .gte("starts_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-    .order("starts_at", { ascending: true })
-    .limit(limit);
-  if (error) throw new Error(error.message);
-  const events = (data ?? []) as unknown as ReviewEvent[];
-  const originals = await withOriginals(events);
-  return events.map((event) => ({ event, original: originals.get(event.duplicate_of!) ?? null }));
+  const result = await authed.get<Page<Pair>>("/admin/sources/review/hidden", { query: { limit } });
+  return result.items;
 }
 
 // ─── Imported platform events (details editor) ────────────────────────────
@@ -296,34 +168,10 @@ export type ImportedEvent = {
 
 /** Upcoming published events from platform sources (Luma, Meetup, Eventbrite, Fatsoma); ones without a cover first. */
 export async function listImportedEvents({ limit = 60 }: { limit?: number } = {}) {
-  const supabase = await createClient();
-  const { data: sources } = await supabase
-    .from("event_sources")
-    .select("id, kind")
-    .in("kind", [...IMPORTED_KINDS]);
-  const kinds = new Map(((sources ?? []) as { id: string; kind: ImportedEvent["kind"] }[]).map((s) => [sourceKey(s.id), s.kind]));
-  if (kinds.size === 0) return [];
-  const upcoming = () =>
-    supabase
-      .from("events")
-      .select(
-        "id, title, starts_at, cover_url, description, price_min, price_max, currency, external_url, source, source_event_id, details:source_event_details ( status, attempts, last_error, fetched_at )",
-      )
-      .in("source", [...kinds.keys()])
-      .eq("status", "published")
-      .gte("starts_at", new Date().toISOString())
-      .order("starts_at", { ascending: true })
-      .limit(limit);
-  // Two queries so events without a cover are never cut off by the limit.
-  const [withoutCover, withCover] = await Promise.all([upcoming().is("cover_url", null), upcoming().not("cover_url", "is", null)]);
-  if (withoutCover.error) throw new Error(withoutCover.error.message);
-  if (withCover.error) throw new Error(withCover.error.message);
-  type Row = Omit<ImportedEvent, "details" | "kind"> & { details: ImportedEvent["details"] | ImportedEvent["details"][] };
-  const toEvents = (data: unknown) =>
-    ((data ?? []) as Row[]).map<ImportedEvent>((r) => ({
-      ...r,
-      kind: kinds.get(r.source) ?? "luma",
-      details: Array.isArray(r.details) ? (r.details[0] ?? null) : r.details,
-    }));
-  return [...toEvents(withoutCover.data), ...toEvents(withCover.data)];
+  const { items } = await authed.get<Page<Omit<ImportedEvent, "kind"> & { kind: string }>>("/admin/sources/imported", { query: { limit } });
+  const imported = new Set<string>(IMPORTED_KINDS);
+  // Only platform events have a details editor; iCal feeds own everything they send.
+  return items
+    .filter((e) => imported.has(e.kind))
+    .map<ImportedEvent>((e) => ({ ...e, kind: e.kind as ImportedKind }));
 }

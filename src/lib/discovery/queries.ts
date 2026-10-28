@@ -1,31 +1,32 @@
 import "server-only";
 import { cache } from "react";
 import { connection } from "next/server";
-import type { Category, Profile, RegistrationStatus } from "@/types/database";
+import type { Profile, RegistrationStatus } from "@/types/database";
+import { apiAs } from "@/lib/api/session";
 import {
-  EVENT_CARD_SELECT, getMyEventState, withCounts, type EventWithCounts, type MyEventState,
+  getAsViewer, getMyEventState, type ApiEventCard, type ApiEventPage, type EventWithCounts, type MyEventState,
 } from "@/lib/events/queries";
-import { ACTIVE_REGISTRATION, rankEvents, type Scored } from "@/lib/ranking";
-import { createClient } from "@/lib/supabase/server";
-import { datePresetRange } from "./dates";
+import { ACTIVE_REGISTRATION, type Scored } from "@/lib/ranking";
 import type { SearchFilters } from "./filters";
-import { ALL_INTERESTS, interestTags } from "@/lib/taxonomy";
-import { nextOfEachSeries } from "@/lib/events/series";
-import { cityVariants, groupPlaces, knownCityNames, type PlaceGroup } from "@/lib/places";
+import type { PlaceGroup } from "@/lib/places";
 
-/** Card columns plus what ranking needs to judge "full without a waitlist". */
-const DISCOVERY_SELECT = `${EVENT_CARD_SELECT}, waitlist_enabled`;
+// Discovery reads from the Orbit API. Ranking ("Recommended because …"), series collapse and
+// search parity all happen there; each card arrives with its `score` and `reason`.
 
 export type DiscoveryEvent = EventWithCounts & { waitlist_enabled: boolean };
 export type RankedEvent = Scored<DiscoveryEvent>;
 
-const DAY = 864e5;
-
-/** Not ended at `at`: ends later, or (no end time) starts later. */
-const notEndedFilter = (at: Date) => {
-  const iso = at.toISOString();
-  return `ends_at.gte.${iso},and(ends_at.is.null,starts_at.gte.${iso})`;
-};
+/** The API's ranked card → the shape the feed components render. */
+function ranked(card: ApiEventCard): RankedEvent {
+  const { score, reason, ...event } = card;
+  return {
+    event: { ...event, waitlist_enabled: event.waitlist_enabled ?? true },
+    score: score ?? 0,
+    signals: [],
+    reason: reason ?? null,
+    excluded: null,
+  };
+}
 
 export type Viewer = {
   profile: Profile;
@@ -35,172 +36,63 @@ export type Viewer = {
 
 /** Who's looking: follows + saved / dismissed / ticket state. Deduplicated per request. */
 export const getViewer = cache(async (profile: Profile): Promise<Viewer> => {
-  const supabase = await createClient();
-  const [{ data: follows }, state] = await Promise.all([
-    supabase.from("follows").select("organiser_id").eq("user_id", profile.id),
+  const [following, state] = await Promise.all([
+    apiAs<{ items: { id: string }[] }>("/me/following"),
     getMyEventState(profile.id),
   ]);
   return {
     profile,
-    followedOrganiserIds: new Set((follows ?? []).map((f) => f.organiser_id as string)),
+    followedOrganiserIds: new Set((following?.items ?? []).map((o) => o.id)),
     state,
   };
 });
 
-/** Published, not-ended events starting before `to`, with counts. */
-export async function listCandidates({ to, now, limit = 200 }: { to: Date; now: Date; limit?: number }) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select(DISCOVERY_SELECT)
-    .eq("status", "published")
-    .is("duplicate_of", null)
-    .or(notEndedFilter(now))
-    .lt("starts_at", to.toISOString())
-    .order("starts_at", { ascending: true })
-    .limit(limit);
-  if (error) throw error;
-  // A recurring series shows only its next date; the event page lists the rest.
-  return (await withCounts(nextOfEachSeries((data ?? []) as unknown as DiscoveryEvent[]))) as DiscoveryEvent[];
-}
-
-/** The personalised feed: ranked events in the next `days` days. */
-export async function getRankedFeed(viewer: Viewer, { days, now }: { days: number; now: Date }): Promise<RankedEvent[]> {
-  const events = await listCandidates({ to: new Date(now.getTime() + days * DAY), now });
-  return rankEvents(events, viewer.profile, {
-    followedOrganiserIds: viewer.followedOrganiserIds,
-    state: viewer.state,
-    now,
-  });
+/**
+ * The personalised feed: events in the next `days` days, best for this person first, one card per
+ * series. Dismissed and already-booked events are left out by the API.
+ */
+export async function getRankedFeed({ days }: { days: number }): Promise<RankedEvent[]> {
+  const page = await apiAs<ApiEventPage>("/feed/for-you", { query: { days } });
+  return (page?.items ?? []).map(ranked);
 }
 
 // ─── Explore ────────────────────────────────────────────────────────────────
 
-const escapeLike = (s: string) => s.replace(/[\\%_]/g, (m) => `\\${m}`);
-/** A value double-quoted for a PostgREST filter (city names can have spaces). */
-const quoted = (s: string) => `"${s.replace(/["\\]/g, (m) => `\\${m}`)}"`;
-
 export type SearchResult = { results: RankedEvent[]; truncated: boolean };
 
-const SEARCH_LIMIT = 80;
+/** Most results one request returns (the API's page size limit). */
+const SEARCH_PAGE = 100;
+/** Ranked sorts rank at most this many candidates; read a second page when there are more. */
+const SEARCH_MAX = 160;
 
 /** Full-text + filtered search, sorted by relevance (personal score), date or deadline. */
-export async function searchEvents(
-  filters: SearchFilters,
-  viewer: Viewer,
-  categories: Pick<Category, "id" | "slug">[],
-  now: Date,
-): Promise<SearchResult> {
-  const supabase = await createClient();
-  const range = filters.date ? datePresetRange(filters.date, now) : null;
-  const categoryIds = categories.filter((c) => filters.categories.includes(c.slug)).map((c) => c.id);
-
-  const base = () => {
-    let q = supabase
-      .from("events")
-      .select(DISCOVERY_SELECT)
-      .eq("status", "published")
-      .is("duplicate_of", null)
-      .or(notEndedFilter(range?.from ?? now));
-    if (range) q = q.lt("starts_at", range.to.toISOString());
-    if (filters.categories.length) q = q.in("category_id", categoryIds.length ? categoryIds : ["00000000-0000-0000-0000-000000000000"]);
-    // Quoted array literal: some synonyms have spaces ("net zero"), and postgrest-js doesn't quote.
-    if (filters.interests.length) q = q.overlaps("tags", `{${filters.interests.flatMap(interestTags).map((t) => `"${t}"`).join(",")}}`);
-    if (filters.formats.length) q = q.in("format", filters.formats);
-    if (filters.city) {
-      // Any spelling of the city (Bangalore / Bengaluru), in the picked country or one we inferred.
-      q = q.or(cityVariants(filters.city).map((c) => `city.ilike.${quoted(c)}`).join(","));
-      if (filters.country) q = q.or(`country.eq.${filters.country},country.is.null`);
-    } else if (filters.country) {
-      // Events stored with the country, plus city-only events in its known cities.
-      const known = knownCityNames(filters.country).map((c) => quoted(c)).join(",");
-      q = q.or(known ? `country.eq.${filters.country},and(country.is.null,city.in.(${known}))` : `country.eq.${filters.country}`);
-    }
-    return q.order("starts_at", { ascending: true }).limit(SEARCH_LIMIT);
+export async function searchEvents(filters: SearchFilters): Promise<SearchResult> {
+  const query = {
+    q: filters.q || undefined,
+    category: filters.categories,
+    interest: filters.interests,
+    format: filters.formats,
+    date: filters.date ?? undefined,
+    country: filters.country ?? undefined,
+    city: filters.city || undefined,
+    sort: filters.sort,
+    page_size: SEARCH_PAGE,
   };
-
-  let rows: DiscoveryEvent[];
-  if (filters.q) {
-    // Text matches, plus events from organisers whose name matches ("Northbridge", "Consulting Society").
-    const { data: orgs } = await supabase
-      .from("organisers")
-      .select("id")
-      .ilike("name", `%${escapeLike(filters.q)}%`)
-      .limit(20);
-    const orgIds = (orgs ?? []).map((o) => o.id as string);
-    const [text, byOrg] = await Promise.all([
-      base().textSearch("search", filters.q, { type: "websearch", config: "english" }),
-      orgIds.length ? base().in("organiser_id", orgIds) : Promise.resolve({ data: [], error: null }),
-    ]);
-    if (text.error) throw text.error;
-    const seen = new Map<string, DiscoveryEvent>();
-    for (const e of [...(text.data ?? []), ...(byOrg.data ?? [])] as unknown as DiscoveryEvent[]) seen.set(e.id, e);
-    rows = [...seen.values()];
-  } else {
-    const { data, error } = await base();
-    if (error) throw error;
-    rows = (data ?? []) as unknown as DiscoveryEvent[];
+  const first = await getAsViewer<ApiEventPage>("/events", { query });
+  let items = first.items;
+  const ranks = filters.sort === "relevance" || filters.sort === "deadline";
+  if (ranks && first.total > SEARCH_PAGE) {
+    const second = await getAsViewer<ApiEventPage>("/events", { query: { ...query, page: 2 } });
+    items = [...items, ...second.items].slice(0, SEARCH_MAX);
   }
-
-  const withC = (await withCounts(nextOfEachSeries(rows))) as DiscoveryEvent[];
-  const ranked = rankEvents(
-    withC,
-    viewer.profile,
-    { followedOrganiserIds: viewer.followedOrganiserIds, state: viewer.state, now },
-    { keepPersonal: true },
-  );
-  return { results: sortResults(ranked, filters.sort, now), truncated: rows.length >= SEARCH_LIMIT };
-}
-
-const time = (s: string | null) => (s ? new Date(s).getTime() : Number.POSITIVE_INFINITY);
-
-export function sortResults(ranked: RankedEvent[], sort: SearchFilters["sort"], now: Date): RankedEvent[] {
-  if (sort === "relevance") return ranked;
-  const byStart = (a: RankedEvent, b: RankedEvent) => time(a.event.starts_at) - time(b.event.starts_at) || a.event.id.localeCompare(b.event.id);
-  if (sort === "date") return [...ranked].sort(byStart);
-  // Deadline: open deadlines soonest first, then everything else by date.
-  const open = (r: RankedEvent) => {
-    const d = time(r.event.registration_deadline);
-    return d > now.getTime() ? d : Number.POSITIVE_INFINITY;
-  };
-  return [...ranked].sort((a, b) => open(a) - open(b) || byStart(a, b));
+  const truncated = ranks ? Boolean(first.truncated) : first.total > items.length;
+  return { results: items.map(ranked), truncated };
 }
 
 /** Soonest upcoming events (the home feed's fallback when nothing ranks). */
-export async function listHappeningSoon(viewer: Viewer, now: Date, limit = 6): Promise<RankedEvent[]> {
-  const events = await listCandidates({ to: new Date(now.getTime() + 14 * DAY), now, limit: 40 });
-  // Explore shows everything, including events you've booked (marked on the card); only For You hides them.
-  const ranked = rankEvents(events, viewer.profile, {
-    followedOrganiserIds: viewer.followedOrganiserIds, state: viewer.state, now,
-  }, { keepPersonal: true });
-  return sortResults(ranked, "date", now).slice(0, limit);
-}
-
-/** Rows one PostgREST request returns at most (`max_rows`); longer lists are read in ranges. */
-const MAX_ROWS = 1000;
-const MAX_RANGES = 20;
-
-/** Light columns of every published, not-ended event, soonest first, however many there are. */
-async function upcomingRows<T>(columns: string, now: Date, { inPerson = false } = {}): Promise<T[]> {
-  const supabase = await createClient();
-  const rows: T[] = [];
-  for (let range = 0; range < MAX_RANGES; range++) {
-    let q = supabase
-      .from("events")
-      .select(columns)
-      .eq("status", "published")
-      .is("duplicate_of", null)
-      .or(notEndedFilter(now));
-    if (inPerson) q = q.neq("format", "online");
-    const { data, error } = await q
-      .order("starts_at", { ascending: true })
-      .order("id", { ascending: true })
-      .range(range * MAX_ROWS, (range + 1) * MAX_ROWS - 1);
-    if (error) throw error;
-    rows.push(...((data ?? []) as unknown as T[]));
-    if ((data ?? []).length < MAX_ROWS) break;
-  }
-  return rows;
+export async function listHappeningSoon(limit = 6): Promise<RankedEvent[]> {
+  const page = await getAsViewer<ApiEventPage>("/events/happening-soon", { query: { limit } });
+  return page.items.map(ranked);
 }
 
 export const EXPLORE_PAGE_SIZE = 24;
@@ -208,54 +100,70 @@ export const EXPLORE_PAGE_SIZE = 24;
 export type UpcomingPage = { results: RankedEvent[]; total: number; page: number; pageCount: number };
 
 /** Every upcoming event, soonest first, one page at a time (a series counts once, at its next date). */
-export async function listUpcomingPage(viewer: Viewer, now: Date, page: number): Promise<UpcomingPage> {
-  const rows = nextOfEachSeries(await upcomingRows<{ id: string; series_key: string | null; starts_at: string }>("id, series_key, starts_at", now));
-  const pageCount = Math.max(1, Math.ceil(rows.length / EXPLORE_PAGE_SIZE));
-  const current = Math.min(Math.max(1, page), pageCount);
-  const ids = rows.slice((current - 1) * EXPLORE_PAGE_SIZE, current * EXPLORE_PAGE_SIZE).map((r) => r.id);
-  if (!ids.length) return { results: [], total: rows.length, page: current, pageCount };
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("events").select(DISCOVERY_SELECT).in("id", ids);
-  if (error) throw error;
-  const events = (await withCounts((data ?? []) as unknown as DiscoveryEvent[])) as DiscoveryEvent[];
-  const ranked = rankEvents(events, viewer.profile, {
-    followedOrganiserIds: viewer.followedOrganiserIds, state: viewer.state, now,
-  }, { keepPersonal: true });
-  return { results: sortResults(ranked, "date", now), total: rows.length, page: current, pageCount };
+export async function listUpcomingPage(page: number): Promise<UpcomingPage> {
+  const fetchPage = (n: number) =>
+    getAsViewer<ApiEventPage>("/events/upcoming", { query: { page: n, page_size: EXPLORE_PAGE_SIZE } });
+  let current = Math.max(1, page);
+  let result = await fetchPage(current);
+  const pageCount = Math.max(1, Math.ceil(result.total / EXPLORE_PAGE_SIZE));
+  if (current > pageCount) {
+    current = pageCount;
+    result = await fetchPage(current);
+  }
+  return { results: result.items.map(ranked), total: result.total, page: current, pageCount };
 }
 
 export type DiscoveryCounts = {
-  /** Different upcoming events (a series once, duplicate copies not at all); null if counting failed. */
+  /** Upcoming events overall; null if counting failed. */
   total: number | null;
+  /** Upcoming events per category slug. */
   byCategory: Map<string, number>;
+  /** Upcoming events per interest (a missing interest has none). */
   byInterest: Map<string, number>;
 };
 
-/** Upcoming events overall, per category id and per interest — counted in the database (discovery_counts). */
+type ApiCounts = {
+  total: number;
+  category: { slug: string; events: number }[];
+  interest: { slug: string; events: number }[];
+};
+
+/** Upcoming events overall, per category and per interest — counted by the API. */
 export async function getDiscoveryCounts(): Promise<DiscoveryCounts> {
-  const supabase = await createClient();
-  const interests = Object.fromEntries(ALL_INTERESTS.map((i) => [i.value, interestTags(i.value)]));
-  const { data, error } = await supabase.rpc("discovery_counts", { p_interests: interests });
   const counts: DiscoveryCounts = { total: null, byCategory: new Map(), byInterest: new Map() };
-  // Counts are a hint: without them the tabs and filters still work, just unnumbered.
-  if (error) return counts;
-  for (const row of (data ?? []) as { kind: string; key: string | null; events: number | string }[]) {
-    const n = Number(row.events);
-    if (row.kind === "all") counts.total = n;
-    else if (row.kind === "category" && row.key) counts.byCategory.set(row.key, n);
-    else if (row.kind === "interest" && row.key) counts.byInterest.set(row.key, n);
+  try {
+    const data = await getAsViewer<ApiCounts>("/discovery/counts");
+    counts.total = data.total;
+    for (const row of data.category) counts.byCategory.set(row.slug, Number(row.events));
+    for (const row of data.interest) counts.byInterest.set(row.slug, Number(row.events));
+  } catch {
+    // Counts are a hint: without them the tabs and filters still work, just unnumbered.
   }
   return counts;
 }
 
-/** Places upcoming in-person events are in, as country → city lists (Location filter, header search). */
+type ApiPlaces = { country: string | null; name: string; flag: string; events: number; cities: { city: string; events: number }[] }[];
+
+/** The API's country → city counts (spellings merged, unknown countries last as "Other places"). */
+function placeGroups(rows: ApiPlaces): PlaceGroup[] {
+  return rows.map((g) => ({
+    country: g.country,
+    name: g.name,
+    flag: g.flag,
+    count: Number(g.events),
+    cities: g.cities.map((c) => ({ city: c.city, count: Number(c.events) })),
+  }));
+}
+
+/** Places upcoming in-person and hybrid events are in, as country → city lists (Location filter, header search). */
 export const listUpcomingPlaces = cache(async (): Promise<PlaceGroup[]> => {
-  await connection(); // per request: the time below must not be baked into a prerender
+  await connection(); // per request: never baked into a prerender
   // Every page's nav reads this: a failed read leaves the place lists empty rather than the page broken.
-  const rows = await upcomingRows<{ id: string; city: string | null; country: string | null; series_key: string | null }>(
-    "id, city, country, series_key", new Date(), { inPerson: true },
-  ).catch(() => []);
-  return groupPlaces(rows);
+  try {
+    return placeGroups(await getAsViewer<ApiPlaces>("/discovery/places"));
+  } catch {
+    return [];
+  }
 });
 
 // ─── Calendar ───────────────────────────────────────────────────────────────
@@ -266,38 +174,28 @@ export type CalendarEntry = {
   registration?: RegistrationStatus;
 };
 
-/** Ids of events the user saved or holds an active registration for. */
-function myCalendarIds(state: MyEventState) {
-  const ids = new Set(state.saved);
-  for (const [id, status] of state.registrations) if (ACTIVE_REGISTRATION.includes(status)) ids.add(id);
-  for (const id of state.externalRegistered) ids.add(id);
-  return [...ids];
-}
+type ApiMyEventCard = EventWithCounts & {
+  saved: boolean;
+  attended: boolean;
+  external_registered: boolean;
+  registration: RegistrationStatus | null;
+};
+
+/** How far ahead an open-ended calendar range reaches. */
+const OPEN_ENDED_DAYS = 3650;
 
 /**
  * The user's saved + registered events overlapping [from, to), soonest first.
- * Cancelled events stay so people notice; RLS hides anything they can't see.
+ * Cancelled events stay so people notice.
  */
-export async function listMyCalendar(viewer: Viewer, { from, to }: { from: Date; to?: Date }): Promise<CalendarEntry[]> {
-  const ids = myCalendarIds(viewer.state);
-  if (!ids.length) return [];
-  const supabase = await createClient();
-  let q = supabase
-    .from("events")
-    .select(EVENT_CARD_SELECT)
-    .in("id", ids)
-    .in("status", ["published", "cancelled"])
-    .or(notEndedFilter(from));
-  if (to) q = q.lt("starts_at", to.toISOString());
-  const { data, error } = await q.order("starts_at", { ascending: true }).limit(500);
-  if (error) throw error;
-  const events = await withCounts((data ?? []) as unknown as EventWithCounts[]);
-  return events.map((event) => {
-    const reg = viewer.state.registrations.get(event.id);
-    return {
-      event,
-      saved: viewer.state.saved.has(event.id),
-      registration: reg && ACTIVE_REGISTRATION.includes(reg) ? reg : undefined,
-    };
+export async function listMyCalendar({ from, to }: { from: Date; to?: Date }): Promise<CalendarEntry[]> {
+  const until = to ?? new Date(from.getTime() + OPEN_ENDED_DAYS * 864e5);
+  const page = await apiAs<{ items: ApiMyEventCard[] }>("/me/calendar", {
+    query: { from: from.toISOString(), to: until.toISOString() },
   });
+  return (page?.items ?? []).map(({ saved, registration, ...event }) => ({
+    event,
+    saved,
+    registration: registration && ACTIVE_REGISTRATION.includes(registration) ? registration : undefined,
+  }));
 }

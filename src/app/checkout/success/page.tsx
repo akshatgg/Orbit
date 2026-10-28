@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import type Stripe from "stripe";
 import { CheckoutMessage, CheckoutSuccess } from "@/components/payments/CheckoutResult";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { requireUser } from "@/lib/auth";
 import { formatEventDate, formatPrice } from "@/lib/format";
-import { fulfilCheckoutSession } from "@/lib/payments/fulfil";
-import { checkoutOutcome } from "@/lib/payments/logic";
-import { getStripe } from "@/lib/payments/stripe";
-import { createClient } from "@/lib/supabase/server";
+import { ApiError } from "@/lib/api/client";
+import { apiErrorCode } from "@/lib/api/errors";
+import { authed } from "@/lib/api/session";
 import { OrbitLogo } from "@/components/brand/OrbitLogo";
 
 export const metadata: Metadata = { title: "Payment", robots: { index: false, follow: false } };
@@ -36,13 +34,17 @@ export default function Page({ searchParams }: PageProps<"/checkout/success">) {
   );
 }
 
-type RegistrationRow = {
-  id: string;
-  event_id: string;
-  status: string;
-  payment_status: string;
-  ticket_types: { name: string } | null;
-  events: { id: string; title: string; starts_at: string; venue_name: string | null; format: string } | null;
+/** `GET /checkout/success`: what happened to the checkout, confirmed with Stripe by the API. */
+type CheckoutReturn = {
+  outcome: "paid" | "processing" | "open" | "expired" | "unknown";
+  status: string | null;
+  registration_id: string | null;
+  event: { id: string; title: string; starts_at: string; venue_name: string | null; format: string } | null;
+  ticket_type: { name: string } | null;
+  amount_total: number | null;
+  currency: string | null;
+  buyer_email: string | null;
+  checkout_url: string | null;
 };
 
 async function Content({ searchParams }: { searchParams: SearchParams }) {
@@ -50,23 +52,24 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
   const { session_id } = await searchParams;
   const sessionId = Array.isArray(session_id) ? session_id[0] : session_id;
 
-  const stripe = getStripe();
-  if (!stripe) {
-    return (
-      <CheckoutMessage title="Paid tickets aren't available yet" tone="neutral" action={<ButtonLink href="/">Back to ORBIT</ButtonLink>}>
-        ORBIT isn&apos;t taking payments right now, so there&apos;s nothing to confirm.
-      </CheckoutMessage>
-    );
+  let result: CheckoutReturn | null = null;
+  if (sessionId) {
+    try {
+      // Paid sessions are confirmed now (idempotent), so nobody waits for the webhook.
+      result = await authed.get<CheckoutReturn>("/checkout/success", { query: { session_id: sessionId } });
+    } catch (error) {
+      if (!(error instanceof ApiError)) throw error;
+      if (apiErrorCode(error) === "payments_not_configured") {
+        return (
+          <CheckoutMessage title="Paid tickets aren't available yet" tone="neutral" action={<ButtonLink href="/">Back to ORBIT</ButtonLink>}>
+            ORBIT isn&apos;t taking payments right now, so there&apos;s nothing to confirm.
+          </CheckoutMessage>
+        );
+      }
+      console.error("[payments] couldn't load checkout session", sessionId, error.status, error.message);
+    }
   }
-
-  let session: Stripe.Checkout.Session | null = null;
-  if (sessionId && /^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
-    session = await stripe.checkout.sessions.retrieve(sessionId).catch((error) => {
-      console.error("[payments] couldn't load checkout session", sessionId, error);
-      return null;
-    });
-  }
-  if (!session) {
+  if (!result || result.outcome === "unknown") {
     return (
       <CheckoutMessage
         title="We couldn't find that payment"
@@ -78,38 +81,23 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
     );
   }
 
-  const outcome = checkoutOutcome(session);
-  const eventId = session.metadata?.event_id;
-  const eventHref = eventId ? `/events/${eventId}` : "/";
-
-  // Don't make people wait for the webhook: confirm the ticket now (idempotent).
-  if (outcome === "paid") {
-    await fulfilCheckoutSession(session).catch((error) => console.error("[payments] fulfil on success page failed", error));
-  }
-
-  const supabase = await createClient();
-  const registrationId = session.metadata?.registration_id;
-  const { data } = registrationId
-    ? await supabase
-        .from("registrations")
-        .select("id, event_id, status, payment_status, ticket_types(name), events(id, title, starts_at, venue_name, format)")
-        .eq("id", registrationId)
-        .maybeSingle()
-    : { data: null };
-  const reg = data as unknown as RegistrationRow | null; // RLS: only the buyer (or the organiser) sees it
+  const { outcome, event } = result;
+  const eventHref = event ? `/events/${event.id}` : "/";
 
   if (outcome === "paid") {
-    const paid = session.amount_total != null ? formatPrice(session.amount_total / 100, session.amount_total / 100, "GBP") : null;
+    const paid = result.amount_total != null
+      ? formatPrice(result.amount_total / 100, result.amount_total / 100, result.currency ?? "GBP")
+      : null;
     return (
       <CheckoutSuccess
-        eventTitle={reg?.events?.title ?? "Your event"}
-        when={reg?.events ? formatEventDate(reg.events.starts_at) : null}
-        where={reg?.events ? (reg.events.format === "online" ? "Online" : reg.events.venue_name) : null}
-        ticketName={reg?.ticket_types?.name ?? null}
+        eventTitle={event?.title ?? "Your event"}
+        when={event ? formatEventDate(event.starts_at) : null}
+        where={event ? (event.format === "online" ? "Online" : event.venue_name) : null}
+        ticketName={result.ticket_type?.name ?? null}
         amount={paid}
-        ticketHref={reg ? `/tickets/${reg.id}` : "/tickets"}
+        ticketHref={result.registration_id ? `/tickets/${result.registration_id}` : "/tickets"}
         eventHref={eventHref}
-        email={session.customer_details?.email ?? session.customer_email ?? null}
+        email={result.buyer_email}
       />
     );
   }
@@ -134,8 +122,8 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
         tone="warning"
         action={
           <div className="space-y-2">
-            {session.url && (
-              <a href={session.url} className={buttonClass({ size: "lg", full: true })}>
+            {result.checkout_url && (
+              <a href={result.checkout_url} className={buttonClass({ size: "lg", full: true })}>
                 Return to checkout
               </a>
             )}

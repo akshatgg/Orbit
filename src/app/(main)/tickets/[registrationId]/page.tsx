@@ -30,9 +30,9 @@ export default function Page({ params }: PageProps<"/tickets/[registrationId]">)
 
 async function Content({ params }: { params: PageProps<"/tickets/[registrationId]">["params"] }) {
   // Signed in is enough: someone can register for a first event before finishing setup.
-  const user = await requireUser();
+  await requireUser();
   const { registrationId } = await params;
-  const [found, profile] = await Promise.all([getMyTicket(user.id, registrationId), getProfile()]);
+  const [found, profile] = await Promise.all([getMyTicket(registrationId), getProfile()]);
   if (!found) notFound();
   const { ticket: t, privateInfo } = found;
   const { event } = t;

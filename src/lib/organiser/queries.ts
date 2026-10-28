@@ -1,57 +1,103 @@
 import "server-only";
-import type { Organiser } from "@/types/database";
-import { EVENT_CARD_SELECT, withCounts, type EventCardData } from "@/lib/events/queries";
-import { createClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import type { Category, OrbitEvent, Organiser } from "@/types/database";
+import { api } from "@/lib/api/client";
+import { isApiStatus, isNotFound } from "@/lib/api/errors";
+import { apiAs, authed, sessionToken } from "@/lib/api/session";
+import { listCategories, type EventCardData, type EventCounts, type EventWithCounts } from "@/lib/events/queries";
+
+// Organiser Studio and public organiser page reads, all from the Orbit API.
+
+type Paged<T> = { items: T[]; total: number; page: number; page_size: number };
+
+/** An event row as the studio and organiser endpoints return it. */
+type EventRow = OrbitEvent & { counts?: EventCounts };
+
+type CardOrganiser = Pick<Organiser, "id" | "slug" | "name" | "logo_url" | "is_verified" | "kind">;
+
+const EMPTY_COUNTS: EventCounts = { going: 0, waitlisted: 0, pending: 0 };
+
+/** Studio / organiser rows → the card shape every event list renders. */
+function toCards(rows: EventRow[], organiser: CardOrganiser | null, categories: Category[]): EventWithCounts[] {
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  return rows.map((row) => {
+    const category = row.category_id ? byId.get(row.category_id) : undefined;
+    const card: EventCardData = {
+      ...row,
+      organiser,
+      category: category ? { id: category.id, slug: category.slug, name: category.name, group: category.group } : null,
+    };
+    return { ...card, counts: row.counts ?? EMPTY_COUNTS };
+  });
+}
+
+function cardOrganiser(org: Organiser | CardOrganiser): CardOrganiser {
+  return { id: org.id, slug: org.slug, name: org.name, logo_url: org.logo_url, is_verified: org.is_verified, kind: org.kind };
+}
+
+/** Every page of a paged list (the API caps a page at 100 rows). */
+async function allPages<T>(fetchPage: (page: number) => Promise<Paged<T>>, limit: number) {
+  const items: T[] = [];
+  for (let page = 1; items.length < limit; page += 1) {
+    const result = await fetchPage(page);
+    items.push(...result.items);
+    if (result.items.length === 0 || items.length >= result.total) break;
+  }
+  return items.slice(0, limit);
+}
 
 /** Every event of an organiser the signed-in member can see (drafts included), with counts. */
-export async function listOrganiserEvents(organiserId: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select(EVENT_CARD_SELECT)
-    .eq("organiser_id", organiserId)
-    .order("starts_at", { ascending: true })
-    .limit(500);
-  if (error) throw error;
-  return withCounts((data ?? []) as unknown as EventCardData[]);
+export async function listOrganiserEvents(organiserId: string, organiser?: CardOrganiser | null) {
+  const [page, categories] = await Promise.all([
+    authed.get<Paged<EventRow>>("/organiser/events", { query: { organiser_id: organiserId, page_size: 500 } }),
+    listCategories(),
+  ]);
+  return toCards(page.items, organiser ? cardOrganiser(organiser) : null, categories);
 }
 
+/** Followers of an organiser (members only: the studio overview). */
 export async function getFollowerCount(organiserId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("organiser_follower_count", { org: organiserId });
-  return typeof data === "number" ? data : 0;
+  const overview = await authed.get<{ followers: number }>("/organiser/overview", { query: { organiser_id: organiserId } });
+  return overview.followers ?? 0;
 }
 
+/** Whether the signed-in user follows the organiser (false when signed out). */
 export async function isFollowing(userId: string | null | undefined, organiserId: string) {
   if (!userId) return false;
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("follows")
-    .select("organiser_id")
-    .match({ user_id: userId, organiser_id: organiserId })
-    .maybeSingle();
-  return Boolean(data);
+  const following = await apiAs<{ items: { id: string }[] }>("/me/following");
+  return Boolean(following?.items.some((o) => o.id === organiserId));
 }
 
+type OrganiserPage = { organiser: Organiser; follower_count: number; following: boolean };
+
+/**
+ * The public organiser page's header data, deduplicated per request. Approved organisers are public;
+ * the API also returns a pending one to its own members. Null when unknown or hidden.
+ */
+export const getOrganiserPage = cache(async (slug: string): Promise<OrganiserPage | null> => {
+  const token = await sessionToken();
+  try {
+    return await api.get<OrganiserPage>(`/organisers/${encodeURIComponent(slug)}`, { token: token ?? undefined });
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw error;
+  }
+});
+
 export async function getOrganiserBySlug(slug: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("organisers").select("*").eq("slug", slug).maybeSingle();
-  return data as Organiser | null;
+  return (await getOrganiserPage(slug))?.organiser ?? null;
 }
 
 /** Public events (published / cancelled / expired) for the organiser page. */
-export async function listPublicOrganiserEvents(organiserId: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select(EVENT_CARD_SELECT)
-    .eq("organiser_id", organiserId)
-    .in("status", ["published", "cancelled", "expired"])
-    .is("duplicate_of", null)
-    .order("starts_at", { ascending: true })
-    .limit(200);
-  if (error) throw error;
-  return withCounts((data ?? []) as unknown as EventCardData[]);
+export async function listPublicOrganiserEvents(organiser: Organiser | CardOrganiser) {
+  const [rows, categories] = await Promise.all([
+    allPages(
+      (page) => api.get<Paged<EventRow>>(`/organisers/${organiser.id}/events`, { query: { when: "all", page, page_size: 100 } }),
+      200,
+    ),
+    listCategories(),
+  ]);
+  return toCards(rows, cardOrganiser(organiser), categories);
 }
 
 export type TeamMember = {
@@ -64,10 +110,8 @@ export type TeamMember = {
 };
 
 export async function listTeam(organiserId: string) {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("organiser_members_list", { org: organiserId });
-  if (error) throw error;
-  return (data ?? []) as TeamMember[];
+  const page = await authed.get<Paged<TeamMember>>(`/organisers/${organiserId}/team`, { query: { page_size: 100 } });
+  return page.items;
 }
 
 export type TeamInvite = {
@@ -81,58 +125,40 @@ export type TeamInvite = {
   created_at: string;
 };
 
-/** Invite links of an organisation (owners and admins only, enforced by RLS), newest first. */
+/** Invite links of an organisation (owners and admins only), newest first. */
 export async function listInvites(organiserId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("organiser_invites")
-    .select("id, code, role, expires_at, max_uses, uses, revoked, created_at")
-    .eq("organiser_id", organiserId)
-    .order("created_at", { ascending: false })
-    .limit(20);
-  return (data ?? []) as TeamInvite[];
+  const page = await authed.get<Paged<TeamInvite>>(`/organisers/${organiserId}/invites`, { query: { page_size: 20 } });
+  return page.items;
 }
 
-/** Everything the editor needs for one event. Null when it doesn't exist or isn't visible. */
+type EditorDetail = {
+  event: OrbitEvent;
+  organiser: { id: string; name: string; slug: string } | null;
+  private: { online_url: string | null; guest_info: string | null } | null;
+  ticket_types: { id: string; name: string; price: number; quantity: number | null; sales_end_at: string | null }[];
+  questions: { id: string; label: string; kind: string; options: string[] | null; required: boolean }[];
+  counts: EventCounts;
+  registration_total: number;
+  series: { id: string; status: string }[];
+};
+
+/** Everything the editor needs for one event. Null when it doesn't exist or isn't the caller's to manage. */
 export async function getEventForEdit(eventId: string) {
-  const supabase = await createClient();
-  const { data: event } = await supabase
-    .from("events")
-    .select(
-      "id, organiser_id, status, cancel_reason, title, summary, description, category_id, tags, cover_url, starts_at, ends_at, format, venue_name, address, city, registration_mode, requires_approval, external_url, external_label, capacity, waitlist_enabled, registration_deadline, price_min, series_key",
-    )
-    .eq("id", eventId)
-    .maybeSingle();
-  if (!event) return null;
-
-  const [priv, tickets, questions, counts, series] = await Promise.all([
-    supabase.from("event_private").select("online_url, guest_info").eq("event_id", eventId).maybeSingle(),
-    supabase
-      .from("ticket_types")
-      .select("id, name, price, quantity, sales_end_at")
-      .eq("event_id", eventId)
-      .order("sort_order")
-      .order("created_at"),
-    supabase
-      .from("event_questions")
-      .select("id, label, kind, options, required")
-      .eq("event_id", eventId)
-      .order("sort_order")
-      .order("created_at"),
-    supabase.rpc("event_counts", { event_ids: [eventId] }),
-    event.series_key
-      ? supabase.from("events").select("id", { count: "exact", head: true }).eq("series_key", event.series_key).neq("status", "removed")
-      : Promise.resolve({ count: 1 }),
-  ]);
-
-  const c = ((counts.data ?? []) as { going: number; waitlisted: number; pending: number }[])[0];
+  let detail: EditorDetail;
+  try {
+    detail = await authed.get<EditorDetail>(`/organiser/events/${eventId}`);
+  } catch (error) {
+    if (isApiStatus(error, 403, 404, 422)) return null;
+    throw error;
+  }
   return {
-    event,
-    private: priv.data as { online_url: string | null; guest_info: string | null } | null,
-    tickets: (tickets.data ?? []) as { id: string; name: string; price: number; quantity: number | null; sales_end_at: string | null }[],
-    questions: (questions.data ?? []) as { id: string; label: string; kind: string; options: string[]; required: boolean }[],
-    registrations: c ? c.going + c.waitlisted + c.pending : 0,
-    /** How many dates the event's series has (1 for a one-off). */
-    seriesDates: series.count ?? 1,
+    event: detail.event,
+    organiser: detail.organiser,
+    private: detail.private,
+    tickets: detail.ticket_types,
+    questions: detail.questions,
+    registrations: detail.registration_total,
+    /** How many dates the event's series has (1 for a one-off); removed dates don't count. */
+    seriesDates: 1 + detail.series.filter((s) => s.status !== "removed").length,
   };
 }

@@ -12,7 +12,7 @@ import { CalendarSkeleton, DiscoveryHeader, ICONS, SectionHeading } from "@/comp
 import { requireProfile } from "@/lib/auth";
 import { dayKey, formatTimeRange } from "@/lib/format";
 import { formatDayKey, formatMonth, isDayKey, isMonthKey, monthKeyOf, monthRange } from "@/lib/discovery/dates";
-import { getViewer, listMyCalendar, type CalendarEntry } from "@/lib/discovery/queries";
+import { listMyCalendar, type CalendarEntry } from "@/lib/discovery/queries";
 
 export const metadata: Metadata = { title: "Calendar" };
 
@@ -46,7 +46,7 @@ export default function CalendarPage({ searchParams }: PageProps<"/calendar">) {
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">["searchParams"] }) {
-  const profile = await requireProfile();
+  await requireProfile();
   const params = await searchParams;
   const now = new Date();
   const today = dayKey(now);
@@ -55,9 +55,8 @@ async function Calendar({ searchParams }: { searchParams: PageProps<"/calendar">
   const monthParam = first(params.month);
   const month = isMonthKey(monthParam) ? monthParam : isDayKey(dayParam) ? dayParam.slice(0, 7) : monthKeyOf(now);
 
-  const viewer = await getViewer(profile);
   const range = monthRange(month);
-  const entries = await listMyCalendar(viewer, { from: range.start, to: range.end });
+  const entries = await listMyCalendar({ from: range.start, to: range.end });
 
   const byDay = new Map<string, CalendarEntry[]>();
   const marks = new Map<string, DayMarks>();

@@ -1,56 +1,58 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+
 import { buttonClass } from "@/components/ui/Button";
 import { inputClass } from "@/components/ui/Field";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
 
-function callbackUrl() {
-  const next = new URLSearchParams(window.location.search).get("next") ?? "/";
-  return `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+const API = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8090";
+
+function nextPath() {
+  if (typeof window === "undefined") return "/";
+  return new URLSearchParams(window.location.search).get("next") ?? "/";
 }
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [linkExpired, setLinkExpired] = useState(false);
+  const [signInError, setSignInError] = useState<"link" | "auth" | null>(null);
 
   useEffect(() => {
+    // The API sends a failed email link to ?error=link and a failed Google sign-in to ?error=auth.
+    const error = new URLSearchParams(window.location.search).get("error");
     // eslint-disable-next-line react-hooks/set-state-in-effect -- window.location is only readable on the client
-    setLinkExpired(new URLSearchParams(window.location.search).get("error") === "link");
+    setSignInError(error === "link" || error === "auth" ? error : null);
   }, []);
 
-  if (!isSupabaseConfigured) {
-    return (
-      <p className="mt-10 text-center text-sm text-muted">
-        Add your Supabase keys to <code className="text-fg">.env.local</code> to enable sign-in.
-      </p>
-    );
-  }
-
-  async function signInWithGoogle() {
-    await createClient().auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: callbackUrl() },
-    });
+  function signInWithGoogle() {
+    // The backend starts the OAuth flow and redirects back to the app.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the API is another origin
+    window.location.href = `${API}/api/auth/google/start?next=${encodeURIComponent(nextPath())}`;
   }
 
   async function sendEmailLink(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
-    const { error } = await createClient().auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: callbackUrl() },
-    });
-    setStatus(error ? "error" : "sent");
+    try {
+      const res = await fetch(`${API}/api/auth/magic-link`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, next: nextPath() }),
+      });
+      setStatus(res.ok ? "sent" : "error");
+    } catch {
+      setStatus("error");
+    }
   }
 
   return (
     <div className="glass-strong mt-9 w-full space-y-4 rounded-[24px] p-5">
-      {linkExpired && (
+      {signInError && (
         <p role="alert" className="rounded-2xl border border-orange/25 bg-orange/10 px-4 py-3 text-center text-sm text-orange">
-          That login link has expired or was already used. Request a new one.
+          {signInError === "link"
+            ? "That login link has expired or was already used. Request a new one."
+            : "Google sign-in didn't finish. Try again."}
         </p>
       )}
       <button
@@ -90,20 +92,17 @@ export function LoginForm() {
           )}
         </form>
       )}
-      <p className="pt-1 text-center text-xs leading-relaxed text-subtle">
-        University emails get a verified student badge. By continuing you agree to our terms and privacy policy.
-      </p>
     </div>
   );
 }
 
 function GoogleG() {
   return (
-    <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
-      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.500z" />
-      <path fill="#4285F4" d="M46.5 24.500c0-1.6-.1-3.1-.4-4.500H24v9h12.700c-.6 3-2.2 5.5-4.7 7.200l7.6 5.900c4.4-4.1 6.9-10.1 6.9-17.600z" />
-      <path fill="#FBBC05" d="M10.5 28.700a14.5 14.5 0 0 1 0-9.400l-7.9-6.100a24 24 0 0 0 0 21.600l7.9-6.100z" />
-      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.800l-7.6-5.900c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.800l-7.9 6.100C6.5 42.6 14.6 48 24 48z" />
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.57c2.08-1.92 3.27-4.74 3.27-8.09Z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.76c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z" />
+      <path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38Z" />
     </svg>
   );
 }

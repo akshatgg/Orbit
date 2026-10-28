@@ -1,35 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getProfile, isAdmin } from "@/lib/auth";
-import { refreshAllSources } from "@/lib/sources/engine";
-import { authoriseRefresh } from "@/lib/sources/refresh-auth";
+import { sessionToken } from "@/lib/api/session";
+import { cronAuthorised, forwardToBackend } from "@/lib/cron/forward";
 
-// One entry point for a full refresh of every enabled source (then expiry and duplicate checks):
+// A full refresh of every enabled source runs on the Orbit API:
 // GET  — Vercel cron (daily 03:00 UTC, see vercel.json) with Authorization: Bearer $CRON_SECRET.
-// POST — the "Refresh all now" button on /admin/sources, for signed-in admins on this site.
+// POST — the "Refresh all now" button on /admin/sources; the backend checks the caller is an admin.
 export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
-  const auth = authoriseRefresh({
-    method: "GET",
-    authorization: request.headers.get("authorization"),
-    cronSecret: process.env.CRON_SECRET,
-  });
-  if (!auth.ok) return NextResponse.json({ error: "Unauthorized" }, { status: auth.status });
-  const summary = await refreshAllSources({ trigger: auth.trigger });
-  return NextResponse.json(summary, { status: summary.errors.length ? 500 : 200 });
+  const authorization = request.headers.get("authorization");
+  if (!cronAuthorised(authorization)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return forwardToBackend("/cron/refresh-sources", { method: "GET", authorization: authorization! });
 }
 
 export async function POST(request: NextRequest) {
-  const profile = await getProfile();
-  const auth = authoriseRefresh({
-    method: "POST",
-    isAdmin: isAdmin(profile),
-    origin: request.headers.get("origin"),
-    host: request.headers.get("x-forwarded-host") ?? request.headers.get("host"),
-  });
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.status === 403 ? "Forbidden" : "Sign in as an admin to refresh sources." }, { status: auth.status });
+  // Same-site only: a form on another origin must not start a refresh with the admin's cookie.
+  const origin = request.headers.get("origin");
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (origin && host && new URL(origin).host !== host) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const summary = await refreshAllSources({ trigger: auth.trigger });
-  return NextResponse.json(summary, { headers: { "Cache-Control": "no-store" } });
+  const token = await sessionToken();
+  if (!token) return NextResponse.json({ error: "Sign in as an admin to refresh sources." }, { status: 401 });
+  return forwardToBackend("/cron/refresh-sources", { method: "POST", token });
 }

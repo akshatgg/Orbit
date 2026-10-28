@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useState, useTransition, type ReactNode } from "react";
 import { getNotificationPreferences, saveNotificationPreferences } from "@/lib/notifications/actions";
-import { DEFAULT_PREFERENCES, type Preferences } from "@/lib/notifications/plan";
+import { DEFAULT_PREFERENCES, type Preferences } from "@/lib/notifications/preferences";
 import {
   currentSubscription,
   detectPushSupport,

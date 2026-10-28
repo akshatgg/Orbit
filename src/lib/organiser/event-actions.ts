@@ -2,17 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
-import { notifyEventChanged } from "@/lib/notifications";
-import { releaseImages } from "@/lib/cloudinary-release";
-import { createClient } from "@/lib/supabase/server";
+import { apiErrorCode, apiMessage, isApiStatus, isConflict, isSignedOut } from "@/lib/api/errors";
+import { authed } from "@/lib/api/session";
+import { getCurrentUser, getMyOrganisers } from "@/lib/auth";
 import {
-  formForDate, formToEventRow, formToPrivateRow, formToQuestionRows, formToTicketRows, logisticsChanged, type EventForm,
+  formToEventRow, formToPrivateRow, formToQuestionRows, formToTicketRows, logisticsChanged, type EventForm,
 } from "./event-form";
-import { weeklyLabel } from "./repeat";
+import { londonLocalToUtcIso } from "./time";
 import { validateEventForm, type EventIntent, type EventIssue } from "./schemas";
 
-type Supabase = Awaited<ReturnType<typeof createClient>>;
+// The event editor's writes, through the Orbit API's organiser endpoints. The API enforces the
+// same rules (approved organiser, payouts for paid tickets, guests on removed tickets) and tells
+// guests when a live event's time or place changes; the checks here only explain things early.
 
 export type SaveEventInput = {
   organiserId: string;
@@ -29,24 +30,71 @@ export type SaveEventResult =
     }
   | { ok: false; error: string; issues?: EventIssue[]; id?: string };
 
-type Fail = { ok: false; error: string; issues?: EventIssue[]; id?: string };
-
 const SIGNED_OUT = "Your session has ended. Sign in again to continue.";
-const ACTIVE_REGISTRATION = ["going", "pending", "waitlisted", "awaiting_payment"];
+const NOT_APPROVED = "Your organiser needs to be approved by the ORBIT team before you can create events.";
 
-function friendly(error: { message?: string; code?: string } | null, fallback: string) {
-  if (!error) return fallback;
-  if (error.code === "42501" || /row-level security|permission denied/i.test(error.message ?? "")) {
-    return "You don't have permission to do that. Only members of an approved organiser can manage its events.";
-  }
-  if (error.code === "23514") return "Some details don't look right. Check the dates, capacity and links.";
-  return fallback;
+/** API error codes → the copy (and editor step) the editor shows. */
+const SAVE_ERRORS: Record<string, { error: string; issues?: EventIssue[] }> = {
+  organiser_not_approved: { error: NOT_APPROVED },
+  stripe_not_ready: {
+    error: "Connect payouts to sell paid tickets. Set them up in Studio → Get paid, or make every ticket free.",
+    issues: [{ path: "tickets", message: "Connect payouts to sell paid tickets", step: "tickets" }],
+  },
+  has_registrations: {
+    error: "People have already registered through ORBIT, so registration can't move off ORBIT tickets. Cancel the event instead if plans changed.",
+    issues: [{ path: "registration", message: "Guests already have tickets", step: "registration" }],
+  },
+  ticket_type_has_guests: {
+    error: "A ticket type you removed already has guests. Keep it (you can lower its quantity) or cancel those registrations first.",
+    issues: [{ path: "tickets", message: "Removed ticket has guests", step: "tickets" }],
+  },
+  event_not_editable: { error: "This event is cancelled, so it can't be edited." },
+  event_not_publishable: { error: "Only drafts can be published. Reload the page to see the event's current state." },
+  date_in_past: {
+    error: "One of the other dates is in the past. Remove it or pick a later date.",
+    issues: [{ path: "extra_dates", message: "This date is in the past", step: "when" }],
+  },
+  duplicate_date: {
+    error: "Two of the dates are the same. Remove the repeat and try again.",
+    issues: [{ path: "extra_dates", message: "This date is already in the list", step: "when" }],
+  },
+  "This event has already started": {
+    error: "The start time is in the past. Move it to a later time before publishing.",
+    issues: [{ path: "starts_at", message: "The start time is in the past", step: "when" }],
+  },
+  "External registration needs a link": {
+    error: "Add the link where people register.",
+    issues: [{ path: "external_url", message: "Add the link where people register", step: "registration" }],
+  },
+  "Event not found": { error: "Event not found." },
+  "Organiser not found": { error: "Organiser not found." },
+};
+
+const FORBIDDEN = "You don't have permission to do that. Only members of an approved organiser can manage its events.";
+const INVALID = "Some details don't look right. Check the dates, capacity and links.";
+
+/** A failed save as `{ error, issues }`, keeping the id of anything already saved. */
+function saveFailure(error: unknown, fallback: string, id?: string): { ok: false; error: string; issues?: EventIssue[]; id?: string } {
+  if (isSignedOut(error)) return { ok: false, error: SIGNED_OUT, id };
+  const known = SAVE_ERRORS[apiErrorCode(error) ?? ""];
+  if (known) return { ok: false, ...known, id };
+  if (isApiStatus(error, 403)) return { ok: false, error: FORBIDDEN, id };
+  if (isApiStatus(error, 422)) return { ok: false, error: INVALID, id };
+  return { ok: false, error: apiMessage(error, {}, { fallback }), id };
 }
+
+type SavedEvent = { id: string; status: string; ticket_type_ids: string[]; question_ids: string[] };
+
+type ExistingEvent = {
+  id: string; organiser_id: string; status: string; starts_at: string; ends_at: string | null;
+  venue_name: string | null; address: string | null; format: string; registration_mode: string;
+};
 
 /**
  * Creates or updates an event with its tickets, questions and private details.
- * New events are written as drafts first and only published once every part has saved,
- * so a half-saved event is never live.
+ * New events are saved as drafts first and only published once every part has saved,
+ * so a half-saved event is never live. On first publish, extra dates are added as their
+ * own events in the same series (the API publishes them with the event).
  */
 export async function saveEvent(input: SaveEventInput): Promise<SaveEventResult> {
   const user = await getCurrentUser();
@@ -59,32 +107,21 @@ export async function saveEvent(input: SaveEventInput): Promise<SaveEventResult>
   const { organiserId, eventId } = ids.data;
   let intent = ids.data.intent;
 
-  const supabase = await createClient();
-  const { data: org } = await supabase
-    .from("organisers")
-    .select("id, slug, status, stripe_charges_enabled")
-    .eq("id", organiserId)
-    .maybeSingle();
+  const org = (await getMyOrganisers()).find((o) => o.id === organiserId);
   if (!org) return { ok: false, error: "Organiser not found." };
-  if (org.status !== "approved") {
-    return { ok: false, error: "Your organiser needs to be approved by the ORBIT team before you can create events." };
-  }
+  if (org.status !== "approved") return { ok: false, error: NOT_APPROVED };
 
-  let existing: {
-    id: string; organiser_id: string; status: string; starts_at: string; ends_at: string | null;
-    venue_name: string | null; address: string | null; format: string; registration_mode: string;
-  } | null = null;
+  let existing: ExistingEvent | null = null;
   if (eventId) {
-    const { data } = await supabase
-      .from("events")
-      .select("id, organiser_id, status, starts_at, ends_at, venue_name, address, format, registration_mode")
-      .eq("id", eventId)
-      .maybeSingle();
-    if (!data || data.organiser_id !== organiserId) return { ok: false, error: "Event not found." };
-    if (data.status === "cancelled" || data.status === "removed") {
+    try {
+      existing = (await authed.get<{ event: ExistingEvent }>(`/organiser/events/${eventId}`)).event;
+    } catch (error) {
+      return saveFailure(error, "Event not found.");
+    }
+    if (existing.organiser_id !== organiserId) return { ok: false, error: "Event not found." };
+    if (existing.status === "cancelled" || existing.status === "removed") {
       return { ok: false, error: "This event is cancelled, so it can't be edited." };
     }
-    existing = data;
   }
 
   const wasPublished = existing?.status === "published";
@@ -97,215 +134,99 @@ export async function saveEvent(input: SaveEventInput): Promise<SaveEventResult>
   });
   if (!checked.ok) return { ok: false, error: checked.issues[0].message, issues: checked.issues };
   const form = checked.data;
-  const row = formToEventRow(form);
 
-  if (existing && existing.registration_mode === "tickets" && row.registration_mode !== "tickets") {
-    const { data: regs } = await supabase
-      .from("registrations")
-      .select("id")
-      .eq("event_id", existing.id)
-      .in("status", ACTIVE_REGISTRATION)
-      .limit(1);
-    if (regs?.length) {
-      return {
-        ok: false,
-        error: "People have already registered through ORBIT, so registration can't move off ORBIT tickets. Cancel the event instead if plans changed.",
-        issues: [{ path: "registration", message: "Guests already have tickets", step: "registration" }],
-      };
+  // External and info-only events send the price shown on their card; a ticketed event's
+  // range follows its ticket types (the API ignores the columns there).
+  const row = formToEventRow(form);
+  const body = {
+    ...row,
+    ticket_types: formToTicketRows(form),
+    questions: formToQuestionRows(form),
+    private: formToPrivateRow(form),
+  };
+
+  // 1. The event, its tickets, questions and private details, in one call.
+  let saved: SavedEvent;
+  try {
+    saved = existing
+      ? await authed.patch<SavedEvent>(`/organiser/events/${existing.id}`, { body })
+      : await authed.post<SavedEvent>("/organiser/events", { body: { ...body, organiser_id: organiserId } });
+  } catch (error) {
+    return saveFailure(error, existing ? "We couldn't save the event. Please try again." : "We couldn't create the event. Please try again.", existing?.id);
+  }
+  const id = saved.id;
+  let status = saved.status;
+
+  // 2. Go live.
+  if (intent === "publish" && !wasPublished) {
+    try {
+      status = (await authed.post<{ status: string }>(`/organiser/events/${id}/publish`)).status;
+    } catch (error) {
+      revalidatePath("/organiser", "layout");
+      const failed = saveFailure(error, "Saved as a draft, but we couldn't publish it.", id);
+      return { ...failed, error: `Saved as a draft. ${failed.error}` };
     }
   }
-
-  // 1. The event itself.
-  let id = existing?.id;
-  if (!existing) {
-    const { data, error } = await supabase
-      .from("events")
-      .insert({ ...row, organiser_id: organiserId, status: "draft", source: "orbit" })
-      .select("id")
-      .single();
-    if (error || !data) return { ok: false, error: friendly(error, "We couldn't create the event. Please try again.") };
-    id = data.id as string;
-  } else {
-    const { error } = await supabase.from("events").update(row).eq("id", existing.id);
-    if (error) return { ok: false, error: friendly(error, "We couldn't save the event. Please try again."), id };
-  }
-  const eventIdSaved = id!;
-
-  // 2. Private details, tickets and questions.
-  const { error: privError } = await supabase
-    .from("event_private")
-    .upsert({ event_id: eventIdSaved, ...formToPrivateRow(form) }, { onConflict: "event_id" });
-  if (privError) return { ok: false, error: friendly(privError, "We couldn't save the online link."), id: eventIdSaved };
-
-  const tickets = await syncChildren(supabase, "ticket_types", eventIdSaved, formToTicketRows(form), true);
-  if (!tickets.ok) return { ...tickets, id: eventIdSaved };
-  const questions = await syncChildren(supabase, "event_questions", eventIdSaved, formToQuestionRows(form), false);
-  if (!questions.ok) return { ...questions, id: eventIdSaved };
 
   // 3. More dates: on first publish, one more event per date, linked to this one as a series.
   let datesCreated = 0;
   if (intent === "publish" && !wasPublished && form.extra_dates.length > 0) {
-    const series = await createMoreDates(supabase, organiserId, eventIdSaved, form);
-    if (!series.ok) return { ...series, id: eventIdSaved };
-    datesCreated = series.count;
+    const dates = form.extra_dates.map((d) => ({ starts_at: londonLocalToUtcIso(d.starts_at)!, ends_at: londonLocalToUtcIso(d.ends_at) }));
+    try {
+      datesCreated = (await authed.post<{ count: number }>(`/organiser/events/${id}/dates`, { body: { dates } })).count;
+    } catch (error) {
+      revalidatePath("/", "layout");
+      const failed = saveFailure(error, "We couldn't add the other dates. Please try again.", id);
+      return { ...failed, error: `Your event is live, but the other dates weren't added. ${failed.error}` };
+    }
   }
 
-  // 4. Go live.
-  let status = existing?.status ?? "draft";
-  if (intent === "publish" && !wasPublished) {
-    const { error } = await supabase.from("events").update({ status: "published" }).eq("id", eventIdSaved);
-    if (error) return { ok: false, error: friendly(error, "Saved as a draft, but we couldn't publish it."), id: eventIdSaved };
-    status = "published";
-  }
-
-  // 5. Tell guests if the time or place moved.
-  let notified = false;
-  if (existing && wasPublished && logisticsChanged(existing, row)) {
-    await notifyEventChanged(eventIdSaved, "updated");
-    notified = true;
-  }
+  // 4. The API tells guests if a live event's time or place moved.
+  const notified = Boolean(existing && wasPublished && logisticsChanged(existing, row));
 
   revalidatePath("/", "layout");
-  return { ok: true, id: eventIdSaved, status, notified, ticketIds: tickets.ids, questionIds: questions.ids, datesCreated };
-}
-
-/**
- * Creates the event's other dates: each is its own event (own capacity, registrations, check-in)
- * with the same details, tickets and questions, and all share one series key. They're written as
- * drafts and only published together at the end, so a failure part-way never leaves dates live.
- */
-async function createMoreDates(
-  supabase: Supabase,
-  organiserId: string,
-  firstId: string,
-  form: EventForm,
-): Promise<{ ok: true; count: number } | Fail> {
-  const series_key = `orbit:${firstId}`;
-  const series_label = weeklyLabel([form.starts_at, ...form.extra_dates.map((d) => d.starts_at)]);
-  const { error: linkError } = await supabase.from("events").update({ series_key, series_label }).eq("id", firstId);
-  if (linkError) return { ok: false, error: friendly(linkError, "We couldn't set up the other dates.") };
-
-  const created: string[] = [];
-  for (const slot of form.extra_dates) {
-    const dateForm = formForDate(form, slot);
-    const { data, error } = await supabase
-      .from("events")
-      .insert({ ...formToEventRow(dateForm), series_key, series_label, organiser_id: organiserId, status: "draft", source: "orbit" })
-      .select("id")
-      .single();
-    if (error || !data) return { ok: false, error: friendly(error, "We couldn't create one of the other dates. Please try again.") };
-    const id = data.id as string;
-    created.push(id);
-
-    const { error: privError } = await supabase
-      .from("event_private")
-      .upsert({ event_id: id, ...formToPrivateRow(dateForm) }, { onConflict: "event_id" });
-    if (privError) return { ok: false, error: friendly(privError, "We couldn't save the online link for one of the dates.") };
-    const tickets = await syncChildren(supabase, "ticket_types", id, formToTicketRows(dateForm), true);
-    if (!tickets.ok) return tickets;
-    const questions = await syncChildren(supabase, "event_questions", id, formToQuestionRows(dateForm), false);
-    if (!questions.ok) return questions;
-  }
-
-  const { error } = await supabase.from("events").update({ status: "published" }).in("id", created);
-  if (error) return { ok: false, error: friendly(error, "The other dates were saved as drafts, but we couldn't publish them.") };
-  return { ok: true, count: created.length };
-}
-
-type ChildRow = { id?: string; sort_order: number } & Record<string, unknown>;
-
-/** Makes the event's ticket types / questions match `rows`: update kept ones, insert new, delete removed. */
-async function syncChildren(
-  supabase: Supabase,
-  table: "ticket_types" | "event_questions",
-  eventId: string,
-  rows: ChildRow[],
-  protectRegistered: boolean,
-): Promise<{ ok: true; ids: string[] } | Fail> {
-  const what = table === "ticket_types" ? "tickets" : "questions";
-  const { data: current, error: readError } = await supabase.from(table).select("id").eq("event_id", eventId);
-  if (readError) return { ok: false, error: friendly(readError, `We couldn't load the ${what}.`) };
-
-  const currentIds = new Set((current ?? []).map((r) => r.id as string));
-  const keep = new Set(rows.filter((r) => r.id && currentIds.has(r.id)).map((r) => r.id!));
-  const remove = [...currentIds].filter((cid) => !keep.has(cid));
-
-  if (remove.length > 0) {
-    if (protectRegistered) {
-      const { data: used } = await supabase
-        .from("registrations")
-        .select("id")
-        .eq("event_id", eventId)
-        .in("ticket_type_id", remove)
-        .in("status", ACTIVE_REGISTRATION)
-        .limit(1);
-      if (used?.length) {
-        return {
-          ok: false,
-          error: "A ticket type you removed already has guests. Keep it (you can lower its quantity) or cancel those registrations first.",
-          issues: [{ path: "tickets", message: "Removed ticket has guests", step: "tickets" }],
-        };
-      }
-    }
-    const { error } = await supabase.from(table).delete().in("id", remove);
-    if (error) return { ok: false, error: friendly(error, `We couldn't update the ${what}.`) };
-  }
-
-  const ids: string[] = [];
-  for (const [i, { id, ...values }] of rows.entries()) {
-    if (id && keep.has(id)) {
-      const { error } = await supabase.from(table).update(values).eq("id", id);
-      if (error) return { ok: false, error: friendly(error, `We couldn't save the ${what}.`) };
-      ids[i] = id;
-    } else {
-      const { data, error } = await supabase
-        .from(table)
-        .insert({ ...values, event_id: eventId })
-        .select("id")
-        .single();
-      if (error || !data) return { ok: false, error: friendly(error, `We couldn't save the ${what}.`) };
-      ids[i] = data.id as string;
-    }
-  }
-  return { ok: true, ids };
+  return {
+    ok: true, id, status, notified, ticketIds: saved.ticket_type_ids ?? [], questionIds: saved.question_ids ?? [], datesCreated,
+  };
 }
 
 /** Cancels a published event (guests are told) — it stays visible, marked cancelled. */
 export async function cancelEvent(eventId: string, reason: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: SIGNED_OUT };
   const parsed = z
     .object({ id: z.uuid(), reason: z.string().trim().min(3, "Tell guests why (a few words is fine)").max(500, "Keep the reason under 500 characters") })
     .safeParse({ id: eventId, reason });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("events")
-    .update({ status: "cancelled", cancel_reason: parsed.data.reason })
-    .eq("id", parsed.data.id)
-    .eq("status", "published")
-    .select("id");
-  if (error) return { ok: false, error: friendly(error, "We couldn't cancel the event. Please try again.") };
-  if (!data?.length) return { ok: false, error: "Only published events you manage can be cancelled." };
+  try {
+    await authed.post(`/organiser/events/${parsed.data.id}/cancel`, { body: { reason: parsed.data.reason } });
+  } catch (error) {
+    if (isSignedOut(error)) return { ok: false, error: SIGNED_OUT };
+    return {
+      ok: false,
+      error: apiMessage(
+        error,
+        { event_not_published: "Only published events you manage can be cancelled." },
+        { fallback: "We couldn't cancel the event. Please try again." },
+      ),
+    };
+  }
 
-  await notifyEventChanged(parsed.data.id, "cancelled");
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
 /** Deletes a draft (published events are cancelled instead, so guests aren't left hanging). */
 export async function deleteDraftEvent(eventId: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: SIGNED_OUT };
   const id = z.uuid().safeParse(eventId);
   if (!id.success) return { ok: false, error: "Event not found." };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("events").delete().eq("id", id.data).eq("status", "draft").select("id, cover_url");
-  if (error) return { ok: false, error: friendly(error, "We couldn't delete the draft. Please try again.") };
-  if (!data?.length) return { ok: false, error: "Only drafts can be deleted. Cancel a published event instead." };
-  await releaseImages(data.map((e) => e.cover_url as string | null));
+  try {
+    await authed.del(`/organiser/events/${id.data}`);
+  } catch (error) {
+    if (isSignedOut(error)) return { ok: false, error: SIGNED_OUT };
+    if (isConflict(error)) return { ok: false, error: "Only drafts can be deleted. Cancel a published event instead." };
+    return { ok: false, error: apiMessage(error, {}, { fallback: "We couldn't delete the draft. Please try again." }) };
+  }
 
   revalidatePath("/organiser", "layout");
   return { ok: true };

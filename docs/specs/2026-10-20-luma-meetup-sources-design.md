@@ -105,7 +105,7 @@ Both are registered in `CONNECTORS`. The sync engine is unchanged.
 - The permission rule is unchanged. A source can't be enabled until permission is confirmed
   and noted (e.g. "Public Meetup group feed, shown with attribution").
 
-### Migration `supabase/migrations/20261020000000_source_platforms.sql`
+### Migration `source_platforms` (now part of the Orbit API's schema)
 
 Re-runnable. Drops `event_sources_kind_check` and re-adds it as `kind in ('ical', 'luma', 'meetup')`.
 Creates `source_event_details` (grants to `authenticated` + `service_role`, RLS

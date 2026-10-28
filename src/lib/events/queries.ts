@@ -1,17 +1,9 @@
 import "server-only";
 import type { Category, OrbitEvent, Organiser, RegistrationStatus } from "@/types/database";
-import { createClient } from "@/lib/supabase/server";
+import { api, ApiError, type RequestOptions } from "@/lib/api/client";
+import { apiAs, sessionToken } from "@/lib/api/session";
 
-/** Columns every event list needs. Use with `.select(EVENT_CARD_SELECT)`. */
-export const EVENT_CARD_SELECT = `
-  id, title, summary, cover_url, starts_at, ends_at, timezone, format, venue_name, address, city, country, tags,
-  university, registration_mode, external_url, external_label, requires_approval, capacity,
-  registration_deadline, price_min, price_max, currency, status, is_featured, organiser_id,
-  category_id, source, source_url, published_at, created_at, series_key, series_label,
-  organiser:organisers ( id, slug, name, logo_url, is_verified, kind ),
-  category:categories ( id, slug, name, group )
-`;
-
+/** The event card every list and feed of the Orbit API returns (`EventCard`). */
 export type EventCardData = Pick<
   OrbitEvent,
   | "id" | "title" | "summary" | "cover_url" | "starts_at" | "ends_at" | "timezone" | "format"
@@ -30,14 +22,59 @@ export { spotsLeft, type EventCounts } from "./spots";
 
 export type EventWithCounts = EventCardData & { counts: EventCounts };
 
+/** A card as the API sends it: counts included, plus the ranking fields on feeds. */
+export type ApiEventCard = EventWithCounts & {
+  waitlist_enabled?: boolean;
+  score?: number | null;
+  reason?: string | null;
+};
+
+export type ApiEventPage<T = ApiEventCard> = {
+  items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  truncated?: boolean;
+};
+
 const EMPTY_COUNTS: EventCounts = { going: 0, waitlisted: 0, pending: 0 };
 
+/** Ids per request for the endpoints that take an id list (the API's limit). */
+const MAX_IDS = 200;
+
+function chunks<T>(items: T[], size = MAX_IDS): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+/**
+ * A GET as whoever is looking: with the session when there is one (so the API can add the
+ * viewer's own state), anonymous otherwise or when the session has expired.
+ */
+export async function getAsViewer<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const token = await sessionToken();
+  if (token) {
+    try {
+      return await api.get<T>(path, { ...options, token });
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 401)) throw error;
+    }
+  }
+  return api.get<T>(path, options);
+}
+
 /** Adds going / waitlisted / pending counts to a list of events. */
-export async function withCounts(events: EventCardData[]): Promise<EventWithCounts[]> {
+export async function withCounts<E extends EventCardData>(events: E[]): Promise<(E & { counts: EventCounts })[]> {
   if (events.length === 0) return [];
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("event_counts", { event_ids: events.map((e) => e.id) });
-  const rows = (data ?? []) as ({ event_id: string } & EventCounts)[];
+  const ids = [...new Set(events.map((e) => e.id))];
+  const rows = (
+    await Promise.all(
+      chunks(ids).map((part) =>
+        api.get<({ event_id: string } & EventCounts)[]>("/events/counts", { query: { ids: part.join(",") } }),
+      ),
+    )
+  ).flat();
   const byId = new Map(rows.map((c) => [c.event_id, c]));
   return events.map((e) => {
     const c = byId.get(e.id);
@@ -47,24 +84,19 @@ export async function withCounts(events: EventCardData[]): Promise<EventWithCoun
 
 /** Published events that haven't ended yet, soonest first. */
 export async function listUpcomingEvents({ limit = 100 }: { limit?: number } = {}) {
-  const supabase = await createClient();
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("events")
-    .select(EVENT_CARD_SELECT)
-    .eq("status", "published")
-    .is("duplicate_of", null)
-    .or(`ends_at.gte.${nowIso},and(ends_at.is.null,starts_at.gte.${nowIso})`)
-    .order("starts_at", { ascending: true })
-    .limit(limit);
-  if (error) throw error;
-  return (data ?? []) as unknown as EventCardData[];
+  const page = await api.get<ApiEventPage>("/events/upcoming", {
+    query: { page_size: Math.min(limit, 100) },
+  });
+  return page.items;
 }
 
 export async function getEventCard(id: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("events").select(EVENT_CARD_SELECT).eq("id", id).maybeSingle();
-  return data as unknown as EventCardData | null;
+  try {
+    return await api.get<EventCardData>(`/events/${id}`);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 422)) return null;
+    throw error;
+  }
 }
 
 export type MyEventState = {
@@ -75,6 +107,14 @@ export type MyEventState = {
   registrations: Map<string, RegistrationStatus>;
 };
 
+type ApiEventState = {
+  saved: string[];
+  dismissed: string[];
+  external_registered: string[];
+  attended: string[];
+  registrations: Record<string, RegistrationStatus>;
+};
+
 /** What the signed-in user has done with each event (saved, dismissed, ticket status…). */
 export async function getMyEventState(userId: string | null | undefined, eventIds?: string[]): Promise<MyEventState> {
   const state: MyEventState = {
@@ -82,29 +122,27 @@ export async function getMyEventState(userId: string | null | undefined, eventId
     registrations: new Map(),
   };
   if (!userId) return state;
-  const supabase = await createClient();
+  if (eventIds && eventIds.length === 0) return state;
 
-  let ue = supabase.from("user_events").select("event_id, kind").eq("user_id", userId);
-  let regs = supabase.from("registrations").select("event_id, status").eq("user_id", userId);
-  if (eventIds) {
-    if (eventIds.length === 0) return state;
-    ue = ue.in("event_id", eventIds);
-    regs = regs.in("event_id", eventIds);
-  }
-  const [{ data: marks }, { data: registrations }] = await Promise.all([ue, regs]);
+  const parts = eventIds
+    ? await Promise.all(
+      chunks([...new Set(eventIds)]).map((ids) =>
+        apiAs<ApiEventState>("/me/event-state", { query: { event_ids: ids.join(",") } }),
+      ),
+    )
+    : [await apiAs<ApiEventState>("/me/event-state")];
 
-  for (const m of marks ?? []) {
-    if (m.kind === "saved") state.saved.add(m.event_id);
-    else if (m.kind === "dismissed") state.dismissed.add(m.event_id);
-    else if (m.kind === "external_registered") state.externalRegistered.add(m.event_id);
-    else if (m.kind === "attended") state.attended.add(m.event_id);
+  for (const part of parts) {
+    if (!part) continue;
+    for (const id of part.saved) state.saved.add(id);
+    for (const id of part.dismissed) state.dismissed.add(id);
+    for (const id of part.external_registered) state.externalRegistered.add(id);
+    for (const id of part.attended) state.attended.add(id);
+    for (const [id, status] of Object.entries(part.registrations)) state.registrations.set(id, status);
   }
-  for (const r of registrations ?? []) state.registrations.set(r.event_id, r.status as RegistrationStatus);
   return state;
 }
 
 export async function listCategories() {
-  const supabase = await createClient();
-  const { data } = await supabase.from("categories").select("*").order("sort_order");
-  return data ?? [];
+  return api.get<Category[]>("/categories");
 }

@@ -8,7 +8,7 @@
 
 ![Next.js](https://img.shields.io/badge/Next.js_16-000000?logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
+![FastAPI](https://img.shields.io/badge/Orbit_API-FastAPI-009688?logo=fastapi&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS_4-06B6D4?logo=tailwindcss&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-5A0FC8?logo=pwa&logoColor=white)
 ![Stripe](https://img.shields.io/badge/Stripe_Connect-635BFF?logo=stripe&logoColor=white)
@@ -79,8 +79,9 @@ ORBIT launches with Imperial College Business School MSc students.
 
 ### Platform
 - **PWA** — installs to the home screen on iOS and Android, works full-screen, has an offline screen.
-- **Security by default** — Postgres Row Level Security on every table; registrations, approvals and
-  check-ins run through audited SQL functions; organisers can only see their own guests.
+- **Security by default** — the app holds no database or third-party secrets; the Orbit API checks
+  every call, registrations, approvals and check-ins run through audited SQL functions, and organisers
+  can only see their own guests.
 - **Compliance-first data** — no scraping; every event keeps its source and provenance.
 
 ## Install the app (PWA)
@@ -99,29 +100,29 @@ Push notifications on iPhone need iOS 16.4+ and the app opened from the home scr
 |---|---|
 | App | [Next.js 16](https://nextjs.org) (App Router, Cache Components, Server Actions) · React 19 · TypeScript |
 | Styling | Tailwind CSS 4 with a design system drawn from the ORBIT logo |
-| Data & auth | [Supabase](https://supabase.com) — Postgres, Row Level Security, Auth (Google + email link), Storage |
+| Data & auth | Orbit API (FastAPI + Postgres, separate repo) — accounts (Google + email link), data, payments, uploads, notifications and event importers |
+| Images | Cloudinary signed uploads (signature from the Orbit API) |
 | Payments | Stripe Connect (Express, destination charges) |
-| Notifications | Web Push (VAPID) · [Resend](https://resend.com) email |
+| Notifications | Web Push (VAPID) · email, both sent by the Orbit API |
 | Hosting | [Vercel](https://vercel.com) with daily cron jobs |
-| Testing | Vitest (275 tests) · ESLint · TypeScript strict |
+| Testing | Vitest · ESLint · TypeScript strict |
 
 ## Getting started
 
-**Prerequisites:** Node.js 22+, Docker (for local Supabase).
+**Prerequisites:** Node.js 22+ and a running Orbit API (the backend repo; it brings its own
+Postgres in Docker).
 
 ```bash
 git clone https://github.com/akshatgg/Orbit.git
 cd Orbit
 npm install
-npm run db:start     # local Supabase in Docker: applies migrations + demo data
 ```
 
-Create `.env.development.local` using the values printed by `db:start`:
+Create `.env.development.local`:
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable key>
-SUPABASE_SECRET_KEY=<secret key>
+BACKEND_URL=http://localhost:8090
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8090
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_DEV_LOGIN=1
 ```
@@ -130,17 +131,9 @@ NEXT_PUBLIC_DEV_LOGIN=1
 npm run dev          # http://localhost:3000
 ```
 
-`NEXT_PUBLIC_DEV_LOGIN=1` adds one-tap **Dev sign-in** buttons to `/login` (local only). Demo accounts
-(password `password123`):
-
-| Account | Email |
-|---|---|
-| Student (onboarded) | `student@imperial.ac.uk` |
-| New user (not onboarded) | `newbie@orbit.test` |
-| Organiser | `organiser@orbit.test` |
-| Pending organiser | `pending@orbit.test` |
-| Admin | `admin@orbit.test` |
-| Super admin (local demo account) | `akshatg9536@gmail.com` |
+`NEXT_PUBLIC_DEV_LOGIN=1` adds an email + password **Dev sign-in** form to `/login` (local only); it signs
+in through the API's `POST /auth/login`. Give an account a password with the API's `POST /auth/password`.
+On `localhost` the API's session cookie is shared with the app, so no further setup is needed.
 
 ### Scripts
 
@@ -150,9 +143,6 @@ npm run dev          # http://localhost:3000
 | `npm run build` / `npm start` | Production build / serve |
 | `npm test` | Run the Vitest suite |
 | `npm run lint` | ESLint |
-| `npm run db:start` | Start local Supabase |
-| `npm run db:reset` | Rebuild the local database from migrations + seed |
-| `npm run db:types` | Regenerate `src/types/supabase.ts` from the local schema |
 
 ## Environment variables
 
@@ -160,18 +150,16 @@ See [`.env.example`](.env.example) for the full list.
 
 | Variable | Needed for |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Everything |
-| `SUPABASE_SECRET_KEY` | Server jobs: payments hand-off, reminders, event sources (server only) |
-| `NEXT_PUBLIC_APP_URL` | Links in emails, checkout and share previews |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Push notifications (`npx web-push generate-vapid-keys`) |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM` | Email reminders over SMTP (e.g. Gmail app password); used before Resend when set |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Email reminders via Resend (alternative to SMTP) |
-| `CRON_SECRET` | Protects `/api/cron/*` |
-| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Image uploads (covers, logos) via signed Cloudinary uploads (server only); falls back to Supabase Storage when unset |
-| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `PLATFORM_FEE_PERCENT` | Paid tickets |
+| `BACKEND_URL` | Every server-side call to the Orbit API |
+| `NEXT_PUBLIC_BACKEND_URL` | Browser redirects to the API: Google sign-in, email login link |
+| `NEXT_PUBLIC_APP_URL` | Canonical URLs, sitemap and share previews |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Push notifications (the API holds the private key) |
+| `CRON_SECRET` | Protects `/api/cron/*`, which forwards to the API's `/api/cron/*` with the same secret |
+| `GOOGLE_SITE_VERIFICATION` | Optional Search Console tag |
 
-Every optional integration degrades gracefully — without Stripe, paid tickets are switched off;
-without Resend, reminders go by push only.
+Email, Stripe, Cloudinary and VAPID private keys are configured on the Orbit API. Every optional
+integration degrades gracefully there — without Stripe, paid tickets are switched off; without
+Cloudinary, image uploads say they aren't configured.
 
 ## Project structure
 
@@ -192,13 +180,10 @@ src/
 │   ├── organiser/              Organiser studio: apply, events, guests, check-in, settings, payments
 │   ├── admin/                  Admin dashboard
 │   ├── checkout/               Paid-ticket confirmation
-│   └── api/                    Stripe webhook · push · cron (reminders, source refresh)
+│   └── api/                    Push subscribe · cron forwarders (reminders, source refresh)
 ├── components/                 UI kit, event cards, feature components
-├── lib/                        Auth, queries, ranking, tickets, payments, notifications, sources…
-└── types/                      Database types
-supabase/
-├── migrations/                 Schema, RLS policies and SQL functions
-└── seed.sql                    Local demo data
+├── lib/                        API client (lib/api), auth, queries, ranking, tickets, payments…
+└── types/                      Table row types (the shapes the API returns)
 public/sw.js                    Service worker (offline + push)
 docs/                           Architecture guide, product notes, screenshots
 ```
@@ -209,19 +194,13 @@ Conventions, the data model and the security rules are documented in
 
 ## Deployment
 
-1. **Supabase** — create a project (region: London), then apply the schema:
-   ```bash
-   npx supabase link --project-ref <project-ref>
-   npx supabase db push
-   ```
-   In *Authentication → URL Configuration* set the Site URL to your domain and add
-   `https://<your-domain>/auth/callback` to the redirect URLs. Enable the Google provider if wanted.
-2. **Vercel** — import the repo, add the environment variables above, deploy. The cron jobs in
-   [`vercel.json`](vercel.json) run reminders (08:00 UTC) and source refresh (03:00 UTC).
-3. **Stripe** (optional) — enable Connect, add the keys, and point a webhook at
-   `https://<your-domain>/api/stripe/webhook` for `checkout.session.completed`,
-   `checkout.session.async_payment_succeeded` and `account.updated`.
-4. **Resend** (optional) — verify your sending domain and set `RESEND_API_KEY` + `EMAIL_FROM`.
+1. **Orbit API** — deploy the backend first (it owns the database, sign-in, email, push, Stripe,
+   Cloudinary and the importers). Its `FRONTEND_URL` is this app's URL, and its session cookie domain is
+   the parent domain shared with the app (e.g. `.akshatgg.in`).
+2. **Vercel** — import the repo, set `BACKEND_URL` and `NEXT_PUBLIC_BACKEND_URL` to the API, plus the
+   variables above, and deploy. The cron jobs in [`vercel.json`](vercel.json) call `/api/cron/reminders`
+   (08:00 UTC) and `/api/cron/refresh-sources` (03:00 UTC), which forward to the API.
+3. **Stripe** (optional) — webhooks point at the API: `https://<api-domain>/api/payments/webhook`.
 
 The account with the super-admin email becomes super admin automatically on first sign-in and can
 appoint other admins from **Admin → Users & admins**.

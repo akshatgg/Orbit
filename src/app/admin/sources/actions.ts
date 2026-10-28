@@ -4,13 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { importRemoteImage } from "@/lib/sources/cloudinary-import";
+import { apiMessage } from "@/lib/api/errors";
+import { authed } from "@/lib/api/session";
 import { importedDetailsSchema } from "@/lib/sources/details-schema";
 import { parseIdList } from "@/lib/sources/review";
-import { detectDuplicates, runSource } from "@/lib/sources/engine";
-import { DEFAULT_ATTRIBUTION, resolveFeedUrl } from "@/lib/sources/platforms";
-import { IMPORTED_KINDS as IMPORTED_SOURCE_KINDS, SOURCE_KINDS, sourceIdFromKey, sourceKey } from "@/lib/sources/types";
-import { createClient } from "@/lib/supabase/server";
+import { IMPORTED_KINDS as IMPORTED_SOURCE_KINDS, SOURCE_KINDS, sourceIdFromKey, type RunError } from "@/lib/sources/types";
 
 export type ActionState = { ok: boolean; error?: string; message?: string } | null;
 
@@ -43,14 +41,8 @@ const sourceSchema = z
     enabled: z.boolean(),
     auto_category: z.boolean(),
   })
-  .transform((s, ctx) => {
-    const resolved = resolveFeedUrl(s.kind, s.url);
-    if (!resolved.ok) {
-      ctx.addIssue({ code: "custom", message: resolved.error, path: ["url"] });
-      return z.NEVER;
-    }
-    return { ...s, url: resolved.url, attribution: s.attribution ?? DEFAULT_ATTRIBUTION[s.kind] ?? null };
-  })
+  // The API resolves the pasted link to the feed it fetches (and fills the default attribution);
+  // a link it can't use comes back as a 422 sentence.
   .refine((s) => !s.enabled || (s.permission_confirmed && s.permission_note), {
     message: "Confirm you have permission to use this feed, and note who granted it, before enabling it.",
     path: ["enabled"],
@@ -58,10 +50,9 @@ const sourceSchema = z
 
 const firstError = (error: z.ZodError) => error.issues[0]?.message ?? "Check the form and try again.";
 
-function dbError(error: { code?: string; message: string }) {
-  if (error.code === "23505") return "That feed has already been added.";
-  if (error.code === "23514") return "A source can only be enabled once permission is confirmed and noted.";
-  return error.message;
+/** The API's own sentence for a refused call (they're written for admins), else a generic one. */
+function failure(error: unknown): ActionState {
+  return { ok: false, error: apiMessage(error, {}, { passThrough: true, fallback: "Something went wrong. Try again." }) };
 }
 
 export async function saveSource(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -83,11 +74,12 @@ export async function saveSource(_prev: ActionState, formData: FormData): Promis
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
 
   const { id, ...values } = parsed.data;
-  const supabase = await createClient();
-  const { error } = id
-    ? await supabase.from("event_sources").update(values).eq("id", id)
-    : await supabase.from("event_sources").insert(values);
-  if (error) return { ok: false, error: dbError(error) };
+  try {
+    if (id) await authed.patch(`/admin/sources/${id}`, { body: values });
+    else await authed.post("/admin/sources", { body: values });
+  } catch (error) {
+    return failure(error);
+  }
 
   revalidatePath(PATH);
   redirect(PATH);
@@ -101,40 +93,13 @@ export async function setSourceEnabled(_prev: ActionState, formData: FormData): 
   if (!id.success) return { ok: false, error: "Unknown source" };
   const enable = formData.get("enabled") === "true";
 
-  const supabase = await createClient();
-  if (enable) {
-    const { data } = await supabase.from("event_sources").select("permission_confirmed, permission_note").eq("id", id.data).maybeSingle();
-    if (!data) return { ok: false, error: "Unknown source" };
-    if (!data.permission_confirmed || !data.permission_note?.trim()) {
-      return { ok: false, error: "Confirm permission (and who granted it) on the source before enabling it." };
-    }
+  try {
+    await authed.post(`/admin/sources/${id.data}/enabled`, { body: { on: enable } });
+  } catch (error) {
+    return failure(error);
   }
-  const { error } = await supabase.from("event_sources").update({ enabled: enable }).eq("id", id.data);
-  if (error) return { ok: false, error: dbError(error) };
   revalidatePath(PATH);
   return { ok: true, message: enable ? "Enabled — it'll refresh nightly." : "Disabled." };
-}
-
-export async function deleteSource(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  await requireAdmin();
-  const id = idSchema.safeParse(formData.get("id"));
-  if (!id.success) return { ok: false, error: "Unknown source" };
-  const removeEvents = formData.get("remove_events") === "on";
-
-  const supabase = await createClient();
-  if (removeEvents) {
-    const { error } = await supabase
-      .from("events")
-      .update({ status: "removed" })
-      .eq("source", sourceKey(id.data))
-      .gte("starts_at", new Date().toISOString())
-      .in("status", ["published", "draft"]);
-    if (error) return { ok: false, error: error.message };
-  }
-  const { error } = await supabase.from("event_sources").delete().eq("id", id.data);
-  if (error) return { ok: false, error: error.message };
-  revalidatePath(PATH);
-  redirect(PATH);
 }
 
 export async function runSourceNow(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -142,25 +107,36 @@ export async function runSourceNow(_prev: ActionState, formData: FormData): Prom
   const id = idSchema.safeParse(formData.get("id"));
   if (!id.success) return { ok: false, error: "Unknown source" };
 
-  // Re-read through the admin's own client (RLS) before handing over to the sync engine.
-  const supabase = await createClient();
-  const { data: source } = await supabase.from("event_sources").select("id, permission_confirmed").eq("id", id.data).maybeSingle();
-  if (!source) return { ok: false, error: "Unknown source" };
-  if (!source.permission_confirmed) return { ok: false, error: "Confirm permission to use this feed before running it." };
-
-  const result = await runSource(id.data, { trigger: "manual" });
-  const duplicates = result.status === "ok" ? await detectDuplicates() : 0;
+  // The API refuses a source without recorded permission, and looks for duplicates after a good run.
+  let result: RunResult;
+  try {
+    result = await authed.post<RunResult>(`/admin/sources/${id.data}/run`, { signal: AbortSignal.timeout(290_000) });
+  } catch (error) {
+    return failure(error);
+  }
   revalidatePath(PATH, "layout");
 
   if (result.status === "error") return { ok: false, error: result.errors[0]?.message ?? "The run failed." };
   const parts = [
     `${result.found} found`, `${result.inserted} new`, `${result.updated} updated`, `${result.unchanged} unchanged`,
   ];
-  if (result.flaggedMissing) parts.push(`${result.flaggedMissing} flagged`);
-  if (duplicates) parts.push(`${duplicates} possible duplicate${duplicates === 1 ? "" : "s"}`);
+  if (result.flagged_missing) parts.push(`${result.flagged_missing} flagged`);
+  if (result.duplicates) parts.push(`${result.duplicates} possible duplicate${result.duplicates === 1 ? "" : "s"}`);
   if (result.errors.length) parts.push(`${result.errors.length} skipped`);
   return { ok: true, message: parts.join(" · ") };
 }
+
+type RunResult = {
+  status: "ok" | "error";
+  found: number;
+  inserted: number;
+  updated: number;
+  unchanged: number;
+  flagged_missing: number;
+  /** New possible duplicates the API flagged after the run. */
+  duplicates?: number;
+  errors: RunError[];
+};
 
 const reviewSchema = z.object({
   id: z.uuid(),
@@ -173,24 +149,10 @@ export async function resolveReview(_prev: ActionState, formData: FormData): Pro
   if (!parsed.success) return { ok: false, error: "Unknown event" };
   const { id, decision } = parsed.data;
 
-  const supabase = await createClient();
-  const { data: event } = await supabase.from("events").select("id, duplicate_of").eq("id", id).maybeSingle();
-  if (!event) return { ok: false, error: "That event no longer exists." };
-
-  if (decision === "not_duplicate") {
-    if (event.duplicate_of) {
-      const [a, b] = [event.id, event.duplicate_of as string].sort();
-      const { error } = await supabase
-        .from("event_duplicate_dismissals")
-        .upsert({ event_id: a, other_event_id: b }, { onConflict: "event_id,other_event_id", ignoreDuplicates: true });
-      if (error) return { ok: false, error: error.message };
-    }
-    const { error } = await supabase.from("events").update({ duplicate_of: null, needs_review: false }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
-  } else {
-    if (decision === "keep_hidden" && !event.duplicate_of) return { ok: false, error: "This event isn't marked as a duplicate." };
-    const { error } = await supabase.from("events").update({ needs_review: false }).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+  try {
+    await authed.post(`/admin/sources/review/${id}`, { body: { decision } });
+  } catch (error) {
+    return failure(error);
   }
 
   revalidatePath(PATH, "layout");
@@ -208,16 +170,12 @@ export async function markReviewedBulk(_prev: ActionState, formData: FormData): 
   await requireAdmin();
   const ids = parseIdList(formData.get("ids"));
   if (!ids) return { ok: false, error: "Pick at least one event (up to 500 at a time)." };
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("events")
-    .update({ needs_review: false })
-    .in("id", ids)
-    .eq("needs_review", true)
-    .is("duplicate_of", null)
-    .select("id");
-  if (error) return { ok: false, error: error.message };
-  const n = data?.length ?? 0;
+  let n: number;
+  try {
+    ({ updated: n } = await authed.post<{ updated: number }>("/admin/sources/review/bulk", { body: { ids } }));
+  } catch (error) {
+    return failure(error);
+  }
   revalidatePath(PATH, "layout");
   return { ok: true, message: `Marked ${n} event${n === 1 ? "" : "s"} reviewed.` };
 }
@@ -226,9 +184,11 @@ const IMPORTED_KINDS = new Set<string>(IMPORTED_SOURCE_KINDS);
 /** Kinds whose feed doesn't own the description, so an admin's one survives every sync. */
 const EDITABLE_DESCRIPTION = new Set(["luma", "luma-discover", "eventbrite"]);
 
+type EventPrices = { id: string; source: string; price_min: number | null; price_max: number | null; currency: string };
+
 /** Admin fallback for imported events: cover (pasted link or upload), description, price. */
 export async function saveImportedDetails(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  const admin = await requireAdmin();
+  await requireAdmin();
   const parsed = importedDetailsSchema.safeParse({
     id: formData.get("id") ?? "",
     image_url: formData.get("image_url") ?? "",
@@ -240,40 +200,30 @@ export async function saveImportedDetails(_prev: ActionState, formData: FormData
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const { id, image_url, cover_url, description, price_min, price_max } = parsed.data;
 
-  const supabase = await createClient();
-  const { data: event } = await supabase.from("events").select("id, source, price_min, price_max, currency").eq("id", id).maybeSingle();
-  if (!event) return { ok: false, error: "That event no longer exists." };
-  const sourceId = sourceIdFromKey(event.source as string);
-  const { data: source } = sourceId
-    ? await supabase.from("event_sources").select("kind").eq("id", sourceId).maybeSingle()
-    : { data: null };
-  if (!source || !IMPORTED_KINDS.has(source.kind as string)) {
-    return { ok: false, error: "Only events imported from Luma, Meetup, Eventbrite or Fatsoma can be edited here." };
-  }
-
-  let cover = cover_url;
-  if (image_url) {
-    try {
-      cover = await importRemoteImage(image_url, `orbit/event-covers/${admin.id}`);
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : "Couldn't import that image." };
+  try {
+    const event = await authed.get<EventPrices>(`/admin/events/${id}`);
+    const sourceId = sourceIdFromKey(event.source);
+    const source = sourceId ? await authed.get<{ kind: string }>(`/admin/sources/${sourceId}`).catch(() => null) : null;
+    if (!source || !IMPORTED_KINDS.has(source.kind)) {
+      return { ok: false, error: "Only events imported from Luma, Meetup, Eventbrite or Fatsoma can be edited here." };
     }
-  }
 
-  const patch: Record<string, unknown> = {};
-  // Meetup and Fatsoma descriptions belong to the feed, so only the others take one from the form.
-  if (EDITABLE_DESCRIPTION.has(source.kind as string)) patch.description = description;
-  // Only a changed price is (re)stored in £; unrelated saves leave the stored currency alone.
-  const same = (a: unknown, b: number | null) => (a === null || a === undefined ? null : Number(a)) === b;
-  if (!same(event.price_min, price_min) || !same(event.price_max, price_max)) {
-    patch.price_min = price_min;
-    patch.price_max = price_max;
-    if (price_min !== null) patch.currency = "GBP";
-  }
-  if (cover) patch.cover_url = cover;
-  if (Object.keys(patch).length > 0) {
-    const { error } = await supabase.from("events").update(patch).eq("id", id);
-    if (error) return { ok: false, error: error.message };
+    const patch: Record<string, unknown> = {};
+    // Meetup and Fatsoma descriptions belong to the feed, so only the others take one from the form.
+    if (EDITABLE_DESCRIPTION.has(source.kind)) patch.description = description;
+    // Only a changed price is (re)stored in £; unrelated saves leave the stored currency alone.
+    const same = (a: unknown, b: number | null) => (a === null || a === undefined ? null : Number(a)) === b;
+    if (!same(event.price_min, price_min) || !same(event.price_max, price_max)) {
+      patch.price_min = price_min;
+      patch.price_max = price_max;
+      if (price_min !== null) patch.currency = "GBP";
+    }
+    // An uploaded image is already on Cloudinary; a pasted link is copied there by the API.
+    if (cover_url) patch.cover_url = cover_url;
+    else if (image_url) patch.image_url = image_url;
+    if (Object.keys(patch).length > 0) await authed.put(`/admin/sources/imported/${id}`, { body: patch });
+  } catch (error) {
+    return failure(error);
   }
 
   revalidatePath(PATH);
@@ -285,9 +235,11 @@ export async function retryPageDetails(_prev: ActionState, formData: FormData): 
   await requireAdmin();
   const id = idSchema.safeParse(formData.get("id"));
   if (!id.success) return { ok: false, error: "Unknown event" };
-  const supabase = await createClient();
-  const { error } = await supabase.from("source_event_details").delete().eq("event_id", id.data);
-  if (error) return { ok: false, error: error.message };
+  try {
+    await authed.post(`/admin/sources/imported/${id.data}/retry-details`);
+  } catch (error) {
+    return failure(error);
+  }
   revalidatePath(PATH);
   return { ok: true, message: "Will try again on the next refresh." };
 }

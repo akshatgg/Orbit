@@ -4,10 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { RegistrationStatus } from "@/types/database";
+import { ApiError } from "@/lib/api/client";
+import { apiErrorCode } from "@/lib/api/errors";
+import { authed } from "@/lib/api/session";
 import { getCurrentUser } from "@/lib/auth";
 import { createTicketCheckout } from "@/lib/payments";
-import { createClient } from "@/lib/supabase/server";
-import { answersFromForm, friendlyError, validateAnswers, type Question } from "./logic";
+import { answersFromForm, friendlyError, validateAnswers } from "./logic";
+import { getEventQuestions } from "./queries";
 
 export type RegisterState =
   | { ok: true; status: RegistrationStatus; registrationId: string; paymentError?: string }
@@ -25,7 +28,7 @@ function revalidateTickets(eventId: string, registrationId?: string) {
   if (registrationId) revalidatePath(`/tickets/${registrationId}`);
 }
 
-/** Registers the signed-in user through register_for_event and reports the resulting status. */
+/** Registers the signed-in user through the Orbit API and reports the resulting status. */
 export async function registerForEvent(_prev: RegisterState, formData: FormData): Promise<RegisterState> {
   const parsed = RegisterInput.safeParse({
     eventId: formData.get("eventId"),
@@ -37,30 +40,41 @@ export async function registerForEvent(_prev: RegisterState, formData: FormData)
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Sign in to get a ticket", signIn: true };
 
-  const supabase = await createClient();
-  const { data: questions } = await supabase.from("event_questions").select("id, label, kind, options, required")
-    .eq("event_id", eventId).order("sort_order").order("created_at");
-  const qs = (questions ?? []) as Question[];
+  const qs = await getEventQuestions(eventId);
+  if (!qs) return { ok: false, error: "This event is not open for registration" };
   const { answers, errors } = validateAnswers(qs, answersFromForm(qs, formData));
   const firstBad = qs.find((q) => errors[q.id]);
   if (firstBad) return { ok: false, error: `Please answer: ${firstBad.label}`, fieldErrors: errors };
 
-  const { data, error } = await supabase.rpc("register_for_event", {
-    p_event_id: eventId,
-    p_ticket_type_id: ticketTypeId || null,
-    p_answers: answers,
-  });
-  if (error || !data) return { ok: false, error: friendlyError(error?.message) };
-
-  const registration = data as { id: string; status: RegistrationStatus };
+  let registration: { id: string; status: RegistrationStatus };
+  let checkoutUrl: string | null;
+  try {
+    const result = await authed.post<{ registration: { id: string; status: RegistrationStatus }; checkout_url: string | null }>(
+      `/events/${eventId}/registrations`,
+      { body: { ticket_type_id: ticketTypeId || null, answers } },
+    );
+    registration = result.registration;
+    checkoutUrl = result.checkout_url;
+  } catch (error) {
+    return { ok: false, ...registrationError(error) };
+  }
   revalidateTickets(eventId, registration.id);
 
   if (registration.status === "awaiting_payment") {
+    if (checkoutUrl) redirect(checkoutUrl);
+    // No session came back with the registration: ask again to learn why.
     const checkout = await createTicketCheckout(registration.id);
     if (checkout.ok) redirect(checkout.url);
     return { ok: true, status: registration.status, registrationId: registration.id, paymentError: checkout.error };
   }
   return { ok: true, status: registration.status, registrationId: registration.id };
+}
+
+/** The API's refusal as the event page shows it (its sentences come from the database rules). */
+function registrationError(error: unknown): { error: string; signIn?: boolean } {
+  if (!(error instanceof ApiError)) throw error;
+  if (error.status === 401) return { error: "Sign in to get a ticket", signIn: true };
+  return { error: friendlyError(apiErrorCode(error)) };
 }
 
 export type SimpleResult = { ok: true } | { ok: false; error: string };
@@ -71,10 +85,13 @@ export async function cancelRegistration(eventId: string): Promise<SimpleResult>
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Sign in first" };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("cancel_registration", { p_event_id: eventId });
-  if (error) return { ok: false, error: friendlyError(error.message) };
-  revalidateTickets(eventId, (data as { id?: string } | null)?.id);
+  try {
+    await authed.del(`/events/${eventId}/registrations/me`);
+  } catch (error) {
+    return { ok: false, error: registrationError(error).error };
+  }
+  revalidateTickets(eventId);
+  revalidatePath("/tickets/[registrationId]", "page");
   return { ok: true };
 }
 
@@ -83,12 +100,6 @@ export async function completePayment(registrationId: string): Promise<SimpleRes
   if (!z.guid().safeParse(registrationId).success) return { ok: false, error: "Ticket not found" };
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Sign in first" };
-
-  const supabase = await createClient();
-  const { data } = await supabase.from("registrations").select("id, status")
-    .eq("id", registrationId).eq("user_id", user.id).maybeSingle();
-  if (!data) return { ok: false, error: "Ticket not found" };
-  if (data.status !== "awaiting_payment") return { ok: false, error: "This ticket doesn't need payment" };
 
   const checkout = await createTicketCheckout(registrationId);
   if (checkout.ok) redirect(checkout.url);

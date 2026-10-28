@@ -47,12 +47,9 @@ the scaffold already pushed to `github.com/akshatgg/Orbit`.
   `akshatgg.in` (CNAME to Vercel, like `buddy.akshatgg.in`). No new domain purchase.
 - **App stores later (optional):** wrap the same app with Capacitor if store listings
   are wanted (Apple $99/yr, Google $25 once).
-- **Stack:** Next.js 16 + TypeScript + Tailwind · Supabase (Postgres database, login,
-  file storage, security rules) · Vercel hosting · Web Push · Resend for email.
-- **Cost:** £0 during the pilot (free tiers). ~$45/month once commercial
-  (Vercel Pro + Supabase Pro).
-- **Supabase project:** "Orbit", region **Europe / London**; "auto-expose new
-  tables" off, automatic RLS on. DB password stored in `.env.local` only.
+- **Stack:** Next.js 16 + TypeScript + Tailwind on Vercel · the Orbit API (FastAPI +
+  Postgres: accounts, data, email, Web Push, Stripe, Cloudinary uploads, event importers).
+- **Backend:** `orbit-back.akshatgg.in`; its secrets live with the API, never in this app.
 - **Code:** `github.com/akshatgg/Orbit` (public, branch `master`), committed as
   Akshat only.
 

@@ -5,7 +5,10 @@ import { EventForm } from "@/components/admin/EventForm";
 import { AdminHeader, TableSkeleton } from "@/components/admin/primitives";
 import { requireAdmin } from "@/lib/auth";
 import { utcToUkLocalInput } from "@/lib/admin/time";
-import { createClient } from "@/lib/supabase/server";
+import { importOptions } from "@/lib/admin/options";
+import { isNotFound } from "@/lib/api/errors";
+import { authed } from "@/lib/api/session";
+import type { OrbitEvent } from "@/types/database";
 import { saveEvent } from "../../actions";
 
 export const metadata: Metadata = { title: "Edit event · Admin" };
@@ -25,11 +28,12 @@ async function Content({ params }: { params: PageProps<"/admin/events/[id]/edit"
   await requireAdmin();
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
-  const supabase = await createClient();
-  const [{ data: ev }, { data: organisers }, { data: categories }] = await Promise.all([
-    supabase.from("events").select("*").eq("id", id).maybeSingle(),
-    supabase.from("organisers").select("id, name").order("name"),
-    supabase.from("categories").select("id, name").order("sort_order"),
+  const [ev, { organisers, categories }] = await Promise.all([
+    authed.get<OrbitEvent>(`/admin/events/${id}`).catch((error) => {
+      if (isNotFound(error)) return null;
+      throw error;
+    }),
+    importOptions(),
   ]);
   if (!ev) notFound();
   if (ev.registration_mode === "tickets") {
@@ -43,8 +47,8 @@ async function Content({ params }: { params: PageProps<"/admin/events/[id]/edit"
   return (
     <EventForm
       action={saveEvent.bind(null, ev.id)}
-      organisers={organisers ?? []}
-      categories={categories ?? []}
+      organisers={organisers}
+      categories={categories}
       submitLabel="Save changes"
       values={{
         ...ev,

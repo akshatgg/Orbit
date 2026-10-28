@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { BackLink } from "@/components/nav/BackLink";
 import { PayoutsPanel } from "@/components/payments/PayoutsPanel";
@@ -7,10 +8,9 @@ import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ListSkeleton } from "@/components/ui/Skeleton";
+import { authed } from "@/lib/api/session";
 import { getMyOrganisers, requireProfile } from "@/lib/auth";
-import { refreshAccount } from "@/lib/payments/connect";
-import { connectState } from "@/lib/payments/logic";
-import { isPaymentsConfigured, platformFeePercent } from "@/lib/payments/stripe";
+import { parseFeePercent, type ConnectState } from "@/lib/payments/logic";
 import { openStripeDashboard, startPayoutSetup } from "./actions";
 
 export const metadata: Metadata = { title: "Payments" };
@@ -32,6 +32,20 @@ export default function Page({ searchParams }: PageProps<"/organiser/settings/pa
   );
 }
 
+/** `GET /payments/connect/status`: read live from Stripe (and synced) when it can be reached. */
+type ConnectStatus = {
+  configured: boolean;
+  state: ConnectState;
+  connected: boolean;
+  charges_enabled: boolean;
+  payouts_enabled: boolean | null;
+  details_submitted: boolean | null;
+  due_count: number | null;
+  live: boolean;
+  /** ORBIT's cut of each paid ticket, in percent, as the API charges it. */
+  fee_percent?: number | string | null;
+};
+
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -41,6 +55,10 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const requested = first(params.org);
   const linkError = first(params.error) === "link";
+  // Stripe sends an expired or reused onboarding link back with ?stripe=refresh: get a fresh one.
+  if (first(params.stripe) === "refresh" && requested) {
+    redirect(`/api/stripe/connect/refresh?org=${encodeURIComponent(requested)}`);
+  }
 
   const memberships = await getMyOrganisers();
   const owned = memberships.filter((o) => o.member_role === "owner");
@@ -68,13 +86,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
   const org = owned.find((o) => o.id === requested) ?? owned[0];
   const notOwner = requested && requested !== org.id ? memberships.find((o) => o.id === requested) : null;
 
-  const configured = isPaymentsConfigured();
-  const live = configured && org.stripe_account_id ? await refreshAccount(org.stripe_account_id) : null;
-  const state = connectState({
-    configured,
-    accountId: org.stripe_account_id,
-    chargesEnabled: live?.chargesEnabled ?? org.stripe_charges_enabled,
-  });
+  const status = await authed.get<ConnectStatus>("/payments/connect/status", { query: { organiser_id: org.id } });
 
   return (
     <div className="space-y-4 px-4">
@@ -110,13 +122,13 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       )}
 
       <PayoutsPanel
-        state={state}
+        state={status.state}
         org={{ id: org.id, name: org.name, status: org.status }}
-        feePercent={platformFeePercent()}
-        payoutsEnabled={live?.payoutsEnabled}
-        detailsSubmitted={live?.detailsSubmitted}
-        dueCount={live?.dueCount}
-        liveStatus={Boolean(live) || !org.stripe_account_id}
+        feePercent={parseFeePercent(status.fee_percent == null ? null : String(status.fee_percent))}
+        payoutsEnabled={status.payouts_enabled ?? undefined}
+        detailsSubmitted={status.details_submitted ?? undefined}
+        dueCount={status.due_count ?? undefined}
+        liveStatus={status.live || !status.connected}
         startSetup={startPayoutSetup}
         openDashboard={openStripeDashboard}
       />

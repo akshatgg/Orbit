@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { CsvImporter } from "@/components/admin/CsvImporter";
 import { AdminHeader, TableSkeleton } from "@/components/admin/primitives";
 import { requireAdmin } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { importOptions } from "@/lib/admin/options";
 
 export const metadata: Metadata = { title: "CSV import · Admin" };
 
@@ -20,15 +20,11 @@ export default function Page() {
 
 async function Content() {
   await requireAdmin();
-  const supabase = await createClient();
-  const [{ data: orgs }, { data: cats }] = await Promise.all([
-    supabase.from("organisers").select("slug"),
-    supabase.from("categories").select("slug"),
-  ]);
+  const { organisers, categories } = await importOptions();
   return (
     <CsvImporter
-      organiserSlugs={(orgs ?? []).map((o) => o.slug as string)}
-      categorySlugs={(cats ?? []).map((c) => c.slug as string)}
+      organiserSlugs={organisers.map((o) => o.slug)}
+      categorySlugs={categories.map((c) => c.slug)}
     />
   );
 }

@@ -2,7 +2,9 @@
 
 import { z } from "zod";
 import { MAX_IMPORT_ROWS, pickColumns, validateCsvRows } from "@/lib/admin/csv";
-import { adminContext, friendlyDbError, logAdminAction, revalidateEverywhere } from "@/lib/admin/server";
+import { importOptions } from "@/lib/admin/options";
+import { adminContext, adminError, revalidateEverywhere } from "@/lib/admin/server";
+import { authed } from "@/lib/api/session";
 
 export type ImportReport =
   | { ok: true; inserted: number; updated: number; skipped: number; notes: string[] }
@@ -10,75 +12,49 @@ export type ImportReport =
 
 const rowsSchema = z.array(z.record(z.string(), z.unknown())).min(1, "No rows to import").max(MAX_IMPORT_ROWS, `At most ${MAX_IMPORT_ROWS} rows at a time`);
 
+type ImportResult = { inserted: number; updated: number; skipped: number; errors: { row: number; message: string }[] };
+
 /**
  * Imports CSV rows as published events, upserting on (source = 'csv', source_event_id).
- * Rows are re-validated here — the browser preview is a convenience, not a trust boundary.
+ * Rows are re-validated here — the browser preview is a convenience, not a trust boundary —
+ * and sent normalised (UK times as UTC, stable ids), so re-importing a sheet updates its events.
+ * The API leaves events an admin removed alone and logs the import.
  */
 export async function importEvents(rawRows: unknown): Promise<ImportReport> {
-  const { supabase } = await adminContext();
+  await adminContext();
   const parsedRows = rowsSchema.safeParse(rawRows);
   if (!parsedRows.success) return { ok: false, error: parsedRows.error.issues[0].message };
 
-  const [{ data: orgs }, { data: cats }] = await Promise.all([
-    supabase.from("organisers").select("id, slug"),
-    supabase.from("categories").select("id, slug"),
-  ]);
-  const orgIds = new Map((orgs ?? []).map((o) => [o.slug as string, o.id as string]));
-  const catIds = new Map((cats ?? []).map((c) => [c.slug as string, c.id as string]));
+  let result: ImportResult;
+  let invalid: number;
+  let sent: number;
+  try {
+    const { organisers, categories } = await importOptions();
+    const results = validateCsvRows(parsedRows.data.map(pickColumns), {
+      organiserSlugs: organisers.map((o) => o.slug),
+      categorySlugs: categories.map((c) => c.slug),
+    });
+    const good = results.flatMap((r) => (r.ok ? [r.data] : []));
+    invalid = results.length - good.length;
+    sent = good.length;
+    if (good.length === 0) {
+      return { ok: true, inserted: 0, updated: 0, skipped: invalid, notes: [`${invalid} invalid row${invalid === 1 ? "" : "s"} skipped`] };
+    }
+    result = await authed.post<ImportResult>("/admin/import/csv", {
+      body: { rows: good.map((row) => ({ ...row, tags: row.tags.join(";") })) },
+    });
+  } catch (error) {
+    return { ok: false, error: adminError(error) };
+  }
 
-  const results = validateCsvRows(parsedRows.data.map(pickColumns), { organiserSlugs: orgIds.keys(), categorySlugs: catIds.keys() });
-  const good = results.flatMap((r) => (r.ok ? [r.data] : []));
   const notes: string[] = [];
-  let skipped = results.length - good.length;
-  if (skipped) notes.push(`${skipped} invalid row${skipped === 1 ? "" : "s"} skipped`);
-  if (good.length === 0) return { ok: true, inserted: 0, updated: 0, skipped, notes };
+  if (invalid) notes.push(`${invalid} invalid row${invalid === 1 ? "" : "s"} skipped`);
+  const failed = result.errors.length;
+  const leftAlone = sent - result.inserted - result.updated - failed;
+  if (leftAlone > 0) notes.push(`${leftAlone} row${leftAlone === 1 ? " matches an event" : "s match events"} you removed — left alone`);
+  for (const e of result.errors.slice(0, 5)) notes.push(`Row ${e.row}: ${e.message}`);
+  if (failed > 5) notes.push(`…and ${failed - 5} more row${failed - 5 === 1 ? "" : "s"} failed`);
 
-  // Which of these already exist? Events an admin removed stay removed.
-  const existing = new Map<string, string>();
-  const ids = good.map((g) => g.source_event_id);
-  for (let i = 0; i < ids.length; i += 100) {
-    const { data, error } = await supabase
-      .from("events").select("source_event_id, status").eq("source", "csv").in("source_event_id", ids.slice(i, i + 100));
-    if (error) return { ok: false, error: friendlyDbError(error) };
-    for (const e of data ?? []) existing.set(e.source_event_id as string, e.status as string);
-  }
-
-  const toWrite = good.filter((g) => existing.get(g.source_event_id) !== "removed");
-  const removed = good.length - toWrite.length;
-  if (removed) {
-    skipped += removed;
-    notes.push(`${removed} row${removed === 1 ? " matches an event" : "s match events"} you removed — left alone`);
-  }
-
-  const now = new Date().toISOString();
-  const payload = toWrite.map(({ organiser_slug, category_slug, ...e }) => ({
-    ...e,
-    organiser_id: organiser_slug ? orgIds.get(organiser_slug) ?? null : null,
-    category_id: category_slug ? catIds.get(category_slug) ?? null : null,
-    source: "csv",
-    status: "published",
-    currency: "GBP",
-    needs_review: false,
-    last_verified_at: now,
-  }));
-
-  let inserted = 0;
-  let updated = 0;
-  for (let i = 0; i < payload.length; i += 100) {
-    const chunk = payload.slice(i, i + 100);
-    const { error } = await supabase.from("events").upsert(chunk, { onConflict: "source,source_event_id" });
-    if (error) {
-      notes.push(`Stopped after ${inserted + updated} rows: ${friendlyDbError(error)}`);
-      skipped += payload.length - i;
-      break;
-    }
-    for (const row of chunk) {
-      if (existing.has(row.source_event_id)) updated++;
-      else inserted++;
-    }
-  }
-
-  await logAdminAction(supabase, "import.csv", "import", null, { inserted, updated, skipped });
   revalidateEverywhere();
-  return { ok: true, inserted, updated, skipped, notes };
+  return { ok: true, inserted: result.inserted, updated: result.updated, skipped: invalid + result.skipped, notes };
 }
