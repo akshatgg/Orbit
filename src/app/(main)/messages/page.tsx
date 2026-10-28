@@ -9,8 +9,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { requireProfile } from "@/lib/auth";
 import { displayName, timeAgo } from "@/lib/social/format";
-import { listConversations } from "@/lib/social/queries";
-import type { Conversation } from "@/types/social";
+import { setBlocked } from "@/lib/social/actions";
+import { listBlocks, listConversations } from "@/lib/social/queries";
+import { ActionButton } from "@/components/social/SmallActions";
+import type { BlockedUser, Conversation } from "@/types/social";
 
 export const metadata: Metadata = { title: "Messages" };
 
@@ -30,12 +32,15 @@ export default function MessagesPage({ searchParams }: PageProps<"/messages">) {
 async function Conversations({ searchParams }: { searchParams: PageProps<"/messages">["searchParams"] }) {
   const { cursor: raw } = await searchParams;
   const cursor = typeof raw === "string" && /^[\w-]{1,500}$/.test(raw) ? raw : undefined;
-  const [profile, { items, next_cursor: next }] = await Promise.all([requireProfile(), listConversations(cursor)]);
+  const [profile, { items, next_cursor: next }, blocks] = await Promise.all([requireProfile(), listConversations(cursor), listBlocks()]);
   if (items.length === 0 && !cursor) {
     return (
-      <EmptyState title="No conversations yet" action={<ButtonLink href="/circles" size="sm" variant="secondary">Your circles</ButtonLink>}>
-        Every circle has a chat, and you can message anyone you share a circle or community with from its member list.
-      </EmptyState>
+      <div className="space-y-8">
+        <EmptyState title="No conversations yet" action={<ButtonLink href="/circles" size="sm" variant="secondary">Your circles</ButtonLink>}>
+          Every circle has a chat, and you can message anyone you share a circle or community with from its member list.
+        </EmptyState>
+        <Blocked blocks={blocks} />
+      </div>
     );
   }
   return (
@@ -49,7 +54,27 @@ async function Conversations({ searchParams }: { searchParams: PageProps<"/messa
           {next && <ButtonLink href={`/messages?cursor=${encodeURIComponent(next)}`} variant="secondary" size="sm">Older conversations</ButtonLink>}
         </nav>
       )}
+      <Blocked blocks={blocks} />
     </div>
+  );
+}
+
+/** People you've blocked: their conversations are hidden until you unblock them. */
+function Blocked({ blocks }: { blocks: BlockedUser[] }) {
+  if (!blocks.length) return null;
+  return (
+    <section aria-labelledby="blocked" className="mx-4 space-y-2 pt-4 md:max-w-2xl">
+      <h2 id="blocked" className="text-sm font-semibold tracking-tight">Blocked</h2>
+      <ul className="glass divide-y divide-line overflow-hidden rounded-[22px]">
+        {blocks.map(({ user }) => (
+          <li key={user.id} className="flex items-center gap-3 px-4 py-3">
+            <Avatar src={user.avatar_url} name={displayName(user)} size={32} />
+            <span className="min-w-0 flex-1 truncate text-sm font-medium">{displayName(user)}</span>
+            <ActionButton action={setBlocked.bind(null, user.id, false)} variant="secondary">Unblock</ActionButton>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

@@ -236,7 +236,8 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
   }
 
   return (
-    <div className="flex flex-col">
+    // Tall enough that the composer sits at the bottom of the screen even in a short conversation.
+    <div className="flex min-h-[calc(100dvh-17rem)] flex-col md:min-h-[calc(100dvh-15rem)]">
       <div ref={top} aria-hidden className="h-px" />
       {hasOlder && (
         <div className="flex justify-center pb-2">
@@ -302,7 +303,7 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
       )}
       <div ref={bottom} className="h-2" />
 
-      <div className="sticky bottom-[calc(max(env(safe-area-inset-bottom),12px)+5.25rem)] z-20 mt-2 px-3 md:bottom-4">
+      <div className="sticky bottom-[calc(max(env(safe-area-inset-bottom),12px)+5.25rem)] z-20 mt-auto px-3 pt-2 md:bottom-4">
         {error && <p role="alert" className="mb-2 rounded-xl bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</p>}
         {canSend ? (
           <form

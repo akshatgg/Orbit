@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { ApiError } from "@/lib/api/client";
-import { getThread } from "@/lib/social/queries";
+import { authed } from "@/lib/api/session";
+import type { Thread } from "@/types/social";
 import { json, SAFE_ID, SAFE_TIME } from "../../_shared";
 
 /**
@@ -20,10 +20,6 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/api/social/c
     && [query.after, query.before].every((t) => !t || SAFE_TIME.test(t))
     && [query.after_id, query.before_id].every((t) => !t || SAFE_ID.test(t));
   if (!valid) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  return json(async () => {
-    const thread = await getThread(id, query);
-    // Removed from the circle, blocked, or the conversation is gone.
-    if (!thread) throw new ApiError(403, "You no longer have access to this conversation");
-    return thread;
-  });
+  // Removed from the circle, blocked, or gone: the API's own sentence goes back to the thread.
+  return json(() => authed.get<Thread>(`/messages/conversations/${encodeURIComponent(id)}`, { query: { limit: 50, ...query } }));
 }

@@ -35,7 +35,7 @@ async function Thread({ params }: { params: PageProps<"/messages/[id]">["params"
       <div className="pt-[var(--page-top,1.5rem)]">
         <div className="mb-4 px-4"><BackLink href="/messages" label="Messages" /></div>
         <EmptyState title="This conversation isn't available" action={<ButtonLink href="/messages" variant="secondary" size="sm">All messages</ButtonLink>}>
-          You may have left the circle, or this conversation was closed.
+          You may have left the circle, or one of you blocked the other (unblock people from Messages).
         </EmptyState>
       </div>
     );
