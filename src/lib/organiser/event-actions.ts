@@ -135,12 +135,11 @@ export async function saveEvent(input: SaveEventInput): Promise<SaveEventResult>
   if (!checked.ok) return { ok: false, error: checked.issues[0].message, issues: checked.issues };
   const form = checked.data;
 
+  // External and info-only events send the price shown on their card; a ticketed event's
+  // range follows its ticket types (the API ignores the columns there).
   const row = formToEventRow(form);
-  // The API derives ticketed events' prices from their ticket types and has no field for the
-  // price shown on an external event's card, so the price columns are not sent.
-  const fields = Object.fromEntries(Object.entries(row).filter(([key]) => key !== "price_min" && key !== "price_max"));
   const body = {
-    ...fields,
+    ...row,
     ticket_types: formToTicketRows(form),
     questions: formToQuestionRows(form),
     private: formToPrivateRow(form),

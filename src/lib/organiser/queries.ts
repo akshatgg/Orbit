@@ -10,18 +10,12 @@ import { listCategories, type EventCardData, type EventCounts, type EventWithCou
 
 type Paged<T> = { items: T[]; total: number; page: number; page_size: number };
 
-/** An event row as the studio and organiser endpoints return it (money as decimal strings). */
-type EventRow = Omit<OrbitEvent, "price_min" | "price_max"> & {
-  price_min: number | string | null;
-  price_max: number | string | null;
-  counts?: EventCounts;
-};
+/** An event row as the studio and organiser endpoints return it. */
+type EventRow = OrbitEvent & { counts?: EventCounts };
 
 type CardOrganiser = Pick<Organiser, "id" | "slug" | "name" | "logo_url" | "is_verified" | "kind">;
 
 const EMPTY_COUNTS: EventCounts = { going: 0, waitlisted: 0, pending: 0 };
-
-const money = (value: number | string | null) => (value === null || value === undefined ? null : Number(value));
 
 /** Studio / organiser rows → the card shape every event list renders. */
 function toCards(rows: EventRow[], organiser: CardOrganiser | null, categories: Category[]): EventWithCounts[] {
@@ -30,8 +24,6 @@ function toCards(rows: EventRow[], organiser: CardOrganiser | null, categories: 
     const category = row.category_id ? byId.get(row.category_id) : undefined;
     const card: EventCardData = {
       ...row,
-      price_min: money(row.price_min),
-      price_max: money(row.price_max),
       organiser,
       category: category ? { id: category.id, slug: category.slug, name: category.name, group: category.group } : null,
     };
@@ -143,7 +135,7 @@ type EditorDetail = {
   event: OrbitEvent;
   organiser: { id: string; name: string; slug: string } | null;
   private: { online_url: string | null; guest_info: string | null } | null;
-  ticket_types: { id: string; name: string; price: number | string; quantity: number | null; sales_end_at: string | null }[];
+  ticket_types: { id: string; name: string; price: number; quantity: number | null; sales_end_at: string | null }[];
   questions: { id: string; label: string; kind: string; options: string[] | null; required: boolean }[];
   counts: EventCounts;
   registration_total: number;
@@ -159,9 +151,8 @@ export async function getEventForEdit(eventId: string) {
     if (isApiStatus(error, 403, 404, 422)) return null;
     throw error;
   }
-  const event = { ...detail.event, price_min: money(detail.event.price_min) };
   return {
-    event,
+    event: detail.event,
     organiser: detail.organiser,
     private: detail.private,
     tickets: detail.ticket_types,

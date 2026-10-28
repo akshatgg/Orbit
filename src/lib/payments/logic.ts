@@ -19,7 +19,7 @@ export function toPence(amount: number | string | null | undefined): number {
   return Math.round(n * 100);
 }
 
-/** PLATFORM_FEE_PERCENT → a number between 0 and 100 (anything invalid is 0). */
+/** A fee percentage (the API's `fee_percent`) → a number between 0 and 100 (anything invalid is 0). */
 export function parseFeePercent(raw: string | null | undefined): number {
   if (raw === null || raw === undefined || raw.trim() === "") return 0;
   const n = Number(raw.trim().replace(/%$/, ""));

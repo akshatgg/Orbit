@@ -42,6 +42,8 @@ type ConnectStatus = {
   details_submitted: boolean | null;
   due_count: number | null;
   live: boolean;
+  /** ORBIT's cut of each paid ticket, in percent, as the API charges it. */
+  fee_percent?: number | string | null;
 };
 
 function first(value: string | string[] | undefined) {
@@ -122,7 +124,7 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
       <PayoutsPanel
         state={status.state}
         org={{ id: org.id, name: org.name, status: org.status }}
-        feePercent={parseFeePercent(process.env.PLATFORM_FEE_PERCENT)}
+        feePercent={parseFeePercent(status.fee_percent == null ? null : String(status.fee_percent))}
         payoutsEnabled={status.payouts_enabled ?? undefined}
         detailsSubmitted={status.details_submitted ?? undefined}
         dueCount={status.due_count ?? undefined}

@@ -112,7 +112,11 @@ export async function addTeamMember(_prev: FormState, formData: FormData): Promi
   try {
     await authed.post(`/organisers/${orgId.data}/members`, { body: { email: parsed.data.email, role: parsed.data.role } });
   } catch (error) {
-    return { error: failure(error, "We couldn't add them. Please try again.") };
+    return {
+      error: failure(error, "We couldn't add them. Please try again.", {
+        already_on_team: `${parsed.data.email} is already on the team.`,
+      }),
+    };
   }
 
   revalidatePath("/organiser/settings");
