@@ -50,6 +50,7 @@ export async function getSitemapData(): Promise<SitemapData> {
 }
 
 type OgEvent = {
+  id: string;
   title: string;
   summary: string | null;
   cover_url: string | null;
@@ -57,8 +58,8 @@ type OgEvent = {
   venue_name: string | null;
   city: string | null;
   organiser_name: string | null;
-  format?: PublicEvent["format"];
-  status?: string;
+  format: PublicEvent["format"];
+  status: string;
 };
 
 /** Event fields for generated share images. Cached for an hour. */
@@ -74,15 +75,14 @@ export async function getEventForOg(id: string) {
     throw error;
   }
   return {
-    id,
+    id: og.id,
     title: og.title,
     starts_at: og.starts_at,
     city: og.city,
     venue_name: og.venue_name,
     cover_url: og.cover_url,
-    // Online events have no venue or city of their own.
-    format: og.format ?? (og.venue_name || og.city ? "in_person" : "online"),
-    status: og.status ?? "published",
+    format: og.format,
+    status: og.status,
     organiser: og.organiser_name ? { name: og.organiser_name } : null,
   };
 }

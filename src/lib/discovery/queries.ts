@@ -8,7 +8,7 @@ import {
 } from "@/lib/events/queries";
 import { ACTIVE_REGISTRATION, type Scored } from "@/lib/ranking";
 import type { SearchFilters } from "./filters";
-import { countryFlag, countryName, placeOf, type PlaceGroup } from "@/lib/places";
+import type { PlaceGroup } from "@/lib/places";
 
 // Discovery reads from the Orbit API. Ranking ("Recommended because …"), series collapse and
 // search parity all happen there; each card arrives with its `score` and `reason`.
@@ -118,7 +118,7 @@ export type DiscoveryCounts = {
   total: number | null;
   /** Upcoming events per category slug. */
   byCategory: Map<string, number>;
-  /** Upcoming events per interest (the viewer's own interests). */
+  /** Upcoming events per interest (a missing interest has none). */
   byInterest: Map<string, number>;
 };
 
@@ -142,39 +142,20 @@ export async function getDiscoveryCounts(): Promise<DiscoveryCounts> {
   return counts;
 }
 
-type ApiPlaces = { country: string | null; cities: { city: string; events: number }[] }[];
+type ApiPlaces = { country: string | null; name: string; flag: string; events: number; cities: { city: string; events: number }[] }[];
 
-/**
- * The API's country → city counts, with spellings merged ("Bangalore" / "Bengaluru") and
- * city-only rows placed in their known country, biggest first; unknown places go last.
- */
+/** The API's country → city counts (spellings merged, unknown countries last as "Other places"). */
 function placeGroups(rows: ApiPlaces): PlaceGroup[] {
-  const countries = new Map<string, { count: number; cities: Map<string, number> }>();
-  for (const group of rows) {
-    for (const { city, events } of group.cities) {
-      const place = placeOf(city, group.country);
-      if (!place.country && !place.city) continue;
-      const entry = countries.get(place.country ?? "") ?? { count: 0, cities: new Map<string, number>() };
-      entry.count += events;
-      if (place.city) entry.cities.set(place.city, (entry.cities.get(place.city) ?? 0) + events);
-      countries.set(place.country ?? "", entry);
-    }
-  }
-  return [...countries]
-    .map(([code, entry]) => ({
-      country: code || null,
-      name: code ? countryName(code) : "Other places",
-      flag: code ? countryFlag(code) : "",
-      count: entry.count,
-      cities: [...entry.cities]
-        .map(([city, count]) => ({ city, count }))
-        .sort((a, b) => b.count - a.count || a.city.localeCompare(b.city)),
-    }))
-    .filter((g) => g.country || g.cities.length > 0)
-    .sort((a, b) => Number(!a.country) - Number(!b.country) || b.count - a.count || a.name.localeCompare(b.name));
+  return rows.map((g) => ({
+    country: g.country,
+    name: g.name,
+    flag: g.flag,
+    count: Number(g.events),
+    cities: g.cities.map((c) => ({ city: c.city, count: Number(c.events) })),
+  }));
 }
 
-/** Places upcoming in-person events are in, as country → city lists (Location filter, header search). */
+/** Places upcoming in-person and hybrid events are in, as country → city lists (Location filter, header search). */
 export const listUpcomingPlaces = cache(async (): Promise<PlaceGroup[]> => {
   await connection(); // per request: never baked into a prerender
   // Every page's nav reads this: a failed read leaves the place lists empty rather than the page broken.

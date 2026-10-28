@@ -18,7 +18,6 @@ import {
 } from "@/lib/discovery/queries";
 import { FILTER_KEYS } from "@/lib/discovery/filter-bar";
 import { listCategories } from "@/lib/events/queries";
-import { ALL_INTERESTS } from "@/lib/taxonomy";
 
 export const metadata: Metadata = { title: "Explore" };
 
@@ -49,10 +48,8 @@ async function Explore({ searchParams }: { searchParams: PageProps<"/search">["s
   const searching = isSearching(filters);
   const [counts, places] = await Promise.all([getDiscoveryCounts(), listUpcomingPlaces()]);
   const categoryCount = (slug: string) => (counts.total === null ? undefined : counts.byCategory.get(slug) ?? 0);
-  // Interest counts only when every interest was counted (otherwise a missing one would read as 0).
-  const interestCounts = counts.total !== null && ALL_INTERESTS.every((i) => counts.byInterest.has(i.value))
-    ? Object.fromEntries(counts.byInterest)
-    : undefined;
+  // The API counts every interest; one it leaves out has no upcoming events.
+  const interestCounts = counts.total === null ? undefined : Object.fromEntries(counts.byInterest);
 
   return (
     <div className="space-y-6 lg:space-y-10">

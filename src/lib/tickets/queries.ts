@@ -5,7 +5,7 @@ import type { OrbitEvent, Organiser, Category, RegistrationStatus, Registration 
 import { ApiError } from "@/lib/api/client";
 import { apiAs } from "@/lib/api/session";
 import { getCurrentUser } from "@/lib/auth";
-import { getAsViewer, type EventCounts, type EventWithCounts } from "@/lib/events/queries";
+import { getAsViewer, type EventCounts } from "@/lib/events/queries";
 import { hasEnded, type Question, type TicketOption } from "./logic";
 
 export const isId = (value: string) => z.guid().safeParse(value).success;
@@ -173,86 +173,38 @@ export type TicketRow = Pick<
 };
 
 /** A row of `GET /me/tickets` (and the ticket itself from `GET /me/tickets/{id}`). */
-type ApiTicket = {
-  id: string;
-  status: RegistrationStatus;
+type ApiTicket = Pick<TicketRow, "id" | "status" | "qr_code" | "checked_in_at" | "created_at" | "currency" | "event"> & {
   payment_status: string;
-  amount: number | string;
-  currency: string;
-  qr_code: string;
-  checked_in_at: string | null;
-  created_at: string;
-  ticket_type_id?: string | null;
-  event_id: string;
-  title: string;
-  starts_at: string;
-  ends_at: string | null;
-  venue_name: string | null;
-  address: string | null;
-  city: string | null;
-  cover_url: string | null;
-  ticket_type: string | null;
+  amount: number | string | null;
+  ticket_type_id: string | null;
+  ticket: { id: string; name: string; price: number | string; currency: string } | null;
   online_url?: string | null;
   guest_info?: string | null;
 };
 
-type MyEventCard = EventWithCounts & { registration: RegistrationStatus | null };
-
-/**
- * The ticket rows carry the event's basics only; its status, format, summary and organiser come
- * from the person's own event lists (which include cancelled and expired events).
- */
-const myEventsById = cache(async (): Promise<Map<string, MyEventCard>> => {
-  const [upcoming, past] = await Promise.all([
-    apiAs<{ items: MyEventCard[] }>("/me/events", { query: { when: "upcoming" } }),
-    apiAs<{ items: MyEventCard[] }>("/me/events", { query: { when: "past" } }),
-  ]);
-  return new Map([...(upcoming?.items ?? []), ...(past?.items ?? [])].map((e) => [e.id, e]));
-});
-
-function toTicketRow(t: ApiTicket, events: Map<string, MyEventCard>): TicketRow {
-  const card = events.get(t.event_id);
-  const amount = Number(t.amount);
+function toTicketRow(t: ApiTicket): TicketRow {
   return {
     id: t.id,
     status: t.status,
     qr_code: t.qr_code,
     checked_in_at: t.checked_in_at,
     created_at: t.created_at,
-    amount,
+    amount: Number(t.amount ?? 0),
     currency: t.currency,
     payment_status: t.payment_status,
-    ticket_type_id: t.ticket_type_id ?? null,
-    ticket: t.ticket_type ? { id: t.ticket_type_id ?? "", name: t.ticket_type, price: amount, currency: t.currency } : null,
-    event: {
-      id: t.event_id,
-      title: t.title,
-      summary: card?.summary ?? null,
-      cover_url: t.cover_url,
-      starts_at: t.starts_at,
-      ends_at: t.ends_at,
-      format: card?.format ?? (t.venue_name || t.address || t.city ? "in_person" : "online"),
-      venue_name: t.venue_name,
-      address: t.address,
-      city: t.city,
-      status: card?.status ?? "published",
-      cancel_reason: null,
-      registration_mode: card?.registration_mode ?? "tickets",
-      organiser: card?.organiser
-        ? { id: card.organiser.id, slug: card.organiser.slug, name: card.organiser.name, logo_url: card.organiser.logo_url, is_verified: card.organiser.is_verified }
-        : null,
-    },
+    ticket_type_id: t.ticket_type_id,
+    ticket: t.ticket ? { ...t.ticket, price: Number(t.ticket.price) } : null,
+    event: t.event,
   };
 }
 
-/** The signed-in user's own registrations. */
+/** The signed-in user's own registrations (the page splits them into upcoming and past). */
 export async function listMyTickets() {
-  const [upcoming, past, events] = await Promise.all([
+  const [upcoming, past] = await Promise.all([
     apiAs<{ items: ApiTicket[] }>("/me/tickets", { query: { tab: "upcoming" } }),
     apiAs<{ items: ApiTicket[] }>("/me/tickets", { query: { tab: "past" } }),
-    myEventsById(),
   ]);
-  return [...(upcoming?.items ?? []), ...(past?.items ?? [])].map((t) => toTicketRow(t, events));
+  return [...(upcoming?.items ?? []), ...(past?.items ?? [])].filter((t) => t.event).map(toTicketRow);
 }
 
 export async function getMyTicket(registrationId: string) {
@@ -265,7 +217,8 @@ export async function getMyTicket(registrationId: string) {
     throw error;
   }
   if (!row) return null;
-  const ticket = toTicketRow(row, await myEventsById());
+  if (!row.event) return null;
+  const ticket = toTicketRow(row);
 
   // The API only returns the guest details to confirmed guests.
   const privateInfo = row.status === "going" && (row.online_url || row.guest_info)
