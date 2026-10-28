@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useBadges } from "./badges";
-import { CountDot, SocialIcon } from "./icons";
+import { ChatIcon, CountDot } from "./nav-icons";
 
 /** Messages icon with the unread count (shared poll, see ./badges). */
 export function MessagesLink({ className = "", active = false }: { className?: string; active?: boolean }) {
@@ -16,7 +16,7 @@ export function MessagesLink({ className = "", active = false }: { className?: s
       title="Messages"
       className={`relative flex items-center justify-center rounded-full transition duration-200 ease-out hover:text-fg active:scale-95 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${active ? "text-fg" : "text-muted"} ${className}`}
     >
-      <SocialIcon name="chat" />
+      <ChatIcon />
       <CountDot count={messages} label="unread" />
     </Link>
   );

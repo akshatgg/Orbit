@@ -1,12 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useState } from "react";
-import { SocialIcon } from "./icons";
+import { lazy, Suspense, useState } from "react";
 
 // The sheet, its list and actions load on first tap: cards and the event page only carry this button.
-const ShareSheet = dynamic(() => import("./ShareSheet").then((m) => m.ShareSheet), { ssr: false });
+const ShareSheet = lazy(() => import("./ShareSheet").then((m) => ({ default: m.ShareSheet })));
+
+const SHARE_GROUP_PATH = "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm-6.5 9a6.5 6.5 0 0 1 10.4-5.2M18 14v6M15 17h6";
 
 const roundBtn =
   "round-btn flex h-10 w-10 items-center justify-center rounded-full transition duration-200 hover:brightness-125 active:scale-95 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
@@ -28,7 +28,11 @@ export function ShareToGroupButton({ eventId, eventTitle, signedIn = true, varia
   const [session, setSession] = useState(0);
   const label = "Share with a Circle";
   const cls = variant === "round" ? roundBtn : textBtn;
-  const icon = <SocialIcon name="shareGroup" className={variant === "round" ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"} />;
+  const icon = (
+    <svg aria-hidden viewBox="0 0 24 24" className={`shrink-0 ${variant === "round" ? "h-[18px] w-[18px]" : "h-3.5 w-3.5"}`} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d={SHARE_GROUP_PATH} />
+    </svg>
+  );
 
   if (!signedIn) {
     return (
@@ -57,7 +61,11 @@ export function ShareToGroupButton({ eventId, eventTitle, signedIn = true, varia
         {icon}
         {variant === "text" && "Share with Circle"}
       </button>
-      {session > 0 && <ShareSheet key={session} eventId={eventId} eventTitle={eventTitle} open={open} onClose={() => setOpen(false)} />}
+      {session > 0 && (
+        <Suspense fallback={null}>
+          <ShareSheet key={session} eventId={eventId} eventTitle={eventTitle} open={open} onClose={() => setOpen(false)} />
+        </Suspense>
+      )}
     </>
   );
 }

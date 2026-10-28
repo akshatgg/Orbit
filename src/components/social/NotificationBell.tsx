@@ -1,15 +1,12 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useEffect, useId, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { useBadges } from "./badges";
-import { CountDot, SocialIcon } from "./icons";
+import { BellIcon, CountDot } from "./nav-icons";
 
-// The list, its actions and avatars load only when someone opens the bell.
-const NotificationPanel = dynamic(() => import("./NotificationPanel").then((m) => m.NotificationPanel), {
-  ssr: false,
-  loading: () => <PanelSkeleton />,
-});
+// The list, its actions and avatars load only when someone opens the bell (React.lazy: no extra
+// loader runtime in the nav, which every page carries).
+const NotificationPanel = lazy(() => import("./NotificationPanel").then((m) => ({ default: m.NotificationPanel })));
 
 /**
  * The bell: unread badge (one shared poll, see ./badges) and, on open, a lazily loaded panel with the
@@ -53,7 +50,7 @@ export function NotificationBell({ placement, className = "" }: { placement: "ba
         onClick={() => setOpen((o) => !o)}
         className={`relative flex items-center justify-center rounded-full transition duration-200 ease-out hover:text-fg active:scale-95 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${open ? "text-fg" : "text-muted"} ${className}`}
       >
-        <SocialIcon name="bell" />
+        <BellIcon />
         <CountDot count={unread} label="unread" />
       </button>
       {open && (
@@ -63,7 +60,9 @@ export function NotificationBell({ placement, className = "" }: { placement: "ba
           aria-label="Notifications"
           className={`${position} z-50 flex flex-col overflow-hidden rounded-[22px] border border-line bg-raised text-fg shadow-[0_24px_60px_-20px_rgb(0_0_0/0.55)]`}
         >
-          <NotificationPanel onClose={() => setOpen(false)} />
+          <Suspense fallback={<PanelSkeleton />}>
+            <NotificationPanel onClose={() => setOpen(false)} />
+          </Suspense>
         </div>
       )}
     </div>

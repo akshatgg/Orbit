@@ -29,13 +29,4 @@ export function SocialIcon({ name, className = "h-[18px] w-[18px]", strokeWidth 
   );
 }
 
-/** Small count on an icon: hidden at zero, "9+" past nine. */
-export function CountDot({ count, label }: { count: number; label: string }) {
-  if (count <= 0) return null;
-  return (
-    <span className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10.5px] font-semibold leading-none text-white ring-2 ring-bg tabular-nums">
-      {count > 9 ? "9+" : count}
-      <span className="sr-only"> {label}</span>
-    </span>
-  );
-}
+export { CountDot } from "./nav-icons";
