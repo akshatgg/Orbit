@@ -1,21 +1,28 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createOnboardingLink, getOwnedOrganiser, paymentsPageUrl } from "@/lib/payments/connect";
-import { appBaseUrl, getStripe } from "@/lib/payments/stripe";
+import { z } from "zod";
+import { ApiError } from "@/lib/api/client";
+import { authed } from "@/lib/api/session";
 
-// Stripe sends organisers here when an onboarding link has expired or was already used.
-// We mint a fresh link for an account that already exists (never create accounts on a GET).
+// An organiser whose Stripe onboarding link expired or was already used lands here. The Orbit API
+// answers with a 303 to a fresh Stripe link (or back to the payments page); it never creates accounts.
 export async function GET(request: NextRequest) {
   const orgId = request.nextUrl.searchParams.get("org") ?? "";
-  const base = await appBaseUrl();
-  const back = (extra = "") => NextResponse.redirect(paymentsPageUrl(base, orgId, extra));
-
-  const org = orgId ? await getOwnedOrganiser(orgId) : null;
-  if (!getStripe() || !org?.stripe_account_id) return back();
+  const back = (extra = "") =>
+    NextResponse.redirect(new URL(`/organiser/settings/payments?org=${encodeURIComponent(orgId)}${extra}`, request.url));
+  if (!z.guid().safeParse(orgId).success) return back();
 
   try {
-    return NextResponse.redirect(await createOnboardingLink(org.id, org.stripe_account_id));
+    const response = await authed.raw("/payments/connect/refresh", {
+      query: { organiser_id: orgId },
+      redirect: "manual",
+    });
+    const location = response.headers.get("location");
+    return location ? NextResponse.redirect(location, 303) : back();
   } catch (error) {
-    console.error("[payments] couldn't refresh onboarding link", error);
-    return back("&error=link");
+    if (!(error instanceof ApiError)) throw error;
+    if (error.status === 401) {
+      return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search)}`, request.url));
+    }
+    return back(error.status >= 500 || error.status === 0 ? "&error=link" : "");
   }
 }

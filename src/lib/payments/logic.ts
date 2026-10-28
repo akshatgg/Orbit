@@ -1,4 +1,4 @@
-// Pure payment helpers (no Stripe / Supabase calls) — unit tested in logic.test.ts.
+// Pure payment helpers (no network calls) — unit tested in logic.test.ts.
 
 /** Paid spots are held for 30 minutes (see taken_spots in the registrations migration). */
 export const HOLD_MINUTES = 30;
