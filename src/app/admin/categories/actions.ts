@@ -21,13 +21,26 @@ export async function saveCategory(categoryId: string | null, _prev: CategoryFor
   }
   if (categoryId && !z.uuid().safeParse(categoryId).success) return { error: "Invalid category" };
   try {
-    if (categoryId) await authed.patch(`/admin/categories/${categoryId}`, { body: parsed.data });
+    if (categoryId) await authed.patch(`/admin/categories/${categoryId}`, { body: await changedFields(categoryId, parsed.data) });
     else await authed.post("/admin/categories", { body: parsed.data });
   } catch (error) {
     return { error: isConflict(error) ? "That slug is already used" : adminError(error) };
   }
   revalidateEverywhere();
   return { ok: true, message: categoryId ? "Saved" : "Category added" };
+}
+
+/**
+ * The update body without an unchanged `group`: the API only needs what changed, and
+ * leaving the group out keeps name/slug/keyword edits working on every API version.
+ */
+async function changedFields<T extends { group?: string }>(categoryId: string, data: T): Promise<Partial<T>> {
+  const { items } = await authed.get<{ items: { id: string; group: string }[] }>("/admin/categories");
+  const current = items.find((c) => c.id === categoryId);
+  if (!current || current.group !== data.group) return data;
+  const { group: _unchanged, ...rest } = data;
+  void _unchanged;
+  return rest as Partial<T>;
 }
 
 /** Refuses to delete a category that events still use. */
