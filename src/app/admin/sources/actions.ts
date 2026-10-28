@@ -7,7 +7,6 @@ import { requireAdmin } from "@/lib/auth";
 import { apiMessage } from "@/lib/api/errors";
 import { authed } from "@/lib/api/session";
 import { importedDetailsSchema } from "@/lib/sources/details-schema";
-import { DEFAULT_ATTRIBUTION, resolveFeedUrl } from "@/lib/sources/feed-url";
 import { parseIdList } from "@/lib/sources/review";
 import { IMPORTED_KINDS as IMPORTED_SOURCE_KINDS, SOURCE_KINDS, sourceIdFromKey, type RunError } from "@/lib/sources/types";
 
@@ -42,14 +41,8 @@ const sourceSchema = z
     enabled: z.boolean(),
     auto_category: z.boolean(),
   })
-  .transform((s, ctx) => {
-    const resolved = resolveFeedUrl(s.kind, s.url);
-    if (!resolved.ok) {
-      ctx.addIssue({ code: "custom", message: resolved.error, path: ["url"] });
-      return z.NEVER;
-    }
-    return { ...s, url: resolved.url, attribution: s.attribution ?? DEFAULT_ATTRIBUTION[s.kind] ?? null };
-  })
+  // The API resolves the pasted link to the feed it fetches (and fills the default attribution);
+  // a link it can't use comes back as a 422 sentence.
   .refine((s) => !s.enabled || (s.permission_confirmed && s.permission_note), {
     message: "Confirm you have permission to use this feed, and note who granted it, before enabling it.",
     path: ["enabled"],

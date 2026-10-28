@@ -68,22 +68,6 @@ export function sourceIdFromKey(source: string): string | null {
   return source.startsWith("source:") ? source.slice("source:".length) : null;
 }
 
-export type RunSummary = {
-  sourceId: string;
-  name: string;
-  status: RunStatus;
-  found: number;
-  inserted: number;
-  updated: number;
-  unchanged: number;
-  flaggedMissing: number;
-  /** Events whose page details (cover, description, price) were saved this run. */
-  enriched: number;
-  /** New events the keyword classifier categorised (rather than the source default). */
-  classified?: number;
-  errors: RunError[];
-};
-
 export type DetailsStatus = "ok" | "failed" | "blocked";
 
 /** One row per imported event whose source page ORBIT has tried to read. */
@@ -93,15 +77,4 @@ export type SourceEventDetails = {
   attempts: number;
   last_error: string | null;
   fetched_at: string;
-};
-
-/** A full refresh of every enabled source (the nightly cron, or "Refresh all now"). */
-export type RefreshSummary = {
-  ok: boolean;
-  startedAt: string;
-  finishedAt: string;
-  sources: RunSummary[];
-  expired: number;
-  duplicatesFlagged: number;
-  errors: string[];
 };
