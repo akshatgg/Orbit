@@ -48,11 +48,9 @@ export async function withCounts(events: EventCardData[]): Promise<EventWithCoun
 
 /** Published events that haven't ended yet, soonest first. */
 export async function listUpcomingEvents({ limit = 100 }: { limit?: number } = {}) {
-  const page = await api.getOr<{ items: EventCardData[] }>(
-    "/events/upcoming",
-    { items: [] },
-    { query: { page_size: Math.min(limit, 100) }, revalidate: 60 },
-  );
+  const page = await api.get<{ items: EventCardData[] }>("/events/upcoming", {
+    query: { page_size: Math.min(limit, 100) },
+  });
   return page.items;
 }
 
@@ -102,7 +100,5 @@ export async function getMyEventState(userId: string | null | undefined, eventId
 }
 
 export async function listCategories() {
-  // A filter list is not worth failing a page for: if the API is restarting,
-  // render the events without the category filter and log it.
-  return api.getOr<Category[]>("/categories", [], { revalidate: 300 });
+  return api.get<Category[]>("/categories");
 }
