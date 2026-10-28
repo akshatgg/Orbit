@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { BackLink } from "@/components/nav/BackLink";
 import { PayoutsPanel } from "@/components/payments/PayoutsPanel";
@@ -52,6 +53,10 @@ async function Content({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const requested = first(params.org);
   const linkError = first(params.error) === "link";
+  // Stripe sends an expired or reused onboarding link back with ?stripe=refresh: get a fresh one.
+  if (first(params.stripe) === "refresh" && requested) {
+    redirect(`/api/stripe/connect/refresh?org=${encodeURIComponent(requested)}`);
+  }
 
   const memberships = await getMyOrganisers();
   const owned = memberships.filter((o) => o.member_role === "owner");

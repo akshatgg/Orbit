@@ -5,7 +5,7 @@ import { SESSION_COOKIE } from "@/lib/api/session-cookie";
 // Reachable without signing in. Event and organiser pages are public so they can be shared.
 const PUBLIC_PATHS = [
   "/welcome", "/robots.txt", "/sitemap.xml", "/opengraph-image", "/twitter-image",
-  "/login", "/auth", "/offline", "/events/", "/o/", "/go/", "/api/cron/", "/api/stripe/webhook",
+  "/login", "/auth", "/offline", "/events/", "/o/", "/go/", "/api/cron/",
 ];
 
 /**

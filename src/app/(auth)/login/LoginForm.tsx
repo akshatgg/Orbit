@@ -26,6 +26,7 @@ export function LoginForm() {
 
   function signInWithGoogle() {
     // The backend starts the OAuth flow and redirects back to the app.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- the API is another origin
     window.location.href = `${API}/api/auth/google/start?next=${encodeURIComponent(nextPath())}`;
   }
 

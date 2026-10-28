@@ -8,7 +8,7 @@ import { apiAs, getSession } from "./api/session";
 /**
  * Data access layer for "who is signed in".
  *
- * Everything comes from the Orbit API — Supabase is not involved. Each helper
+ * Everything comes from the Orbit API. Each helper
  * is deduplicated per request; call them inside a <Suspense> boundary.
  */
 
