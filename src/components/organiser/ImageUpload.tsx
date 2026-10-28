@@ -5,8 +5,9 @@ import { useId, useRef, useState } from "react";
 import { uploadImage, type ImageBucket } from "@/lib/storage";
 
 /**
- * Click-to-upload image with preview. Uploads straight to Supabase Storage and reports the
- * public URL through `onChange`; pass `name` to also submit it with a normal <form>.
+ * Click-to-upload image with preview. Uploads straight to Cloudinary (signed by the Orbit API) and
+ * reports the public URL through `onChange`; pass `name` to also submit it with a normal <form>.
+ * Upload problems (not configured, signed out, too big) show under the picker.
  */
 export function ImageUpload({ bucket, value, onChange, name, shape = "cover", label, hint }: {
   bucket: ImageBucket;

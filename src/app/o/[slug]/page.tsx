@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { getMyEventState } from "@/lib/events/queries";
 import { groupOrganiserEvents } from "@/lib/organiser/dashboard";
-import { getFollowerCount, getOrganiserBySlug, isFollowing, listPublicOrganiserEvents } from "@/lib/organiser/queries";
+import { getOrganiserBySlug, getOrganiserPage, listPublicOrganiserEvents } from "@/lib/organiser/queries";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { buildOrganisationJsonLd } from "@/lib/seo/jsonld";
 import { absoluteUrl } from "@/lib/seo/site";
@@ -51,15 +51,11 @@ export default function OrganiserPublicPage({ params }: PageProps<"/o/[slug]">) 
 
 async function Content({ params }: { params: PageProps<"/o/[slug]">["params"] }) {
   const { slug } = await params;
-  const org = await getOrganiserBySlug(slug);
-  if (!org || org.status !== "approved") notFound();
+  const page = await getOrganiserPage(slug);
+  if (!page || page.organiser.status !== "approved") notFound();
+  const { organiser: org, follower_count: followers, following } = page;
 
-  const user = await getCurrentUser();
-  const [events, followers, following] = await Promise.all([
-    listPublicOrganiserEvents(org.id),
-    getFollowerCount(org.id),
-    isFollowing(user?.id, org.id),
-  ]);
+  const [user, events] = await Promise.all([getCurrentUser(), listPublicOrganiserEvents(org)]);
   const state = await getMyEventState(user?.id, events.map((e) => e.id));
   const { upcoming, past } = groupOrganiserEvents(events);
   const site = org.website?.replace(/^https?:\/\//, "").replace(/\/$/, "");

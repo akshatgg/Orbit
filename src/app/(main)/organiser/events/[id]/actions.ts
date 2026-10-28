@@ -2,19 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getCurrentUser } from "@/lib/auth";
+import { ApiError } from "@/lib/api/client";
+import { apiMessage } from "@/lib/api/errors";
+import { authed } from "@/lib/api/session";
 import { getCheckInCount } from "@/lib/guests/queries";
 import { normaliseCode } from "@/lib/guests/scan";
 import type { CheckInResult } from "@/lib/guests/types";
-import { notifyRegistrationChanged } from "@/lib/notifications";
-import { createClient } from "@/lib/supabase/server";
 
-// Every write here goes through the SQL functions (decide_registration, check_in,
-// undo_check_in), which check `can_manage_event` themselves.
+// Every write goes through the Orbit API's organiser endpoints, which check the caller
+// can manage the event and tell guests about decisions and waitlist moves.
 
 type Fail = { ok: false; error: string };
 type Counts = { going: number; checkedIn: number };
 
+const GENERIC = "Something went wrong. Try again.";
 const id = z.guid();
 const decision = z.enum(["approve", "decline"]);
 const code = z.string().trim().min(1).max(200);
@@ -24,23 +25,15 @@ function refresh(eventId: string) {
   for (const path of [base, `${base}/guests`, `${base}/check-in`]) revalidatePath(path);
 }
 
-function friendly(message: string | undefined) {
-  if (!message) return "Something went wrong. Try again.";
-  // Raised by our SQL functions with user-facing text; hide anything else.
-  return /^[A-Z][^\n]{0,160}$/.test(message) && !/violates|syntax|relation|column|function/i.test(message)
-    ? message
-    : "Something went wrong. Try again.";
-}
+/** The API's own sentence (e.g. "This event is full") or a generic retry message. */
+const FULL = "The event is full. Increase the capacity to approve more people.";
 
-async function signedIn() {
-  return (await getCurrentUser()) !== null;
-}
-
-/** Waitlisted registrations for an event — used to spot who moved up after a decline. */
-async function waitlistedIds(eventId: string) {
-  const supabase = await createClient();
-  const { data } = await supabase.from("registrations").select("id").eq("event_id", eventId).eq("status", "waitlisted");
-  return new Set((data ?? []).map((r) => r.id as string));
+function friendly(error: unknown) {
+  return apiMessage(
+    error,
+    { event_full: FULL, "Registration not found": "Guest not found" },
+    { fallback: GENERIC, passThrough: true },
+  );
 }
 
 /** Approve or decline one registration. */
@@ -49,98 +42,94 @@ export async function decideRegistration(
 ): Promise<{ ok: true; status: string } | Fail> {
   const parsed = z.object({ eventId: id, registrationId: id, choice: decision }).safeParse({ eventId, registrationId, choice });
   if (!parsed.success) return { ok: false, error: "Invalid request" };
-  if (!(await signedIn())) return { ok: false, error: "Sign in first" };
 
-  const supabase = await createClient();
-  const before = choice === "decline" ? await waitlistedIds(eventId) : null;
-  const { data, error } = await supabase.rpc("decide_registration", {
-    p_registration_id: registrationId, p_decision: choice,
-  });
-  if (error) return { ok: false, error: friendly(error.message) };
-
-  await notifyRegistrationChanged(registrationId);
-  // A decline frees a spot; the database moves people off the waitlist — tell them too.
-  if (before && before.size) {
-    const after = await waitlistedIds(eventId);
-    await Promise.all([...before].filter((r) => !after.has(r)).map((r) => notifyRegistrationChanged(r)));
+  try {
+    const row = await authed.post<{ status?: string } | null>(
+      `/organiser/events/${eventId}/registrations/${registrationId}/decision`,
+      { body: { decision: choice } },
+    );
+    refresh(eventId);
+    return { ok: true, status: row?.status ?? choice };
+  } catch (error) {
+    return { ok: false, error: friendly(error) };
   }
-  refresh(eventId);
-  return { ok: true, status: (data as { status: string } | null)?.status ?? choice };
 }
 
-/** Approve everyone still awaiting a decision. Stops at the first error (e.g. the event is full). */
+/** Approve everyone still awaiting a decision. Stops at the first refusal (e.g. the event is full). */
 export async function approveAllPending(eventId: string): Promise<{ ok: true; approved: number } | Fail> {
   if (!id.safeParse(eventId).success) return { ok: false, error: "Invalid request" };
-  if (!(await signedIn())) return { ok: false, error: "Sign in first" };
 
-  const supabase = await createClient();
-  const { data: pending, error: listError } = await supabase
-    .from("registrations")
-    .select("id")
-    .eq("event_id", eventId)
-    .eq("status", "pending")
-    .order("created_at");
-  if (listError) return { ok: false, error: friendly(listError.message) };
-
-  let approved = 0;
-  for (const { id: registrationId } of pending ?? []) {
-    const { error } = await supabase.rpc("decide_registration", { p_registration_id: registrationId, p_decision: "approve" });
-    if (error) {
-      refresh(eventId);
-      return { ok: false, error: `Approved ${approved}. ${friendly(error.message)}` };
-    }
-    approved += 1;
-    await notifyRegistrationChanged(registrationId);
+  try {
+    const result = await authed.post<{ ok: boolean; approved: number; total: number; error?: string | null }>(
+      `/organiser/events/${eventId}/registrations/approve-all`,
+    );
+    refresh(eventId);
+    if (result.ok) return { ok: true, approved: result.approved };
+    // A partial stop: earlier approvals are kept, the rest stay pending.
+    const reason = result.error === "event_full" ? FULL : result.error || GENERIC;
+    return { ok: false, error: `Approved ${result.approved}. ${reason}` };
+  } catch (error) {
+    refresh(eventId);
+    return { ok: false, error: friendly(error) };
   }
-  refresh(eventId);
-  return { ok: true, approved };
+}
+
+type CheckInPayload = CheckInResult & { ok?: boolean };
+
+/** The API adds `ok` to check_in()'s result; the door screen only needs the result itself. */
+function asResult(payload: CheckInPayload): CheckInResult {
+  const result: CheckInPayload = { ...payload, result: payload.result ?? "not_found" };
+  delete result.ok;
+  return result;
 }
 
 /** Door check-in from a scanned or typed ticket code. */
 export async function checkInByCode(eventId: string, rawCode: string): Promise<{ ok: true; result: CheckInResult; counts: Counts } | Fail> {
   const parsed = z.object({ eventId: id, code }).safeParse({ eventId, code: rawCode });
   if (!parsed.success) return { ok: false, error: "Enter a ticket code" };
-  if (!(await signedIn())) return { ok: false, error: "Sign in first" };
   const normalised = normaliseCode(parsed.data.code);
-  if (!normalised) {
-    return { ok: true, result: { result: "not_found" }, counts: await getCheckInCount(eventId) };
-  }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("check_in", { p_event_id: eventId, p_code: normalised });
-  if (error) return { ok: false, error: friendly(error.message) };
-  const result = data as CheckInResult;
-  if (result.result === "checked_in") refresh(eventId);
-  return { ok: true, result, counts: await getCheckInCount(eventId) };
+  try {
+    if (!normalised) {
+      return { ok: true, result: { result: "not_found" }, counts: await getCheckInCount(eventId) };
+    }
+    const payload = await authed.post<CheckInPayload>(`/organiser/events/${eventId}/check-in`, { body: { code: normalised } });
+    const result = asResult(payload);
+    if (result.result === "checked_in") refresh(eventId);
+    return { ok: true, result, counts: await getCheckInCount(eventId) };
+  } catch (error) {
+    return { ok: false, error: friendly(error) };
+  }
 }
 
-/** Check a guest in from the list (no ticket to scan): looks up their code, then uses check_in. */
+/** Check a guest in from the list (no ticket to scan): the API looks up their code. */
 export async function checkInRegistration(eventId: string, registrationId: string): Promise<{ ok: true; result: CheckInResult; counts: Counts } | Fail> {
   const parsed = z.object({ eventId: id, registrationId: id }).safeParse({ eventId, registrationId });
   if (!parsed.success) return { ok: false, error: "Invalid request" };
-  if (!(await signedIn())) return { ok: false, error: "Sign in first" };
 
-  const supabase = await createClient();
-  // RLS only returns the row to people who can manage this event.
-  const { data: reg } = await supabase
-    .from("registrations")
-    .select("qr_code")
-    .eq("id", registrationId)
-    .eq("event_id", eventId)
-    .maybeSingle();
-  if (!reg) return { ok: false, error: "Guest not found" };
-  return checkInByCode(eventId, reg.qr_code as string);
+  try {
+    const payload = await authed.post<CheckInPayload>(`/organiser/events/${eventId}/check-in/by-registration`, {
+      body: { registration_id: registrationId },
+    });
+    const result = asResult(payload);
+    if (result.result === "checked_in") refresh(eventId);
+    return { ok: true, result, counts: await getCheckInCount(eventId) };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return { ok: false, error: "Guest not found" };
+    return { ok: false, error: friendly(error) };
+  }
 }
 
 /** Undo a check-in made by mistake. */
 export async function undoCheckIn(eventId: string, registrationId: string): Promise<{ ok: true; counts: Counts } | Fail> {
   const parsed = z.object({ eventId: id, registrationId: id }).safeParse({ eventId, registrationId });
   if (!parsed.success) return { ok: false, error: "Invalid request" };
-  if (!(await signedIn())) return { ok: false, error: "Sign in first" };
 
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("undo_check_in", { p_registration_id: registrationId });
-  if (error) return { ok: false, error: friendly(error.message) };
-  refresh(eventId);
-  return { ok: true, counts: await getCheckInCount(eventId) };
+  try {
+    await authed.del(`/organiser/events/${eventId}/check-in/${registrationId}`);
+    refresh(eventId);
+    return { ok: true, counts: await getCheckInCount(eventId) };
+  } catch (error) {
+    return { ok: false, error: friendly(error) };
+  }
 }

@@ -1,24 +1,16 @@
 "use client";
 
-import { createClient } from "./supabase/client";
+import { signImageUpload, type ImageBucket } from "./storage-actions";
 
-export type ImageBucket = "event-covers" | "organiser-logos";
+export type { ImageBucket };
 
 const MAX_MB: Record<ImageBucket, number> = { "event-covers": 5, "organiser-logos": 2 };
 const TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-type Signature = {
-  cloudName: string;
-  apiKey: string;
-  timestamp: number;
-  signature: string;
-  folder: string;
-  allowedFormats: string;
-};
-
 /**
- * Uploads an image and returns its public URL. Goes to Cloudinary with a server-signed upload;
- * if Cloudinary isn't configured (sign endpoint answers 503) it falls back to Supabase Storage.
+ * Uploads an image and returns its public URL. The Orbit API signs the upload
+ * (`POST /uploads/sign`, through a server action) and the browser sends the file
+ * straight to Cloudinary into `orbit/<kind>/<user id>/`.
  * Call from Client Components (forms with <input type="file">).
  */
 export async function uploadImage(bucket: ImageBucket, file: File): Promise<string> {
@@ -27,20 +19,17 @@ export async function uploadImage(bucket: ImageBucket, file: File): Promise<stri
   const max = MAX_MB[bucket];
   if (file.size > max * 1024 * 1024) throw new Error(`Image must be under ${max} MB`);
 
-  let res: Response;
+  let signed: Awaited<ReturnType<typeof signImageUpload>>;
   try {
-    res = await fetch("/api/uploads/sign", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind: bucket }),
-    });
+    signed = await signImageUpload(bucket);
   } catch {
     throw new Error("Couldn't reach the server — check your connection and try again");
   }
-  if (res.status === 503) return uploadToSupabase(bucket, file);
-  if (res.status === 401) throw new Error("Sign in to upload images");
-  if (!res.ok) throw new Error("Couldn't start the upload — try again");
-  const sig = (await res.json()) as Signature;
+  if (!signed.ok) throw new Error(signed.error);
+  const sig = signed.signature;
+  if (sig.maxBytes && file.size > sig.maxBytes) {
+    throw new Error(`Image must be under ${Math.floor(sig.maxBytes / (1024 * 1024))} MB`);
+  }
 
   const form = new FormData();
   form.append("file", file);
@@ -59,16 +48,4 @@ export async function uploadImage(bucket: ImageBucket, file: File): Promise<stri
   const data = (await up.json().catch(() => null)) as { secure_url?: string; error?: { message?: string } } | null;
   if (!up.ok || !data?.secure_url) throw new Error(data?.error?.message ?? "Upload failed — try another image");
   return data.secure_url;
-}
-
-/** Fallback for environments without Cloudinary credentials. */
-async function uploadToSupabase(bucket: ImageBucket, file: File): Promise<string> {
-  const supabase = createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error("Sign in to upload images");
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-  const path = `${auth.user.id}/${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type, upsert: false });
-  if (error) throw new Error(error.message);
-  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }

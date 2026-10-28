@@ -264,7 +264,7 @@ function OrgSwitcher({ orgs, selectedId }: { orgs: MyOrganiser[]; selectedId: st
 }
 
 async function OrganiserOverview({ org }: { org: MyOrganiser }) {
-  const [events, followers] = await Promise.all([listOrganiserEvents(org.id), getFollowerCount(org.id)]);
+  const [events, followers] = await Promise.all([listOrganiserEvents(org.id, org), getFollowerCount(org.id)]);
   const groups = groupOrganiserEvents(events);
   const live = [...groups.upcoming, ...groups.past];
 
