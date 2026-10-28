@@ -44,12 +44,14 @@ export function firstName(user: Pick<SocialUser, "full_name"> | null | undefined
   return displayName(user, fallback).split(/\s+/)[0];
 }
 
-/** "Priya", "Priya and Sam", "Priya, Sam and 3 others". */
-export function namesLine(users: Pick<SocialUser, "full_name">[], limit = 2) {
+/** "Priya", "Priya and Sam", "Priya, Sam and 3 others" (`total` when the list is a capped sample). */
+export function namesLine(users: Pick<SocialUser, "full_name">[], limit = 2, total = users.length) {
   const names = users.map((u) => firstName(u));
-  if (names.length <= limit) return names.length === 2 ? `${names[0]} and ${names[1]}` : names.join("");
-  const rest = names.length - limit;
-  return `${names.slice(0, limit).join(", ")} and ${rest} other${rest === 1 ? "" : "s"}`;
+  const count = Math.max(total, names.length);
+  if (count <= limit) return count === 2 ? `${names[0]} and ${names[1]}` : names.join("");
+  const shown = names.slice(0, limit);
+  const rest = count - shown.length;
+  return `${shown.join(", ")} and ${rest} other${rest === 1 ? "" : "s"}`;
 }
 
 export function plural(n: number, one: string, many = `${one}s`) {

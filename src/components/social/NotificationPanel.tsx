@@ -9,10 +9,8 @@ import type { InboxItem } from "@/types/social";
 import { refreshBadges, setBadge } from "./badges";
 import { SocialIcon, type SocialIconName } from "./icons";
 
-type Page = { items: InboxItem[]; unread_count: number; pending_invite_ids: string[]; has_more?: boolean };
+type Page = { items: InboxItem[]; unread_count: number; pending_invite_ids: string[]; next_cursor?: string | null };
 type Answer = "accepted" | "declined";
-
-const PAGE = 20;
 
 const KIND_ICON: Record<string, SocialIconName> = {
   circle_invite: "circles",
@@ -22,8 +20,8 @@ const KIND_ICON: Record<string, SocialIconName> = {
   announcement: "megaphone",
 };
 
-async function fetchPage(before?: string): Promise<Page> {
-  const qs = before ? `?before=${encodeURIComponent(before)}` : "";
+async function fetchPage(cursor?: string | null): Promise<Page> {
+  const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
   const response = await fetch(`/api/social/notifications${qs}`, { cache: "no-store" });
   if (!response.ok || !response.headers.get("content-type")?.includes("json")) throw new Error(String(response.status));
   return (await response.json()) as Page;
@@ -37,7 +35,7 @@ export function NotificationPanel({ onClose }: { onClose: () => void }) {
   const [items, setItems] = useState<InboxItem[] | null>(null);
   const [unread, setUnread] = useState(0);
   const [waiting, setWaiting] = useState<Set<string>>(new Set());
-  const [hasMore, setHasMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
@@ -48,7 +46,7 @@ export function NotificationPanel({ onClose }: { onClose: () => void }) {
     setWaiting((prev) => new Set([...(append ? prev : []), ...page.pending_invite_ids]));
     setUnread(page.unread_count);
     setBadge("notifications", page.unread_count);
-    setHasMore(page.has_more ?? page.items.length >= PAGE);
+    setCursor(page.next_cursor ?? null);
   }, []);
 
   useEffect(() => {
@@ -62,11 +60,10 @@ export function NotificationPanel({ onClose }: { onClose: () => void }) {
   }, [apply]);
 
   async function more() {
-    const last = items?.at(-1);
-    if (!last) return;
+    if (!cursor) return;
     setLoadingMore(true);
     try {
-      apply(await fetchPage(last.created_at), true);
+      apply(await fetchPage(cursor), true);
     } catch {
       setError("Couldn't load more");
     } finally {
@@ -181,7 +178,7 @@ export function NotificationPanel({ onClose }: { onClose: () => void }) {
             })}
           </ul>
         )}
-        {hasMore && items && items.length > 0 && (
+        {cursor && items && items.length > 0 && (
           <div className="border-t border-line p-2">
             <button type="button" onClick={more} disabled={loadingMore} className="w-full rounded-xl py-2 text-xs font-medium text-muted transition-colors hover:bg-ink/[0.05] hover:text-fg disabled:opacity-50">
               {loadingMore ? "Loading…" : "Show older"}

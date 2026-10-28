@@ -14,7 +14,7 @@ const PAGE = 50;
 // Poll fast while the conversation is active, slower the longer it stays quiet.
 const DELAYS = [4_000, 4_000, 4_000, 8_000, 8_000, 15_000, 30_000];
 // Every so often re-read the latest page too, to pick up messages deleted since.
-const RECONCILE_EVERY = 8;
+const RECONCILE_EVERY = 4;
 const MAX_LENGTH = 2000;
 
 async function fetchThread(conversationId: string, query: Record<string, string> = {}): Promise<Thread | { error: string; status: number }> {
@@ -38,9 +38,11 @@ function merge(list: Item[], incoming: ChatMessage[]): Item[] {
  * loads older messages when you scroll to the top, and sends / deletes optimistically (rolled back
  * if the API refuses).
  */
-export function ChatThread({ conversationId, initial, me, kind, canSend = true, notice }: {
+export function ChatThread({ conversationId, initial, initialHasMore, me, kind, canSend = true, notice }: {
   conversationId: string;
   initial: ChatMessage[];
+  /** Older messages exist before the first page. */
+  initialHasMore?: boolean;
   me: SocialUser;
   kind: "circle" | "direct";
   canSend?: boolean;
@@ -48,7 +50,7 @@ export function ChatThread({ conversationId, initial, me, kind, canSend = true, 
   notice?: React.ReactNode;
 }) {
   const [items, setItems] = useState<Item[]>(initial);
-  const [hasOlder, setHasOlder] = useState(initial.length >= PAGE);
+  const [hasOlder, setHasOlder] = useState(initialHasMore ?? initial.length >= PAGE);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -75,9 +77,9 @@ export function ChatThread({ conversationId, initial, me, kind, canSend = true, 
   // ── polling ──────────────────────────────────────────────────────────────
   const poll = useCallback(async () => {
     const confirmed = itemsRef.current.filter((m) => !m.pending);
-    const last = confirmed.at(-1)?.created_at;
+    const last = confirmed.at(-1);
     const reconcile = ++polls.current % RECONCILE_EVERY === 0;
-    const result = await fetchThread(conversationId, last && !reconcile ? { after: last } : {});
+    const result = await fetchThread(conversationId, last && !reconcile ? { after: last.created_at, after_id: last.id } : {});
     if ("error" in result) {
       if (result.status === 403 || result.status === 404) setGone(result.error);
       return false;
@@ -89,7 +91,8 @@ export function ChatThread({ conversationId, initial, me, kind, canSend = true, 
     });
     if (fresh.length || changed) setItems((list) => merge(list, result.items));
     if (fresh.some((m) => m.sender.id !== me.id)) markRead();
-    return fresh.length > 0;
+    // A burst bigger than one page: come straight back for the rest.
+    return fresh.length > 0 || (!reconcile && !!result.has_more);
   }, [conversationId, me.id, markRead]);
 
   // One timer at a time: each poll schedules the next, slower while nothing arrives, paused while the
@@ -162,10 +165,10 @@ export function ChatThread({ conversationId, initial, me, kind, canSend = true, 
     const first = itemsRef.current.find((m) => !m.pending);
     if (!first || loadingOlder) return;
     setLoadingOlder(true);
-    const result = await fetchThread(conversationId, { before: first.created_at }).catch(() => null);
+    const result = await fetchThread(conversationId, { before: first.created_at, before_id: first.id }).catch(() => null);
     setLoadingOlder(false);
     if (!result || "error" in result) return;
-    setHasOlder(result.items.length >= PAGE);
+    setHasOlder(result.has_more ?? result.items.length >= PAGE);
     if (!result.items.length) return;
     keepOffset.current = document.documentElement.scrollHeight;
     stickToBottom.current = false;

@@ -16,20 +16,22 @@ export const metadata: Metadata = { title: "Messages" };
 
 const SUBTITLE = "Circle chats and direct messages with people you share a circle or community with.";
 
-export default function MessagesPage() {
+export default function MessagesPage({ searchParams }: PageProps<"/messages">) {
   return (
     <>
       <PageHeader title="Messages" subtitle={SUBTITLE} />
       <Suspense fallback={<ConversationsSkeleton />}>
-        <Conversations />
+        <Conversations searchParams={searchParams} />
       </Suspense>
     </>
   );
 }
 
-async function Conversations() {
-  const [profile, { items }] = await Promise.all([requireProfile(), listConversations()]);
-  if (items.length === 0) {
+async function Conversations({ searchParams }: { searchParams: PageProps<"/messages">["searchParams"] }) {
+  const { cursor: raw } = await searchParams;
+  const cursor = typeof raw === "string" && /^[\w-]{1,500}$/.test(raw) ? raw : undefined;
+  const [profile, { items, next_cursor: next }] = await Promise.all([requireProfile(), listConversations(cursor)]);
+  if (items.length === 0 && !cursor) {
     return (
       <EmptyState title="No conversations yet" action={<ButtonLink href="/circles" size="sm" variant="secondary">Your circles</ButtonLink>}>
         Every circle has a chat, and you can message anyone you share a circle or community with from its member list.
@@ -37,9 +39,17 @@ async function Conversations() {
     );
   }
   return (
-    <ul className="glass mx-4 divide-y divide-line overflow-hidden rounded-[22px] md:max-w-2xl">
-      {items.map((c) => <li key={c.id}><ConversationRow conversation={c} meId={profile.id} /></li>)}
-    </ul>
+    <div className="space-y-4">
+      <ul className="glass mx-4 divide-y divide-line overflow-hidden rounded-[22px] md:max-w-2xl">
+        {items.map((c) => <li key={c.id}><ConversationRow conversation={c} meId={profile.id} /></li>)}
+      </ul>
+      {(next || cursor) && (
+        <nav aria-label="More conversations" className="mx-4 flex justify-between gap-3 md:max-w-2xl">
+          {cursor ? <ButtonLink href="/messages" variant="secondary" size="sm">Newest</ButtonLink> : <span />}
+          {next && <ButtonLink href={`/messages?cursor=${encodeURIComponent(next)}`} variant="secondary" size="sm">Older conversations</ButtonLink>}
+        </nav>
+      )}
+    </div>
   );
 }
 

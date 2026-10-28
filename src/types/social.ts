@@ -39,6 +39,13 @@ export type GroupCard = {
 /** `GET /groups/{id_or_slug}`. */
 export type GroupDetail = GroupCard & {
   pending_request: boolean;
+  /** An invite to this group waiting for the viewer's answer. */
+  pending_invite?: { id: string } | null;
+  can_manage?: boolean;
+  can_invite?: boolean;
+  can_share?: boolean;
+  /** The first members (up to 100), when the viewer may see them. */
+  members?: GroupMemberRow[];
   created_by?: string | null;
   created_at?: string;
 };
@@ -92,8 +99,11 @@ export type GroupEventItem = {
   shared_by: SocialUser | null;
   note: string | null;
   shared_at: string | null;
+  /** The first few of each (capped); the counts are the totals. */
   interested: SocialUser[];
   going: SocialUser[];
+  interested_count?: number;
+  going_count?: number;
   my_status: InterestStatus | null;
 };
 
@@ -134,7 +144,7 @@ export type InboxItem = {
   created_at: string;
 };
 
-export type InboxPage = { items: InboxItem[]; unread_count: number };
+export type InboxPage = { items: InboxItem[]; unread_count: number; next_cursor?: string | null };
 
 // ─── messaging ─────────────────────────────────────────────────────────────
 
@@ -147,9 +157,10 @@ export type Conversation = {
   other_user: SocialUser | null;
   last_message: { body: string; sender_id: string; created_at: string; deleted?: boolean } | null;
   unread_count: number;
+  last_activity_at?: string | null;
 };
 
-export type ConversationList = { items: Conversation[]; unread_total: number };
+export type ConversationList = { items: Conversation[]; unread_total: number; next_cursor?: string | null };
 
 export type ChatMessage = {
   id: string;
@@ -160,8 +171,11 @@ export type ChatMessage = {
 };
 
 export type Thread = {
-  conversation: Conversation & { members: SocialUser[] };
+  /** The full list item plus members on a full load; just `{id, kind, group, other_user}` on an `after` poll. */
+  conversation: Conversation & { members?: SocialUser[] };
   items: ChatMessage[];
+  /** Older messages remain (or, after `after`, newer ones beyond this page). */
+  has_more?: boolean;
 };
 
 export type BlockedUser = { user: SocialUser; created_at?: string };

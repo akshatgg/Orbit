@@ -41,7 +41,7 @@ async function Directory({ searchParams }: { searchParams: PageProps<"/communiti
   // The page, and (in parallel) the whole directory's categories and universities for the filters.
   const [page, all] = await Promise.all([
     listCommunities(filters),
-    listCommunities({}, { limit: 100 }),
+    listCommunities({}, { limit: 50 }),
   ]);
 
   const categories = [...new Map(all.items.filter((c) => c.category_name).map((c) => [c.category_slug ?? c.category_id ?? "", c.category_name!])).entries()]

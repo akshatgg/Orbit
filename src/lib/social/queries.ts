@@ -119,16 +119,18 @@ export async function listShareable(eventId: string) {
   return Array.isArray(res) ? res : res.items;
 }
 
-export async function getInbox({ limit = 20, before }: { limit?: number; before?: string } = {}) {
-  return authed.get<InboxPage>("/notifications", { query: { limit, before } });
+export async function getInbox({ limit = 20, cursor }: { limit?: number; cursor?: string } = {}) {
+  return authed.get<InboxPage>("/notifications", { query: { limit, cursor } });
 }
 
-export async function listConversations() {
-  const res = await apiAs<ConversationList>("/messages/conversations");
-  return res ?? { items: [], unread_total: 0 };
+export async function listConversations(cursor?: string) {
+  const res = await apiAs<ConversationList>("/messages/conversations", { query: { limit: 30, cursor } });
+  return res ?? { items: [], unread_total: 0, next_cursor: null };
 }
 
-export async function getThread(conversationId: string, query: { after?: string; before?: string; limit?: number } = {}) {
+export type ThreadQuery = { after?: string; after_id?: string; before?: string; before_id?: string; limit?: number };
+
+export async function getThread(conversationId: string, query: ThreadQuery = {}) {
   return maybe<Thread>(`/messages/conversations/${enc(conversationId)}`, { limit: 50, ...query });
 }
 

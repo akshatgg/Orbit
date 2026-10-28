@@ -25,7 +25,7 @@ import {
   listGroupInvites,
   listMembers,
 } from "@/lib/social/queries";
-import type { GroupDetail, GroupInviteRow, SocialUser } from "@/types/social";
+import type { GroupDetail, GroupInviteRow, GroupMemberRow, SocialUser } from "@/types/social";
 import type { Profile } from "@/types/database";
 
 export const metadata: Metadata = { title: "Circle" };
@@ -61,7 +61,7 @@ async function Circle({ params, searchParams }: {
     );
   }
 
-  const isAdmin = group.my_role === "admin";
+  const isAdmin = group.can_manage ?? group.my_role === "admin";
   const me: SocialUser = { id: profile.id, full_name: profile.full_name, avatar_url: profile.avatar_url, university: profile.university };
   const base = `/circles/${group.id}`;
 
@@ -93,14 +93,16 @@ async function Circle({ params, searchParams }: {
       {content.tab === "events" && (
         <EventsTab group={group} profile={profile} upcoming={content.upcoming} past={content.past} cursors={{ upcoming: content.upcomingCursor, past: content.pastCursor }} />
       )}
-      {content.tab === "members" && <MembersTab group={group} profile={profile} members={content.members} invites={content.invites} />}
+      {content.tab === "members" && (
+        <MembersTab group={group} profile={profile} members={group.members ?? (await listMembers(group.id))} invites={content.invites} />
+      )}
       {content.tab === "chat" && (
         content.conversationId ? (
           <section aria-label="Circle chat" className="md:mx-auto md:max-w-2xl">
             <p className="mb-2 px-4 text-right text-xs">
               <Link href={`/messages/${content.conversationId}`} className="font-medium text-accent hover:underline">Open in Messages</Link>
             </p>
-            <ChatThread conversationId={content.conversationId} initial={content.messages} me={me} kind="circle" />
+            <ChatThread conversationId={content.conversationId} initial={content.messages} initialHasMore={content.hasMore} me={me} kind="circle" />
           </section>
         ) : (
           <EmptyState title="Chat isn't available right now">Try again in a moment.</EmptyState>
@@ -112,13 +114,13 @@ async function Circle({ params, searchParams }: {
 
 async function loadTab(id: string, tab: Tab) {
   if (tab === "members") {
-    const [members, invites] = await Promise.all([listMembers(id), listGroupInvites(id)]);
-    return { tab, members, invites } as const;
+    // Members come with the group itself; only the waiting invites need their own call.
+    return { tab, invites: await listGroupInvites(id) } as const;
   }
   if (tab === "chat") {
     const conversationId = await getCircleConversationId(id);
     const thread = conversationId ? await getThread(conversationId) : null;
-    return { tab, conversationId, messages: thread?.items ?? [] } as const;
+    return { tab, conversationId, messages: thread?.items ?? [], hasMore: thread?.has_more } as const;
   }
   const [upcoming, past] = await Promise.all([listGroupEvents(id, "upcoming"), listGroupEvents(id, "past", { limit: 10 })]);
   return { tab, upcoming: upcoming.items, upcomingCursor: upcoming.nextCursor, past: past.items, pastCursor: past.nextCursor } as const;
@@ -131,7 +133,7 @@ function EventsTab({ group, profile, upcoming, past, cursors }: {
   upcoming: Awaited<ReturnType<typeof listGroupEvents>>["items"];
   past: Awaited<ReturnType<typeof listGroupEvents>>["items"];
 }) {
-  const isAdmin = group.my_role === "admin";
+  const isAdmin = group.can_manage ?? group.my_role === "admin";
   return (
     <div className="space-y-6">
       {upcoming.length === 0 ? (
@@ -175,10 +177,11 @@ function EventsTab({ group, profile, upcoming, past, cursors }: {
 function MembersTab({ group, profile, members, invites }: {
   group: GroupDetail;
   profile: Profile;
-  members: Awaited<ReturnType<typeof listMembers>>;
+  members: GroupMemberRow[];
   invites: GroupInviteRow[];
 }) {
-  const isAdmin = group.my_role === "admin";
+  const isAdmin = group.can_manage ?? group.my_role === "admin";
+  const canInvite = group.can_invite ?? true;
   const waiting = invites.filter((i) => i.status === "pending" || !i.status);
   return (
     <div className="space-y-6 px-4 md:grid md:grid-cols-[minmax(0,1fr)_20rem] md:items-start md:gap-8 md:space-y-0">
@@ -188,6 +191,7 @@ function MembersTab({ group, profile, members, invites }: {
       </div>
 
       <aside className="space-y-4">
+        {canInvite && (
         <section className="glass space-y-4 rounded-[22px] p-4" aria-labelledby="invite-heading">
           <h2 id="invite-heading" className="text-sm font-semibold tracking-tight">Invite friends</h2>
           <InviteByEmailForm groupId={group.id} />
@@ -196,6 +200,7 @@ function MembersTab({ group, profile, members, invites }: {
             <InviteLinkButton groupId={group.id} groupName={group.name} />
           </div>
         </section>
+        )}
 
         {isAdmin && (
           <section className="glass space-y-3 rounded-[22px] p-4" aria-labelledby="settings-heading">

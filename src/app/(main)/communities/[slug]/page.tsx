@@ -17,7 +17,7 @@ import { isAdmin as isOrbitAdmin, requireProfile } from "@/lib/auth";
 import { getMyEventState } from "@/lib/events/queries";
 import { joinGroup, leaveGroup, respondInvite } from "@/lib/social/actions";
 import { displayName, plural, timeAgo } from "@/lib/social/format";
-import { getGroup, listAnnouncements, listGroupEvents, listGroupInvites, listMembers } from "@/lib/social/queries";
+import { getGroup, listAnnouncements, listGroupEvents, listGroupInvites } from "@/lib/social/queries";
 import type { Announcement, GroupDetail, GroupInviteRow } from "@/types/social";
 
 export const metadata: Metadata = { title: "Community" };
@@ -39,12 +39,12 @@ async function Community({ params, searchParams }: {
   const [{ slug }, query, profile] = await Promise.all([params, searchParams, requireProfile()]);
   const allMembers = query.members === "all";
 
-  // Everything the page shows, in parallel (the API answers each by slug or id).
-  const [group, feed, announcements, members] = await Promise.all([
+  // Everything the page shows, in parallel (the API answers each by slug or id; members come with
+  // the group). Approval communities only show their feed, members and announcements to members.
+  const [group, feed, announcements] = await Promise.all([
     getGroup(slug),
     listGroupEvents(slug, "upcoming"),
     listAnnouncements(slug),
-    listMembers(slug),
   ]);
 
   if (!group || group.kind !== "community") {
@@ -59,7 +59,9 @@ async function Community({ params, searchParams }: {
   }
 
   const member = !!group.my_role;
-  const moderator = group.my_role === "admin" || isOrbitAdmin(profile);
+  const moderator = group.can_manage ?? (group.my_role === "admin" || isOrbitAdmin(profile));
+  const locked = !member && !moderator && group.visibility !== "public";
+  const members = group.members ?? [];
   const [state, requests] = await Promise.all([
     getMyEventState(profile.id, feed.items.map((i) => i.event.id)),
     moderator ? listGroupInvites(group.id) : Promise.resolve([] as GroupInviteRow[]),
@@ -94,8 +96,9 @@ async function Community({ params, searchParams }: {
           <section aria-labelledby="announcements" className="space-y-3 px-4 md:px-0">
             <h2 id="announcements" className="text-lg font-semibold tracking-tight">Announcements</h2>
             {moderator && <AnnouncementForm groupId={group.id} />}
-            {announcements.length === 0 ? (
-              <p className="text-sm text-muted">{member ? "No announcements yet." : "Join to read announcements from the organisers."}</p>
+            {locked && <p className="text-sm text-muted">Announcements are for members.</p>}
+            {locked ? null : announcements.length === 0 ? (
+              <p className="text-sm text-muted">{member || moderator ? "No announcements yet." : "Join to read announcements from the organisers."}</p>
             ) : (
               <ul className="space-y-2.5">
                 {announcements.slice(0, 5).map((a) => <AnnouncementItem key={a.id} announcement={a} />)}
@@ -106,9 +109,15 @@ async function Community({ params, searchParams }: {
           <section aria-labelledby="community-events" className="space-y-3">
             <div className="flex items-end justify-between gap-3 px-4 md:px-0">
               <h2 id="community-events" className="text-lg font-semibold tracking-tight">Upcoming events</h2>
-              {member && group.allow_member_shares !== false && <p className="text-xs text-muted">Share one from any event page</p>}
+              {(group.can_share ?? (member && group.allow_member_shares !== false)) && <p className="text-xs text-muted">Share one from any event page</p>}
             </div>
-            {feed.items.length === 0 ? (
+            {locked ? (
+              <div className="md:[&>div]:mx-0">
+                <EmptyState title="Members only">
+                  {group.pending_request ? "Your request is with the moderators." : "Ask to join to see this community's events, members and announcements."}
+                </EmptyState>
+              </div>
+            ) : feed.items.length === 0 ? (
               <div className="md:[&>div]:mx-0">
                 <EmptyState title="No upcoming events yet">Events shared here, and new ones in this community&apos;s category, show up here.</EmptyState>
               </div>
@@ -177,6 +186,15 @@ async function Community({ params, searchParams }: {
 }
 
 function Membership({ group }: { group: GroupDetail }) {
+  if (!group.my_role && group.pending_invite) {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted">You&apos;re invited</span>
+        <ActionButton action={respondInvite.bind(null, group.id, group.pending_invite.id, true)} variant="primary">Accept</ActionButton>
+        <ActionButton action={respondInvite.bind(null, group.id, group.pending_invite.id, false)} variant="secondary">Decline</ActionButton>
+      </div>
+    );
+  }
   if (group.my_role) {
     return (
       <div className="flex items-center gap-2">

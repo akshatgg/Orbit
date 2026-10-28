@@ -22,7 +22,9 @@ const COPY: ErrorCopy = {
   not_a_member: "You're not a member of this group",
   group_admins_only: "Only the group's admins can do that",
   last_admin: "Make someone else an admin before you leave",
-  user_not_found: "No ORBIT account uses that email yet. Send them the invite link instead.",
+  user_not_found: "No ORBIT account with that email yet. Share the invite link instead.",
+  invites_limited: "You've sent a lot of invites. Try again in a little while.",
+  already_answered: "That invite was already answered",
   already_member: "They're already in this group",
   already_invited: "They already have an invite waiting",
   invite_expired: "That invite has expired",
@@ -142,6 +144,7 @@ export async function inviteByEmail(groupId: string, _prev: FormState, formData:
     await authed.post(`/groups/${enc(groupId)}/invites`, { body: { email: parsed.data.email } });
   } catch (error) {
     if (isApiStatus(error, 404)) return { error: COPY.user_not_found };
+    if (isApiStatus(error, 429)) return { error: COPY.invites_limited };
     if (isApiStatus(error, 409)) return { error: apiMessage(error, COPY, { passThrough: true, fallback: COPY.already_invited }) };
     return fail(error, "Couldn't send the invite");
   }
@@ -166,6 +169,8 @@ export async function respondInvite(groupId: string, inviteId: string, accept: b
   try {
     await authed.post(`/groups/${enc(groupId)}/invites/${enc(inviteId)}/respond`, { body: { accept } });
   } catch (error) {
+    if (isApiStatus(error, 409)) return { ok: false, error: COPY.already_answered };
+    if (isApiStatus(error, 410)) return { ok: false, error: COPY.invite_expired };
     return fail(error, "Couldn't answer the invite");
   }
   refresh();

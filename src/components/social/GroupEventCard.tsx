@@ -43,6 +43,9 @@ export function GroupEventCard({ item, groupId, kind, viewerId, canModerate, sav
   const reg = registrationLink(event);
   const going = item.going ?? [];
   const interested = item.interested ?? [];
+  // The lists are capped by the API; the counts are the totals.
+  const goingCount = Math.max(item.going_count ?? 0, going.length);
+  const interestedCount = Math.max(item.interested_count ?? 0, interested.length);
   const canRemove = !!sharedBy && (sharedBy.id === viewerId || canModerate);
 
   return (
@@ -85,13 +88,13 @@ export function GroupEventCard({ item, groupId, kind, viewerId, canModerate, sav
         ) : null}
         {item.note && <p className="rounded-[14px] bg-ink/[0.05] px-3 py-2 text-sm leading-relaxed text-fg/90">{item.note}</p>}
 
-        {(going.length > 0 || interested.length > 0) && (
+        {(goingCount > 0 || interestedCount > 0) && (
           <div className="flex items-center gap-2.5">
-            <AvatarStack users={[...going, ...interested]} />
+            <AvatarStack users={[...going, ...interested]} total={goingCount + interestedCount} />
             <p className="min-w-0 text-xs leading-snug text-muted">
-              {going.length > 0 && <><span className="font-medium text-fg">{namesLine(going)}</span> {going.length === 1 ? "is" : "are"} in</>}
-              {going.length > 0 && interested.length > 0 && " · "}
-              {interested.length > 0 && <>{namesLine(interested)} {interested.length === 1 ? "is" : "are"} interested</>}
+              {goingCount > 0 && <><span className="font-medium text-fg">{namesLine(going, 2, goingCount)}</span> {goingCount === 1 ? "is" : "are"} in</>}
+              {goingCount > 0 && interestedCount > 0 && " · "}
+              {interestedCount > 0 && <>{namesLine(interested, 2, interestedCount)} {interestedCount === 1 ? "is" : "are"} interested</>}
             </p>
           </div>
         )}

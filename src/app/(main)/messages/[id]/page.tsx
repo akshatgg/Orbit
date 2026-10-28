@@ -87,6 +87,7 @@ async function Thread({ params }: { params: PageProps<"/messages/[id]">["params"
         key={blocked ? "blocked" : "open"}
         conversationId={conversation.id}
         initial={thread.items}
+        initialHasMore={thread.has_more}
         me={me}
         kind={conversation.kind}
         canSend={!blocked}

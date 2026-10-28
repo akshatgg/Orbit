@@ -31,7 +31,7 @@ export default function Page() {
 
 async function Content() {
   await requireAdmin();
-  const [{ items, total }, categories] = await Promise.all([listCommunities({}, { limit: 100 }), listCategories()]);
+  const [{ items, total }, categories] = await Promise.all([listCommunities({}, { limit: 50 }), listCategories()]);
 
   return (
     <div className="space-y-6">

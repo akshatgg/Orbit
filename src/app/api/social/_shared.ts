@@ -21,3 +21,5 @@ export async function json<T>(load: () => Promise<T>) {
 /** Ids and ISO timestamps only: nothing else is forwarded to the API. */
 export const SAFE_ID = /^[\w-]{1,120}$/;
 export const SAFE_TIME = /^[\d:.TZ+-]{10,40}$/;
+/** The API's opaque keyset cursors (URL-safe base64). */
+export const SAFE_CURSOR = /^[\w-]{1,500}$/;
