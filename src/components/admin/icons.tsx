@@ -56,6 +56,9 @@ export const IconGrid = (p: IconProps) => (
 export const IconCalendar = (p: IconProps) => (
   <Svg {...p}><rect x="3" y="5" width="18" height="16" rx="2.5" /><path d="M8 3v4M16 3v4M3 10h18" /></Svg>
 );
+export const IconCommunity = (p: IconProps) => (
+  <Svg {...p}><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12 4 7.5" /></Svg>
+);
 export const IconUsers = (p: IconProps) => (
   <Svg {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0" /><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.5 14.2A5.5 5.5 0 0 1 21 20" /></Svg>
 );

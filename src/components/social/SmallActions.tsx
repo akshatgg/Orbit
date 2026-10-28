@@ -42,11 +42,10 @@ export function ActionButton({ action, children, confirm, variant = "ghost", siz
             try {
               result = await action();
             } catch (e) {
-              // A redirect from the action is not an error.
-              if (e && typeof e === "object" && "digest" in e && String((e as { digest: unknown }).digest).startsWith("NEXT_REDIRECT")) throw e;
+              // An action that redirects rejects with the redirect: the router is already on its way.
+              if (isRedirect(e)) return;
               result = { ok: false, error: "Couldn't reach ORBIT. Try again." };
             }
-            // An action that redirected resolves with nothing: the router is already moving on.
             if (!result) return;
             if (result.ok) setFinished(true);
             else setError(result.error);
@@ -58,4 +57,8 @@ export function ActionButton({ action, children, confirm, variant = "ghost", siz
       {error && <span role="alert" className="text-xs text-red-300">{error}</span>}
     </span>
   );
+}
+
+function isRedirect(error: unknown) {
+  return !!error && typeof error === "object" && "digest" in error && String((error as { digest: unknown }).digest).startsWith("NEXT_REDIRECT");
 }

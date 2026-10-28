@@ -8,7 +8,7 @@ import { SidebarIcon } from "@/components/nav/SidebarIcon";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { OrbitLogo } from "@/components/brand/OrbitLogo";
 import {
-  IconArrowLeft, IconBadge, IconCalendar, IconGrid, IconMenu, IconRss, IconTag, IconUpload, IconUsers, IconX,
+  IconArrowLeft, IconBadge, IconCalendar, IconCommunity, IconGrid, IconMenu, IconRss, IconTag, IconUpload, IconUsers, IconX,
 } from "./icons";
 
 export type AdminLink = { href: string; label: string; group?: string };
@@ -19,6 +19,7 @@ const NAV_ICONS: Record<string, ReactNode> = {
   "/admin/events": <IconCalendar size={17} />,
   "/admin/users": <IconUsers size={17} />,
   "/admin/categories": <IconTag size={17} />,
+  "/admin/communities": <IconCommunity size={17} />,
   "/admin/import": <IconUpload size={17} />,
   "/admin/sources": <IconRss size={17} />,
 };
