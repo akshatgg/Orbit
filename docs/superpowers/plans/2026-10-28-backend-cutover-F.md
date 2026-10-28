@@ -1,8 +1,9 @@
 # Backend cutover F: the frontend talks only to the Orbit API
 
-Sub-plan of the backend repo's `docs/superpowers/plans/2026-10-28-supabase-cutover.md` (section F).
-Goal: every Supabase call in `src/` is replaced by a call to the Orbit API (FastAPI), and Supabase
-is removed from the frontend: `src/lib/supabase/`, the `@supabase/*` packages and the Supabase env vars.
+Sub-plan of the backend repo's cutover program plan (`docs/superpowers/plans/2026-10-28-*-cutover.md`, section F).
+Goal: every call to the old hosted backend (database, auth and storage) in `src/` is replaced by a call to the
+Orbit API (FastAPI), and the old backend is removed from the frontend: its client library folder, its npm
+packages and its env vars.
 
 Branch `feat/backend-cutover-complete` (from `feat/backend-cutover`, rebased on `master`).
 
@@ -36,7 +37,7 @@ Branch `feat/backend-cutover-complete` (from `feat/backend-cutover`, rebased on 
 3. **Crons.** `src/app/api/cron/{reminders,refresh-sources}` forward to `/api/cron/*` with the
    same `CRON_SECRET` bearer (POST: the admin's session). `vercel.json` unchanged.
 4. **Storage.** `uploadImage` gets its signature from `POST /uploads/sign` through a server action;
-   503 → "Image uploads aren't configured"; no Supabase Storage fallback.
+   503 → "Image uploads aren't configured"; no storage-bucket fallback.
    Delete `src/app/api/uploads/sign` and `src/lib/cloudinary-release.ts`.
 5. **Attendee, discovery, profile, tickets, SEO.** `src/lib/{events,tickets,discovery,profile,actions,seo}`,
    `onboarding`, `profile/preferences`: `/events*`, `/feed/*`, `/discovery/*`, `/me/*`,
@@ -52,9 +53,10 @@ Branch `feat/backend-cutover-complete` (from `feat/backend-cutover`, rebased on 
 9. **Admin.** `/admin/*` for overview, events (incl. W6 `series_dates`, `/admin/events/sources`),
    users, organisers (W6 members), categories, import, sources and review. Delete the source engine
    (`src/lib/sources` connectors, engine, enrichment) and the tests that only covered it.
-10. **Removal.** Delete `src/lib/supabase/`, Supabase scripts and packages, rename the generated
-    row types, update `.env.example` and `docs/ARCHITECTURE.md`. `grep -ri supabase src package.json`
-    is empty. The top-level `supabase/` migrations folder stays until Akshat decides.
+10. **Removal.** Delete the old client folder, its scripts and packages, rename the generated row types,
+    update `.env.example` and `docs/ARCHITECTURE.md`. A case-insensitive grep for the old backend's name
+    over the repo is empty. The top-level migrations folder and its CI workflow are deleted too
+    (Akshat's decision): the schema lives in the backend's Alembic migrations.
 
 ## Verification
 

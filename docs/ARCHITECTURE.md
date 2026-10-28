@@ -121,8 +121,6 @@ Rules the API enforces (don't re-implement, don't work around):
 - Organisers can't feature or un-remove events. Only the super admin changes roles.
 - Registrations, approvals and check-ins go through the API's registration endpoints, never direct writes.
 
-The top-level `supabase/` folder is the schema's history from before the move to the Orbit API.
-
 ## Sign-up flow
 
 `/onboarding` asks **What brings you to ORBIT?** (goals `career` / `network` / `social` / `host`) and the rest
