@@ -1,22 +1,25 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { ApiError } from "@/lib/api/client";
+import { apiMessage, type ErrorCopy } from "@/lib/api/errors";
 
 /**
- * JSON-only, same-origin, signed-in. Requiring `application/json` means a cross-site form can't
- * post here (browsers preflight JSON requests from other origins, and we never allow them).
+ * JSON-only and same-origin. Requiring `application/json` means a cross-site form can't post here
+ * (browsers preflight JSON requests from other origins, and we never allow them). The Orbit API
+ * checks the session on every call.
  */
-export async function authorise(request: NextRequest) {
+export function badRequest(request: NextRequest) {
   const type = request.headers.get("content-type") ?? "";
   const origin = request.headers.get("origin");
   if (!type.includes("application/json") || (origin && origin !== request.nextUrl.origin)) {
-    return { error: NextResponse.json({ error: "Bad request" }, { status: 400 }) } as const;
+    return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub as string | undefined;
-  if (!userId) {
-    return { error: NextResponse.json({ error: "Sign in first" }, { status: 401 }) } as const;
-  }
-  return { supabase, userId } as const;
+  return null;
+}
+
+/** A refused API call as the `{ error }` JSON the browser helpers read. */
+export function apiErrorResponse(error: unknown, copy: ErrorCopy, fallback: string) {
+  if (!(error instanceof ApiError)) throw error;
+  const status = error.status === 0 ? 502 : error.status;
+  return NextResponse.json({ error: apiMessage(error, copy, { fallback }) }, { status });
 }

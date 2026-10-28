@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { authorise } from "../_shared";
+import { authed } from "@/lib/api/session";
+import { apiErrorResponse, badRequest } from "../_shared";
 
-// Saves / removes this browser's push subscription for the signed-in user (their session + RLS).
+// Saves / removes this browser's push subscription for the signed-in user (through the Orbit API).
 // The service worker also posts here when the browser rotates a subscription.
 
 const subscriptionSchema = z.object({
@@ -19,25 +20,24 @@ const saveSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const auth = await authorise(request);
-  if ("error" in auth) return auth.error;
+  const bad = badRequest(request);
+  if (bad) return bad;
 
   const parsed = saveSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   const { subscription, oldEndpoint } = parsed.data;
 
-  const { error } = await auth.supabase.rpc("save_push_subscription", {
-    p_endpoint: subscription.endpoint,
-    p_p256dh: subscription.keys.p256dh,
-    p_auth: subscription.keys.auth,
-    p_user_agent: request.headers.get("user-agent"),
-  });
-  if (error) {
-    console.error("[push/subscribe] save failed", error.message);
-    return NextResponse.json({ error: "Couldn't save this device" }, { status: 500 });
-  }
-  if (oldEndpoint && oldEndpoint !== subscription.endpoint) {
-    await auth.supabase.from("push_subscriptions").delete().eq("endpoint", oldEndpoint);
+  try {
+    await authed.post("/push/subscriptions", {
+      body: {
+        endpoint: subscription.endpoint,
+        keys: subscription.keys,
+        user_agent: request.headers.get("user-agent")?.slice(0, 300) ?? null,
+        old_endpoint: oldEndpoint && oldEndpoint !== subscription.endpoint ? oldEndpoint : null,
+      },
+    });
+  } catch (error) {
+    return apiErrorResponse(error, {}, "Couldn't save this device");
   }
   return NextResponse.json({ ok: true });
 }
@@ -45,16 +45,16 @@ export async function POST(request: NextRequest) {
 const removeSchema = z.object({ endpoint: z.string().min(1).max(1000) });
 
 export async function DELETE(request: NextRequest) {
-  const auth = await authorise(request);
-  if ("error" in auth) return auth.error;
+  const bad = badRequest(request);
+  if (bad) return bad;
 
   const parsed = removeSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
-  const { error } = await auth.supabase.from("push_subscriptions").delete().eq("endpoint", parsed.data.endpoint);
-  if (error) {
-    console.error("[push/subscribe] delete failed", error.message);
-    return NextResponse.json({ error: "Couldn't remove this device" }, { status: 500 });
+  try {
+    await authed.del("/push/subscriptions", { body: { endpoint: parsed.data.endpoint } });
+  } catch (error) {
+    return apiErrorResponse(error, {}, "Couldn't remove this device");
   }
   return NextResponse.json({ ok: true });
 }
