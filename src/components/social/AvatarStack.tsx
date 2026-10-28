@@ -10,7 +10,7 @@ export function AvatarStack({ users, max = 5, size = 26, total }: { users: Socia
   return (
     <span className="flex items-center" title={users.map((u) => displayName(u)).join(", ")}>
       {shown.map((u, i) => (
-        <span key={u.id} className={`rounded-full ring-2 ring-bg ${i ? "-ml-2" : ""}`}>
+        <span key={u.id} className={`rounded-full bg-bg ring-2 ring-bg ${i ? "-ml-2" : ""}`}>
           <Avatar src={u.avatar_url} name={displayName(u)} size={size} />
         </span>
       ))}
