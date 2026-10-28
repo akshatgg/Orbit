@@ -65,9 +65,22 @@ export async function listGroupInvites(groupId: string) {
   return res?.items ?? [];
 }
 
-export async function listGroupEvents(groupId: string, when: "upcoming" | "past" = "upcoming") {
-  const res = await maybe<{ items: GroupEventItem[] }>(`/groups/${enc(groupId)}/events`, { when });
-  return res?.items ?? [];
+export const FEED_PAGE = 20;
+
+/** One page of a group's events (shared ones; communities add their category's), soonest first. */
+export async function listGroupEvents(
+  groupId: string,
+  when: "upcoming" | "past" = "upcoming",
+  { page = 1, pageSize = FEED_PAGE }: { page?: number; pageSize?: number } = {},
+) {
+  const res = await maybe<{ items: GroupEventItem[]; total?: number }>(`/groups/${enc(groupId)}/events`, {
+    when,
+    page,
+    page_size: pageSize,
+  });
+  const items = res?.items ?? [];
+  const total = res?.total ?? items.length;
+  return { items, total, page, hasMore: page * pageSize < total };
 }
 
 export async function listAnnouncements(groupId: string) {
