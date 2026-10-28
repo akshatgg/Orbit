@@ -20,8 +20,7 @@ export const metadata: Metadata = { title: "Users · Admin" };
 const PAGE_SIZE = 25;
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" });
 type Row = Pick<Profile, "id" | "email" | "full_name" | "avatar_url" | "university" | "course" | "role" | "is_verified_student" | "onboarded_at" | "created_at" | "user_type"> & {
-  /** Present once `GET /admin/users` includes it. */
-  goals?: string[] | null;
+  goals: string[] | null;
 };
 type AdminRow = Pick<Profile, "id" | "email" | "full_name" | "role"> & { avatar_url?: string | null };
 type Page<T> = { items: T[]; total: number };

@@ -71,7 +71,7 @@ export function ImportedEventRow({ event, action, retry }: { event: ImportedEven
         <form action={formAction} className="space-y-4">
           <input type="hidden" name="id" value={event.id} />
           <input type="hidden" name="cover_url" value={uploaded ?? ""} />
-          <Field label="Image link" htmlFor={`img-${event.id}`} hint="On the event page: right-click the cover → Copy image address, then paste.">
+          <Field label="Image link" htmlFor={`img-${event.id}`} hint="On the event page: right-click the cover → Copy image address, then paste. ORBIT keeps its own copy.">
             <Input id={`img-${event.id}`} name="image_url" type="text" inputMode="url" placeholder="https://…" />
           </Field>
           <Field label="…or upload an image" htmlFor={`file-${event.id}`} hint={uploading ? "Uploading…" : uploadError ?? "JPG, PNG or WebP, up to 5 MB."}>

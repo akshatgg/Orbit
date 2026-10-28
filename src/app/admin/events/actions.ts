@@ -9,7 +9,7 @@ import { adminContext, adminError, revalidateEverywhere, type ActionResult } fro
 const id = z.uuid();
 const reasonSchema = z.string().trim().max(500, "Keep it under 500 characters");
 
-type EventRef = { id: string; title: string; registration_mode: string; tags: string[] };
+type EventRef = { id: string; title: string };
 
 /** Every admin action on one event: re-check the caller, read the title for the message, then act. */
 async function onEvent(eventId: string, act: (id: string) => Promise<unknown>) {
@@ -186,18 +186,18 @@ export async function saveEvent(eventId: string | null, _prev: EventFormState, f
   try {
     if (eventId) {
       if (!id.safeParse(eventId).success) return { error: "Invalid event" };
-      const existing = await authed.get<EventRef>(`/admin/events/${eventId}`);
-      if (existing.registration_mode === "tickets") {
-        return { error: "This event sells ORBIT tickets — edit it from the organiser's event page" };
-      }
-      // Tags edited by hand are final: the API locks them, so syncs stop adding interests.
-      const tagsEdited = [...(existing.tags ?? [])].sort().join("\n") !== [...tags].sort().join("\n");
-      await authed.patch(`/admin/events/${eventId}`, { body: { ...values, ...(tagsEdited ? { tags } : {}) } });
+      // The API locks tags only when the set changed, so syncs stop adding interests to hand-edited ones.
+      await authed.patch(`/admin/events/${eventId}`, { body: { ...values, tags } });
     } else {
       await authed.post("/admin/events", { body: { ...values, tags, currency: "GBP" } });
     }
   } catch (error) {
-    return { error: adminError(error, { "Event not found": "Event not found" }) };
+    return {
+      error: adminError(error, {
+        "Event not found": "Event not found",
+        edit_from_organiser_page: "This event sells ORBIT tickets — edit it from the organiser's event page",
+      }),
+    };
   }
 
   revalidateEverywhere();

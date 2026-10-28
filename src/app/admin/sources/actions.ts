@@ -121,6 +121,7 @@ export async function runSourceNow(_prev: ActionState, formData: FormData): Prom
     `${result.found} found`, `${result.inserted} new`, `${result.updated} updated`, `${result.unchanged} unchanged`,
   ];
   if (result.flagged_missing) parts.push(`${result.flagged_missing} flagged`);
+  if (result.duplicates) parts.push(`${result.duplicates} possible duplicate${result.duplicates === 1 ? "" : "s"}`);
   if (result.errors.length) parts.push(`${result.errors.length} skipped`);
   return { ok: true, message: parts.join(" · ") };
 }
@@ -132,6 +133,8 @@ type RunResult = {
   updated: number;
   unchanged: number;
   flagged_missing: number;
+  /** New possible duplicates the API flagged after the run. */
+  duplicates?: number;
   errors: RunError[];
 };
 
@@ -181,7 +184,7 @@ const IMPORTED_KINDS = new Set<string>(IMPORTED_SOURCE_KINDS);
 /** Kinds whose feed doesn't own the description, so an admin's one survives every sync. */
 const EDITABLE_DESCRIPTION = new Set(["luma", "luma-discover", "eventbrite"]);
 
-type EventPrices = { id: string; source: string; price_min: number | string | null; price_max: number | string | null; currency: string };
+type EventPrices = { id: string; source: string; price_min: number | null; price_max: number | null; currency: string };
 
 /** Admin fallback for imported events: cover (pasted link or upload), description, price. */
 export async function saveImportedDetails(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -215,9 +218,9 @@ export async function saveImportedDetails(_prev: ActionState, formData: FormData
       patch.price_max = price_max;
       if (price_min !== null) patch.currency = "GBP";
     }
-    // An uploaded image is already on Cloudinary; a pasted link is used as it is.
-    const cover = cover_url ?? image_url;
-    if (cover) patch.cover_url = cover;
+    // An uploaded image is already on Cloudinary; a pasted link is copied there by the API.
+    if (cover_url) patch.cover_url = cover_url;
+    else if (image_url) patch.image_url = image_url;
     if (Object.keys(patch).length > 0) await authed.put(`/admin/sources/imported/${id}`, { body: patch });
   } catch (error) {
     return failure(error);

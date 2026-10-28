@@ -18,8 +18,12 @@ export type AdminOrganiser = Pick<
   member_count: number;
   /** Owners' names, comma-separated. */
   owner_names: string;
-  /** Present once the API includes it. */
-  stripe_charges_enabled?: boolean;
+  stripe_charges_enabled: boolean;
+  /** Who applied (null for organisers created before that was recorded). */
+  created_by: string | null;
+  created_by_name: string | null;
+  created_by_email: string | null;
+  reviewed_by_name: string | null;
 };
 
 type Page<T> = { items: T[]; total: number; page: number; page_size: number };

@@ -85,7 +85,8 @@ export type ReviewEvent = {
   last_verified_at: string;
   created_at: string;
   organiser_id: string | null;
-  organiser: { name: string } | null;
+  organiser: { id: string; name: string } | null;
+  category: { id: string; name: string } | null;
 };
 
 export type ReviewItem = {
@@ -94,23 +95,7 @@ export type ReviewItem = {
   reason: "duplicate" | "missing" | "flagged";
 };
 
-type ApiReviewEvent = Omit<ReviewEvent, "organiser">;
-
-type Pair = { event: ApiReviewEvent; original: ApiReviewEvent | null };
-
-/** Event summaries carry the organiser id only; the organiser list is small, so name them here. */
-async function namedPairs(rows: Pair[]) {
-  const names = new Map<string, string>();
-  if (rows.some((r) => r.event.organiser_id || r.original?.organiser_id)) {
-    const { items } = await authed.get<{ items: { id: string; name: string }[] }>("/admin/organisers");
-    for (const o of items) names.set(o.id, o.name);
-  }
-  const named = (e: ApiReviewEvent): ReviewEvent => {
-    const name = e.organiser_id ? names.get(e.organiser_id) : undefined;
-    return { ...e, organiser: name ? { name } : null };
-  };
-  return rows.map((r) => ({ event: named(r.event), original: r.original ? named(r.original) : null }));
-}
+type Pair = { event: ReviewEvent; original: ReviewEvent | null };
 
 /** "source:<id>" (or a built-in source) → its name, from the events a list already holds. */
 export function labelFrom(events: (ReviewEvent | null)[]) {
@@ -125,7 +110,7 @@ export async function reviewCounts(): Promise<ReviewCounts> {
 
 export type MissingItem = { event: ReviewEvent; reason: "missing" | "flagged"; daysAway: number; sourceName: string };
 
-type MissingRow = ApiReviewEvent & { reason: "missing" | "flagged"; days_away: number };
+type MissingRow = ReviewEvent & { reason: "missing" | "flagged"; days_away: number };
 
 /**
  * Events flagged for review that aren't duplicates (missing from their feed, or flagged another
@@ -140,7 +125,7 @@ export async function listMissingReview({ page = 1, pageSize = 50, sourceId = nu
     { query: { page, page_size: pageSize, source_id: sourceId } },
   );
   const items = result.items.map<MissingItem>(({ reason, days_away, ...event }) => ({
-    event: { ...event, organiser: null },
+    event,
     reason,
     daysAway: days_away,
     sourceName: event.source_name,
@@ -154,14 +139,13 @@ export async function listMissingReview({ page = 1, pageSize = 50, sourceId = nu
 /** Possible duplicates waiting for a decision, each with the event it may duplicate; a page at a time. */
 export async function listDuplicateReview({ page = 1, pageSize = 20 }: { page?: number; pageSize?: number } = {}) {
   const result = await authed.get<Page<Pair>>("/admin/sources/review/duplicates", { query: { page, page_size: pageSize } });
-  const items = await namedPairs(result.items);
-  return { items: items.map<ReviewItem>((r) => ({ ...r, reason: "duplicate" })), total: result.total };
+  return { items: result.items.map<ReviewItem>((r) => ({ ...r, reason: "duplicate" })), total: result.total };
 }
 
 /** Duplicates that an admin chose to keep hidden (resolved, but still reversible). */
 export async function listHiddenDuplicates({ limit = 50 }: { limit?: number } = {}) {
   const result = await authed.get<Page<Pair>>("/admin/sources/review/hidden", { query: { limit } });
-  return namedPairs(result.items);
+  return result.items;
 }
 
 // ─── Imported platform events (details editor) ────────────────────────────
@@ -184,13 +168,10 @@ export type ImportedEvent = {
 
 /** Upcoming published events from platform sources (Luma, Meetup, Eventbrite, Fatsoma); ones without a cover first. */
 export async function listImportedEvents({ limit = 60 }: { limit?: number } = {}) {
-  const { items } = await authed.get<Page<Omit<ImportedEvent, "price_min" | "price_max" | "kind"> & {
-    price_min: number | string | null; price_max: number | string | null; kind: string;
-  }>>("/admin/sources/imported", { query: { limit } });
-  const price = (v: number | string | null) => (v === null ? null : Number(v));
+  const { items } = await authed.get<Page<Omit<ImportedEvent, "kind"> & { kind: string }>>("/admin/sources/imported", { query: { limit } });
   const imported = new Set<string>(IMPORTED_KINDS);
   // Only platform events have a details editor; iCal feeds own everything they send.
   return items
     .filter((e) => imported.has(e.kind))
-    .map<ImportedEvent>((e) => ({ ...e, kind: e.kind as ImportedKind, price_min: price(e.price_min), price_max: price(e.price_max) }));
+    .map<ImportedEvent>((e) => ({ ...e, kind: e.kind as ImportedKind }));
 }

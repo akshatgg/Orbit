@@ -96,14 +96,15 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/organ
   );
 }
 
-/** The applicant is the first owner (the person who created the organiser). */
-function applicantOf(members: MemberRow[]) {
+/** Who applied; older organisers didn't record it, so fall back to the first owner. */
+function applicantOf(org: AdminOrganiser, members: MemberRow[]) {
+  if (org.created_by_name || org.created_by_email) return { full_name: org.created_by_name, email: org.created_by_email };
   const owner = members.find((m) => m.role === "owner");
   return owner ? { full_name: owner.full_name, email: owner.email } : undefined;
 }
 
 function OrganiserRow({ org, members }: { org: AdminOrganiser; members: MemberRow[] }) {
-  const applicant = applicantOf(members);
+  const applicant = applicantOf(org, members);
   return (
     <tr className={table.tr}>
       <td className={table.td}>
@@ -189,15 +190,11 @@ function OrganiserDetails({ org, members, applicant }: {
         {org.reviewed_at && (
           <>
             <dt className="text-subtle">Reviewed</dt>
-            <dd>{dateFmt.format(new Date(org.reviewed_at))}</dd>
+            <dd>{dateFmt.format(new Date(org.reviewed_at))}{org.reviewed_by_name ? ` by ${org.reviewed_by_name}` : ""}</dd>
           </>
         )}
-        {org.stripe_charges_enabled !== undefined && (
-          <>
-            <dt className="text-subtle">Payments</dt>
-            <dd>{org.stripe_charges_enabled ? "Stripe connected" : "Not connected"}</dd>
-          </>
-        )}
+        <dt className="text-subtle">Payments</dt>
+        <dd>{org.stripe_charges_enabled ? "Stripe connected" : "Not connected"}</dd>
       </dl>
 
       <section>
