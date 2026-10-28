@@ -38,17 +38,18 @@ async function maybe<T>(path: string, query?: Record<string, string | number | u
 }
 
 export async function listMyGroups(kind: GroupKind) {
-  const page = await apiAs<GroupPage>("/groups", { query: { kind, mine: 1, page_size: 100 } });
+  const page = await apiAs<GroupPage>("/groups", { query: { kind, mine: 1, limit: 50 } });
   return page?.items ?? [];
 }
 
-export type DirectoryFilters = { category?: string; university?: string; q?: string; page?: number };
+export type DirectoryFilters = { category?: string; university?: string; q?: string };
 
-export async function listCommunities(filters: DirectoryFilters = {}) {
-  const page = await apiAs<GroupPage>("/groups", {
-    query: { kind: "community", page_size: 100, ...filters },
-  });
-  return page ?? { items: [], total: 0, page: 1, page_size: 100 };
+export const DIRECTORY_PAGE = 24;
+
+/** The communities directory, joined ones first, a page at a time (`cursor` from `next_cursor`). */
+export async function listCommunities(filters: DirectoryFilters = {}, { cursor, limit = DIRECTORY_PAGE }: { cursor?: string; limit?: number } = {}) {
+  const page = await apiAs<GroupPage>("/groups", { query: { kind: "community", limit, cursor, ...filters } });
+  return { items: page?.items ?? [], total: page?.total ?? 0, nextCursor: page?.next_cursor ?? null };
 }
 
 export async function getGroup(idOrSlug: string) {
@@ -67,20 +68,21 @@ export async function listGroupInvites(groupId: string) {
 
 export const FEED_PAGE = 20;
 
-/** One page of a group's events (shared ones; communities add their category's), soonest first. */
+/**
+ * One page of a group's events (shared ones; a community adds its category's), soonest first for
+ * upcoming and latest first for past. Pass the previous page's `nextCursor` for the next one.
+ */
 export async function listGroupEvents(
   groupId: string,
   when: "upcoming" | "past" = "upcoming",
-  { page = 1, pageSize = FEED_PAGE }: { page?: number; pageSize?: number } = {},
+  { cursor, limit = FEED_PAGE }: { cursor?: string; limit?: number } = {},
 ) {
-  const res = await maybe<{ items: GroupEventItem[]; total?: number }>(`/groups/${enc(groupId)}/events`, {
+  const res = await maybe<{ items: GroupEventItem[]; next_cursor?: string | null }>(`/groups/${enc(groupId)}/events`, {
     when,
-    page,
-    page_size: pageSize,
+    limit,
+    cursor,
   });
-  const items = res?.items ?? [];
-  const total = res?.total ?? items.length;
-  return { items, total, page, hasMore: page * pageSize < total };
+  return { items: res?.items ?? [], nextCursor: res?.next_cursor ?? null };
 }
 
 export async function listAnnouncements(groupId: string) {

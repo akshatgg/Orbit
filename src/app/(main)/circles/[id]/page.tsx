@@ -5,6 +5,7 @@ import { ChatThread } from "@/components/messages/ChatThread";
 import { BackLink } from "@/components/nav/BackLink";
 import { InviteByEmailForm, InviteLinkButton, RenameCircleForm } from "@/components/social/CircleForms";
 import { GroupEventCard } from "@/components/social/GroupEventCard";
+import { LoadMoreEvents } from "@/components/social/LoadMoreEvents";
 import { SocialIcon } from "@/components/social/icons";
 import { MemberList } from "@/components/social/MemberList";
 import { GroupSkeleton } from "@/components/social/Skeletons";
@@ -89,7 +90,9 @@ async function Circle({ params, searchParams }: {
         ]}
       />
 
-      {content.tab === "events" && <EventsTab group={group} profile={profile} upcoming={content.upcoming} past={content.past} />}
+      {content.tab === "events" && (
+        <EventsTab group={group} profile={profile} upcoming={content.upcoming} past={content.past} cursors={{ upcoming: content.upcomingCursor, past: content.pastCursor }} />
+      )}
       {content.tab === "members" && <MembersTab group={group} profile={profile} members={content.members} invites={content.invites} />}
       {content.tab === "chat" && (
         content.conversationId ? (
@@ -117,12 +120,13 @@ async function loadTab(id: string, tab: Tab) {
     const thread = conversationId ? await getThread(conversationId) : null;
     return { tab, conversationId, messages: thread?.items ?? [] } as const;
   }
-  const [upcoming, past] = await Promise.all([listGroupEvents(id, "upcoming"), listGroupEvents(id, "past", { pageSize: 10 })]);
-  return { tab, upcoming: upcoming.items, past: past.items } as const;
+  const [upcoming, past] = await Promise.all([listGroupEvents(id, "upcoming"), listGroupEvents(id, "past", { limit: 10 })]);
+  return { tab, upcoming: upcoming.items, upcomingCursor: upcoming.nextCursor, past: past.items, pastCursor: past.nextCursor } as const;
 }
 
-function EventsTab({ group, profile, upcoming, past }: {
+function EventsTab({ group, profile, upcoming, past, cursors }: {
   group: GroupDetail;
+  cursors: { upcoming: string | null; past: string | null };
   profile: Profile;
   upcoming: Awaited<ReturnType<typeof listGroupEvents>>["items"];
   past: Awaited<ReturnType<typeof listGroupEvents>>["items"];
@@ -144,6 +148,7 @@ function EventsTab({ group, profile, upcoming, past }: {
               <GroupEventCard item={item} groupId={group.id} kind="circle" viewerId={profile.id} canModerate={isAdmin} />
             </li>
           ))}
+          <LoadMoreEvents groupRef={group.id} cursor={cursors.upcoming} />
         </ul>
       )}
 
@@ -151,7 +156,7 @@ function EventsTab({ group, profile, upcoming, past }: {
         <details className="group mx-4">
           <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full py-2 text-sm font-medium text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
             <SocialIcon name="chevron" className="h-4 w-4 transition-transform group-open:rotate-90" />
-            Past events ({past.length})
+            Past events
           </summary>
           <ul className="mt-3 space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
             {past.map((item) => (
@@ -159,6 +164,7 @@ function EventsTab({ group, profile, upcoming, past }: {
                 <GroupEventCard item={item} groupId={group.id} kind="circle" viewerId={profile.id} canModerate={isAdmin} past />
               </li>
             ))}
+            <LoadMoreEvents groupRef={group.id} when="past" cursor={cursors.past} />
           </ul>
         </details>
       )}

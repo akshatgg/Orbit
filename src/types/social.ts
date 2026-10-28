@@ -30,6 +30,8 @@ export type GroupCard = {
   my_role: GroupRole | null;
   upcoming_event_count: number;
   allow_member_shares?: boolean;
+  category_slug?: string | null;
+  joined?: boolean;
   /** A few members for the avatar stack, when the API includes them. */
   members_preview?: SocialUser[];
 };
@@ -41,7 +43,7 @@ export type GroupDetail = GroupCard & {
   created_at?: string;
 };
 
-export type GroupPage = { items: GroupCard[]; total: number; page: number; page_size: number };
+export type GroupPage = { items: GroupCard[]; total: number; next_cursor: string | null; page_size?: number };
 
 export type GroupMemberRow = { user: SocialUser; role: GroupRole; joined_at: string };
 
