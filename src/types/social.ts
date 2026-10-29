@@ -115,6 +115,10 @@ export type Announcement = {
   id: string;
   body: string;
   created_at: string;
+  edited_at?: string | null;
+  /** What the viewer may do with it (the author edits; the author or a moderator deletes). */
+  can_edit?: boolean;
+  can_delete?: boolean;
   author?: SocialUser | null;
   event_id?: string | null;
   event_title?: string | null;
@@ -172,6 +176,7 @@ export type ChatMessage = {
   body: string;
   deleted: boolean;
   created_at: string;
+  edited_at?: string | null;
 };
 
 export type Thread = {

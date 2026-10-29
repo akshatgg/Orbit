@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { BackLink } from "@/components/nav/BackLink";
+import { AnnouncementCard } from "@/components/social/AnnouncementCard";
 import { AnnouncementForm } from "@/components/social/CircleForms";
 import { GroupEventCard } from "@/components/social/GroupEventCard";
 import { SocialIcon } from "@/components/social/icons";
@@ -16,9 +17,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { isAdmin as isOrbitAdmin, requireProfile } from "@/lib/auth";
 import { getMyEventState } from "@/lib/events/queries";
 import { joinGroup, leaveGroup, respondInvite } from "@/lib/social/actions";
-import { displayName, groupCategories, plural, timeAgo } from "@/lib/social/format";
+import { displayName, groupCategories, plural } from "@/lib/social/format";
 import { getGroup, listAnnouncements, listGroupEvents, listGroupInvites } from "@/lib/social/queries";
-import type { Announcement, GroupDetail, GroupInviteRow } from "@/types/social";
+import type { GroupDetail, GroupInviteRow } from "@/types/social";
 
 export const metadata: Metadata = { title: "Community" };
 
@@ -105,7 +106,10 @@ async function Community({ params, searchParams }: {
               <p className="text-sm text-muted">{member || moderator ? "No announcements yet." : "Join to read announcements from the organisers."}</p>
             ) : (
               <ul className="space-y-2.5">
-                {announcements.slice(0, 5).map((a) => <AnnouncementItem key={a.id} announcement={a} />)}
+                {announcements.slice(0, 5).map((a) => (
+                  // Keyed on the content too, so a server refresh with newer text replaces local state.
+                  <AnnouncementCard key={`${a.id}:${a.edited_at ?? ""}`} groupId={group.id} announcement={a} />
+                ))}
               </ul>
             )}
           </section>
@@ -215,24 +219,5 @@ function Membership({ group }: { group: GroupDetail }) {
     <ActionButton action={joinGroup.bind(null, group.id)} variant="primary" size="md">
       {group.visibility === "approval" ? "Request to join" : "Join community"}
     </ActionButton>
-  );
-}
-
-function AnnouncementItem({ announcement: a }: { announcement: Announcement }) {
-  const event = a.event ?? (a.event_id ? { id: a.event_id, title: a.event_title ?? "See the event" } : null);
-  return (
-    <li className="glass rounded-[20px] p-4">
-      <div className="flex items-center gap-2 text-xs text-muted">
-        <SocialIcon name="megaphone" className="h-3.5 w-3.5 text-accent" />
-        <span className="font-medium text-fg">{displayName(a.author, "Organisers")}</span>
-        <span>· {timeAgo(a.created_at)}</span>
-      </div>
-      <p className="mt-2 whitespace-pre-line text-sm leading-relaxed">{a.body}</p>
-      {event && (
-        <Link href={`/events/${event.id}`} className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline">
-          {event.title} <SocialIcon name="chevron" className="h-3 w-3" />
-        </Link>
-      )}
-    </li>
   );
 }

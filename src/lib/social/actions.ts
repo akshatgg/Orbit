@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { apiMessage, isApiStatus, type ErrorCopy } from "@/lib/api/errors";
 import { authed } from "@/lib/api/session";
-import type { ChatMessage, GroupDetail, InterestStatus } from "@/types/social";
+import type { Announcement, ChatMessage, GroupDetail, InterestStatus } from "@/types/social";
 
 /**
  * Mutations for Circles, Communities, the inbox and messages. Each returns
@@ -292,6 +292,30 @@ export async function postAnnouncement(groupId: string, _prev: FormState, formDa
   return { ok: true, message: "Posted" };
 }
 
+/** The author rewrites an announcement. No page refresh: the card updates itself. */
+export async function editAnnouncement(groupId: string, announcementId: string, body: string): Promise<Result<{ announcement: Announcement | null }>> {
+  if (!id.safeParse(groupId).success || !id.safeParse(announcementId).success) return { ok: false, error: "Invalid announcement" };
+  const parsed = announcementSchema.shape.body.safeParse(body);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Couldn't save it" };
+  try {
+    const announcement = await authed.patch<Announcement>(`/groups/${enc(groupId)}/announcements/${enc(announcementId)}`, { body: { body: parsed.data } });
+    return { ok: true, announcement: announcement ?? null };
+  } catch (error) {
+    return fail(error, "Couldn't save it");
+  }
+}
+
+/** The author or a moderator removes an announcement. */
+export async function deleteAnnouncement(groupId: string, announcementId: string): Promise<Result> {
+  if (!id.safeParse(groupId).success || !id.safeParse(announcementId).success) return { ok: false, error: "Invalid announcement" };
+  try {
+    await authed.del(`/groups/${enc(groupId)}/announcements/${enc(announcementId)}`);
+    return { ok: true };
+  } catch (error) {
+    return fail(error, "Couldn't delete it");
+  }
+}
+
 // ─── inbox ──────────────────────────────────────────────────────────────────
 
 export async function markNotificationRead(notificationId: string): Promise<Result> {
@@ -349,6 +373,19 @@ export async function deleteMessage(messageId: string): Promise<Result> {
     return { ok: true };
   } catch (error) {
     return fail(error, "Couldn't delete it");
+  }
+}
+
+/** Rewrites one of your own messages. */
+export async function editMessage(messageId: string, body: string): Promise<Result<{ edited: ChatMessage | null }>> {
+  if (!id.safeParse(messageId).success) return { ok: false, error: "Invalid message" };
+  const parsed = messageSchema.safeParse(body);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Couldn't save it" };
+  try {
+    const edited = await authed.patch<ChatMessage>(`/messages/${enc(messageId)}`, { body: { body: parsed.data } });
+    return { ok: true, edited: edited ?? null };
+  } catch (error) {
+    return fail(error, "Couldn't save the edit");
   }
 }
 
