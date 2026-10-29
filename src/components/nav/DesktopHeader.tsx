@@ -7,14 +7,27 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { parsePlaceValue, placeValue } from "@/lib/discovery/filter-bar";
 import type { PlaceGroup } from "@/lib/places";
 import { OrbitLogo } from "@/components/brand/OrbitLogo";
+import { MessagesLink } from "@/components/social/MessagesLink";
+import { NotificationBell } from "@/components/social/NotificationBell";
 
-const LINKS = [
+type NavLink = { href: string; label: string; match: (p: string) => boolean; className?: string };
+
+// Circles (which switches to Communities with one tap) shows from xl, where the search still keeps
+// its room; narrower, both are on the profile page. Messages and notifications are icons with their
+// unread counts at every width.
+const LINKS: readonly NavLink[] = [
   { href: "/search", label: "Explore", match: (p: string) => p.startsWith("/search") },
   { href: "/calendar", label: "Calendar", match: (p: string) => p.startsWith("/calendar") },
   { href: "/tickets", label: "Tickets", match: (p: string) => p.startsWith("/tickets") },
-] as const;
+  {
+    href: "/circles",
+    label: "Circles",
+    match: (p: string) => p.startsWith("/circles") || p.startsWith("/communities") || p.startsWith("/join/circle"),
+    className: "hidden xl:inline-flex",
+  },
+];
 
-const STUDIO = { href: "/organiser", label: "Studio", match: (p: string) => p.startsWith("/organiser") } as const;
+const STUDIO: NavLink = { href: "/organiser", label: "Studio", match: (p: string) => p.startsWith("/organiser") };
 
 const SEARCH_ICON = "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm9 16-4.3-4.3";
 const PIN_ICON = "M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Zm0-9a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z";
@@ -29,8 +42,8 @@ function Icon({ path, className = "h-[18px] w-[18px]" }: { path: string; classNa
 
 /**
  * Tablet and laptop (md+) navigation: one bar across the top, like Eventbrite or Meetup. Logo on the
- * left, search with a place picker in the middle, then the main pages, Create event, the theme
- * toggle and the profile. Phones keep their own top bar and tab bar.
+ * left, search with a place picker in the middle, then the main pages, Create event (an icon below
+ * xl), the theme toggle (lg+), messages, notifications and the profile. Phones keep their own top bar and tab bar.
  */
 export function DesktopHeader({ places, showStudio, createHref, avatar }: {
   places: PlaceGroup[];
@@ -45,14 +58,14 @@ export function DesktopHeader({ places, showStudio, createHref, avatar }: {
     <DesktopHeaderFrame>
       <HeaderSearch places={places} />
       <nav aria-label="Primary" className="flex shrink-0 items-center gap-1">
-        {links.map(({ href, label, match }) => {
+        {links.map(({ href, label, match, className = "" }) => {
           const active = match(pathname);
           return (
             <Link
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent lg:px-3.5 ${
+              className={`rounded-full px-3 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent lg:px-3.5 ${className} ${
                 active ? "bg-ink/[0.08] text-fg" : "text-muted hover:text-fg"
               }`}
             >
@@ -62,7 +75,7 @@ export function DesktopHeader({ places, showStudio, createHref, avatar }: {
         })}
         <Link
           href={createHref}
-          className="bg-gradient ml-1.5 hidden rounded-full px-4 py-2 text-sm font-semibold text-bg transition duration-200 ease-out hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none lg:inline-flex"
+          className="bg-gradient ml-1.5 hidden rounded-full px-4 py-2 text-sm font-semibold text-bg transition duration-200 ease-out hover:opacity-90 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none xl:inline-flex"
         >
           Create event
         </Link>
@@ -70,11 +83,14 @@ export function DesktopHeader({ places, showStudio, createHref, avatar }: {
           href={createHref}
           aria-label="Create event"
           title="Create event"
-          className="bg-gradient ml-1 flex h-9 w-9 items-center justify-center rounded-full text-bg transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden"
+          className="bg-gradient ml-1 flex h-9 w-9 items-center justify-center rounded-full text-bg transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent xl:hidden"
         >
           <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
         </Link>
-        <ThemeToggle className="ml-1 h-9 w-9" />
+        {/* Below lg the bar is tight: the theme lives on the profile page (Appearance) there. */}
+        <ThemeToggle className="ml-1 hidden h-9 w-9 lg:flex" />
+        <MessagesLink className="ml-0.5 h-9 w-9" active={pathname.startsWith("/messages")} />
+        <NotificationBell placement="header" className="ml-0.5 h-9 w-9" />
         <Link
           href="/profile"
           aria-label="Profile"

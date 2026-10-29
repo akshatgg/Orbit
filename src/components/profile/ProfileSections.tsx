@@ -13,6 +13,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { EventCard } from "@/components/events/EventCard";
+import { ShareToGroupButton } from "@/components/social/ShareToGroupButton";
 import { AttendedToggle, FollowToggle } from "./ProfileActions";
 
 /** Section heading row used down the profile page. */
@@ -151,7 +152,14 @@ export async function SavedEventsList({ events }: { events: ProfileEvent[] }) {
   return (
     <div className="space-y-3 px-4">
       {withC.map((e, i) => (
-        <EventCard key={e.id} event={e} counts={e.counts} saved registration={events[i].registration} />
+        <EventCard
+          key={e.id}
+          event={e}
+          counts={e.counts}
+          saved
+          registration={events[i].registration}
+          actions={e.status === "published" ? <ShareToGroupButton eventId={e.id} eventTitle={e.title} variant="text" /> : undefined}
+        />
       ))}
     </div>
   );

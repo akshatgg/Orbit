@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { InstallRow } from "@/components/pwa/InstallRow";
 import { NotificationSettings } from "@/components/notifications/NotificationSettings";
+import { SocialLinks } from "@/components/social/SocialLinks";
 import {
   Chevron,
   FollowingList,
@@ -55,6 +56,11 @@ export default function ProfilePage() {
         >
           <HeroAndInterests />
         </Suspense>
+
+        <section>
+          <SectionHeading title="Your people" />
+          <SocialLinks />
+        </section>
 
         <section>
           <Suspense fallback={<><SectionHeading title="Saved events" /><SectionSkeleton /></>}>

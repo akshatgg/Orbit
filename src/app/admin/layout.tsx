@@ -13,6 +13,7 @@ const LINKS: AdminLink[] = [
   { href: "/admin/events", label: "Events", group: "Manage" },
   { href: "/admin/users", label: "Users & admins", group: "Manage" },
   { href: "/admin/categories", label: "Categories", group: "Manage" },
+  { href: "/admin/communities", label: "Communities", group: "Manage" },
   { href: "/admin/import", label: "CSV import", group: "Data" },
   { href: "/admin/sources", label: "Sources", group: "Data" },
 ];

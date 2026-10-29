@@ -28,6 +28,7 @@ import { EventPageSkeleton } from "@/components/tickets/Skeletons";
 import { CancelRegistrationButton, CompletePaymentButton } from "@/components/tickets/RegistrationButtons";
 import { RichText } from "@/components/tickets/RichText";
 import { Icon, type IconName } from "@/components/tickets/icons";
+import { ShareToGroupButton } from "@/components/social/ShareToGroupButton";
 
 export async function generateMetadata({ params }: PageProps<"/events/[id]">): Promise<Metadata> {
   await connection(); // data reads below are per request
@@ -135,6 +136,9 @@ async function EventContent({ params }: { params: PageProps<"/events/[id]">["par
           <BackButton />
           <div className="flex items-center gap-2">
             <ShareButton eventId={event.id} title={event.title} text={event.summary} />
+            {event.status === "published" && !ended && (
+              <ShareToGroupButton eventId={event.id} eventTitle={event.title} signedIn={signedIn} />
+            )}
             {signedIn ? (
               <SaveButton eventId={event.id} saved={data.saved} className="round-btn h-10 w-10" />
             ) : (
