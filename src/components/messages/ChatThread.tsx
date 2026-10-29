@@ -43,9 +43,11 @@ function merge(list: Item[], incoming: ChatMessage[]): Item[] {
  * loads older messages when you scroll to the top, and sends / deletes optimistically (rolled back
  * if the API refuses).
  */
-export function ChatThread({ conversationId, initial, initialHasMore, me, kind, canSend = true, notice }: {
+export function ChatThread({ conversationId, initial, initialHasMore, initialPolledAt, me, kind, canSend = true, notice }: {
   conversationId: string;
   initial: ChatMessage[];
+  /** The first page's `polled_at`: edits and deletes after it reach this thread through the poll. */
+  initialPolledAt?: string;
   /** Older messages exist before the first page. */
   initialHasMore?: boolean;
   me: SocialUser;
@@ -66,6 +68,7 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
 
   const itemsRef = useRef(items);
   const polls = useRef(0);
+  const polledAt = useRef<string | undefined>(initialPolledAt);
   const kick = useRef<() => void>(() => {});
   const top = useRef<HTMLDivElement>(null);
   const bottom = useRef<HTMLDivElement>(null);
@@ -84,22 +87,27 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
   const poll = useCallback(async () => {
     const confirmed = itemsRef.current.filter((m) => !m.pending);
     const last = confirmed.at(-1);
-    const reconcile = ++polls.current % RECONCILE_EVERY === 0;
-    const result = await fetchThread(conversationId, last && !reconcile ? { after: last.created_at, after_id: last.id } : {});
+    // Edits and deletes come back as `changed` since the previous response's `polled_at`; without
+    // that (an older API) every few polls re-read the latest page instead.
+    const since = polledAt.current;
+    const reconcile = !since && ++polls.current % RECONCILE_EVERY === 0;
+    const query: Record<string, string> = last && !reconcile ? { after: last.created_at, after_id: last.id } : {};
+    if (since) query.changed_since = since;
+    const result = await fetchThread(conversationId, query);
     if ("error" in result) {
       if (result.status === 403 || result.status === 404) setGone(result.error);
       return false;
     }
+    if (result.polled_at) polledAt.current = result.polled_at;
     const fresh = result.items.filter((m) => !itemsRef.current.some((x) => x.id === m.id));
-    // Edits and deletes of messages already on screen (the other person's included).
-    const changed = result.items.some((m) => {
+    const updates = [...result.items, ...(result.changed ?? [])].filter((m) => {
       const known = itemsRef.current.find((x) => x.id === m.id);
       return known && !known.pending && (known.deleted !== m.deleted || known.body !== m.body || (known.edited_at ?? null) !== (m.edited_at ?? null));
     });
-    if (fresh.length || changed) setItems((list) => merge(list, result.items));
+    if (fresh.length || updates.length) setItems((list) => merge(list, [...fresh, ...updates]));
     if (fresh.some((m) => m.sender.id !== me.id)) markRead();
     // A burst bigger than one page: come straight back for the rest.
-    return fresh.length > 0 || (!reconcile && !!result.has_more);
+    return fresh.length > 0 || updates.length > 0 || (!reconcile && !!result.has_more);
   }, [conversationId, me.id, markRead]);
 
   // One timer at a time: each poll schedules the next, slower while nothing arrives, paused while the

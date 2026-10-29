@@ -185,6 +185,10 @@ export type Thread = {
   items: ChatMessage[];
   /** Older messages remain (or, after `after`, newer ones beyond this page). */
   has_more?: boolean;
+  /** With `changed_since`: messages edited or deleted since then (replace them by id). */
+  changed?: ChatMessage[];
+  /** Server time of this response: the next poll's `changed_since`. */
+  polled_at?: string;
 };
 
 export type BlockedUser = { user: SocialUser; created_at?: string };

@@ -128,7 +128,7 @@ export async function listConversations(cursor?: string) {
   return res ?? { items: [], unread_total: 0, next_cursor: null };
 }
 
-export type ThreadQuery = { after?: string; after_id?: string; before?: string; before_id?: string; limit?: number };
+export type ThreadQuery = { after?: string; after_id?: string; before?: string; before_id?: string; changed_since?: string; limit?: number };
 
 export async function getThread(conversationId: string, query: ThreadQuery = {}) {
   return maybe<Thread>(`/messages/conversations/${enc(conversationId)}`, { limit: 50, ...query });
