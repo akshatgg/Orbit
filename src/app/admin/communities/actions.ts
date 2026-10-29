@@ -26,7 +26,7 @@ const communitySchema = z.object({
     z.string().min(2, "At least 2 characters").max(60).regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Lowercase letters, numbers and hyphens").optional(),
   ),
   description: z.preprocess((v) => String(v ?? "").trim(), z.string().max(500, "Keep it under 500 characters")),
-  category_ids: z.array(z.string().regex(/^[\w-]{1,80}$/, "Unknown category")).min(1, "Pick at least one category").max(20, "Pick at most 20 categories"),
+  category_ids: z.array(z.string().regex(/^[\w-]{1,80}$/, "Unknown category")).min(1, "Pick at least one category").max(10, "Pick at most 10 categories"),
   university: z.preprocess((v) => String(v ?? "").trim(), z.string().max(120, "Keep it under 120 characters")),
   visibility: z.enum(["public", "approval", "private"], { error: "Pick who can join" }),
   allow_member_shares: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
