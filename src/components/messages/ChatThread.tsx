@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransitio
 import { Avatar } from "@/components/ui/Avatar";
 import { refreshBadges } from "@/components/social/badges";
 import { SocialIcon } from "@/components/social/icons";
-import { deleteMessage, markConversationRead, sendMessage } from "@/lib/social/actions";
+import { deleteMessage, editMessage, markConversationRead, sendMessage } from "@/lib/social/actions";
 import { clockTime, dayLabel, displayName, firstName, sameDay } from "@/lib/social/format";
 import type { ChatMessage, SocialUser, Thread } from "@/types/social";
 
@@ -28,7 +28,12 @@ async function fetchThread(conversationId: string, query: Record<string, string>
 function merge(list: Item[], incoming: ChatMessage[]): Item[] {
   if (!incoming.length) return list;
   const byId = new Map(list.map((m) => [m.id, m]));
-  for (const m of incoming) byId.set(m.id, { ...byId.get(m.id), ...m, pending: false });
+  for (const m of incoming) {
+    const known = byId.get(m.id);
+    // An edit of ours still on its way: keep the new text until the API answers.
+    if (known?.pending) continue;
+    byId.set(m.id, { ...known, ...m, pending: false });
+  }
   return [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
@@ -56,6 +61,7 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
   const [error, setError] = useState<string | null>(null);
   const [gone, setGone] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
   const [, startTransition] = useTransition();
 
   const itemsRef = useRef(items);
@@ -85,9 +91,10 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
       return false;
     }
     const fresh = result.items.filter((m) => !itemsRef.current.some((x) => x.id === m.id));
+    // Edits and deletes of messages already on screen (the other person's included).
     const changed = result.items.some((m) => {
       const known = itemsRef.current.find((x) => x.id === m.id);
-      return known && known.deleted !== m.deleted;
+      return known && !known.pending && (known.deleted !== m.deleted || known.body !== m.body || (known.edited_at ?? null) !== (m.edited_at ?? null));
     });
     if (fresh.length || changed) setItems((list) => merge(list, result.items));
     if (fresh.some((m) => m.sender.id !== me.id)) markRead();
@@ -208,6 +215,41 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
     });
   }
 
+  function startEdit(message: Item) {
+    setSelected(null);
+    setError(null);
+    setEditing({ id: message.id, draft: message.body });
+  }
+
+  function saveEdit() {
+    if (!editing) return;
+    const message = items.find((m) => m.id === editing.id);
+    const body = editing.draft.trim();
+    setEditing(null);
+    if (!message || !body || body === message.body || body.length > MAX_LENGTH) return;
+    // Optimistic: the new text shows at once and goes back if the API refuses.
+    setItems((list) => list.map((m) => (m.id === message.id ? { ...m, body, edited_at: new Date().toISOString(), pending: true } : m)));
+    startTransition(async () => {
+      const result = await editMessage(message.id, body).catch(() => ({ ok: false as const, error: "Couldn't save the edit" }));
+      if (result.ok) {
+        setItems((list) => list.map((m) => (m.id === message.id ? { ...m, ...(result.edited ?? {}), pending: false } : m)));
+      } else {
+        setItems((list) => list.map((m) => (m.id === message.id ? message : m)));
+        setError(result.error);
+      }
+    });
+  }
+
+  function onEditKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setEditing(null);
+    } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      saveEdit();
+    }
+  }
+
   function remove(message: Item) {
     setSelected(null);
     setItems((list) => list.map((m) => (m.id === message.id ? { ...m, deleted: true, body: "" } : m)));
@@ -269,6 +311,25 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
                   )}
                   <div className={`flex max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
                     {!mine && kind === "circle" && startsRun && <span className="mb-0.5 px-1 text-[11px] font-medium text-muted">{firstName(m.sender)}</span>}
+                    {editing?.id === m.id ? (
+                      <div className="w-[min(78vw,28rem)]">
+                        <label htmlFor={`edit-${m.id}`} className="sr-only">Edit message</label>
+                        <textarea
+                          id={`edit-${m.id}`}
+                          value={editing.draft}
+                          onChange={(e) => setEditing({ id: m.id, draft: e.target.value })}
+                          onKeyDown={onEditKeyDown}
+                          onBlur={() => setEditing((e) => (e?.id === m.id && e.draft === m.body ? null : e))}
+                          maxLength={MAX_LENGTH}
+                          autoFocus
+                          rows={1}
+                          className="field-sizing-content max-h-48 min-h-10 w-full resize-none rounded-[18px] border border-accent/50 bg-ink/[0.06] px-3.5 py-2 text-[14.5px] leading-snug text-fg outline-none ring-4 ring-accent/15 light:bg-surface"
+                        />
+                        <span className="mt-0.5 flex justify-end gap-2 px-1 text-[10.5px] text-subtle">
+                          Enter to save · Esc to cancel
+                        </span>
+                      </div>
+                    ) : (
                     <button
                       type="button"
                       disabled={!mine || m.deleted || m.pending}
@@ -284,13 +345,20 @@ export function ChatThread({ conversationId, initial, initialHasMore, me, kind, 
                     >
                       {m.deleted ? "Message deleted" : m.body}
                     </button>
-                    {(endsRun || selected === m.id) && (
+                    )}
+                    {editing?.id !== m.id && (endsRun || selected === m.id || (!!m.edited_at && !m.deleted)) && (
                       <span className="mt-0.5 flex items-center gap-2 px-1 text-[10.5px] text-subtle">
-                        {m.pending ? "Sending…" : clockTime(m.created_at)}
+                        {m.pending && !m.edited_at ? "Sending…" : clockTime(m.created_at)}
+                        {m.edited_at && !m.deleted && <span title={`Edited ${clockTime(m.edited_at)}`}>· edited</span>}
                         {selected === m.id && (
-                          <button type="button" onClick={() => remove(m)} className="font-medium text-red-300 hover:underline">
-                            Delete
-                          </button>
+                          <>
+                            <button type="button" onClick={() => startEdit(m)} className="font-medium text-accent hover:underline">
+                              Edit
+                            </button>
+                            <button type="button" onClick={() => remove(m)} className="font-medium text-red-300 hover:underline">
+                              Delete
+                            </button>
+                          </>
                         )}
                       </span>
                     )}
