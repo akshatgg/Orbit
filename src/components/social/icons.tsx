@@ -17,6 +17,10 @@ const PATHS = {
   ban: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.7 5.7l12.6 12.6",
   shareGroup: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm-6.5 9a6.5 6.5 0 0 1 10.4-5.2M18 14v6M15 17h6",
   lock: "M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z",
+  share: "M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6",
+  grid: "M4.5 4.5h6v6h-6zM13.5 4.5h6v6h-6zM4.5 13.5h6v6h-6zM13.5 13.5h6v6h-6z",
+  list: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01",
+  down: "M6 9l6 6 6-6",
 } as const;
 
 export type SocialIconName = keyof typeof PATHS;

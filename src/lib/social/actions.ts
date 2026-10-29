@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { apiMessage, isApiStatus, type ErrorCopy } from "@/lib/api/errors";
 import { authed } from "@/lib/api/session";
-import type { Announcement, ChatMessage, GroupDetail, InterestStatus } from "@/types/social";
+import type { Announcement, ChatMessage, GroupDetail, InterestStatus, SocialUser } from "@/types/social";
 
 /**
  * Mutations for Circles, Communities, the inbox and messages. Each returns
@@ -134,30 +134,48 @@ export async function joinGroup(groupId: string): Promise<Result<{ status: "join
   }
 }
 
-const emailSchema = z.object({ email: z.email("Enter an email address").max(200) });
+type InviteResult = { status?: string; role?: string; user?: SocialUser | null };
 
+const inviteSchema = z.object({
+  email: z.email("Enter an email address").max(200),
+  role: z.enum(["member", "admin"]).default("member"),
+});
+
+/**
+ * Invite someone by the email they use on ORBIT. `role: "admin"` (moderators, from a community's
+ * invite form) makes them a moderator: straight away if they're already a member, else on accepting.
+ */
 export async function inviteByEmail(groupId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   if (!id.safeParse(groupId).success) return { error: "Invalid group" };
-  const parsed = emailSchema.safeParse({ email: String(formData.get("email") ?? "").trim().toLowerCase() });
+  const parsed = inviteSchema.safeParse({
+    email: String(formData.get("email") ?? "").trim().toLowerCase(),
+    role: formData.get("role") || undefined,
+  });
   if (!parsed.success) return { error: "Enter an email address", fieldErrors: fieldErrors(parsed.error) };
+  const { email, role } = parsed.data;
+  // 201: the invite (`role` is what accepting makes them); 200: an existing member, now a moderator.
+  let res: InviteResult | null;
   try {
-    await authed.post(`/groups/${enc(groupId)}/invites`, { body: { email: parsed.data.email } });
+    res = await authed.post<InviteResult>(`/groups/${enc(groupId)}/invites`, { body: { email, role } });
   } catch (error) {
-    if (isApiStatus(error, 404)) return { error: COPY.user_not_found };
-    if (isApiStatus(error, 429)) return { error: COPY.invites_limited };
+    // The API's own sentence: no account, already a member / moderator / invited, asked to join already.
+    if (isApiStatus(error, 404)) return { error: apiMessage(error, COPY, { passThrough: true, fallback: COPY.user_not_found }) };
+    if (isApiStatus(error, 429)) return { error: apiMessage(error, COPY, { passThrough: true, fallback: COPY.invites_limited }) };
     if (isApiStatus(error, 409)) return { error: apiMessage(error, COPY, { passThrough: true, fallback: COPY.already_invited }) };
     return fail(error, "Couldn't send the invite");
   }
   refresh();
-  return { ok: true, message: `Invite sent to ${parsed.data.email}` };
+  if (res?.status === "promoted") return { ok: true, message: `${res.user?.full_name?.trim() || email} is now a moderator` };
+  if ((res?.role ?? role) === "admin") return { ok: true, message: "Invite sent — they'll be a moderator when they accept" };
+  return { ok: true, message: "Invite sent" };
 }
 
-/** A shareable invite link (`/join/circle/<code>`). */
-export async function createInviteLink(groupId: string): Promise<Result<{ path: string }>> {
+/** A shareable invite link (`/join/circle/<code>` or `/join/community/<code>`) and when it stops working. */
+export async function createInviteLink(groupId: string): Promise<Result<{ path: string; expiresAt: string | null }>> {
   if (!id.safeParse(groupId).success) return { ok: false, error: "Invalid group" };
   try {
-    const res = await authed.post<{ code: string; url_path?: string }>(`/groups/${enc(groupId)}/invite-link`);
-    return { ok: true, path: res.url_path ?? `/join/circle/${res.code}` };
+    const res = await authed.post<{ code: string; url_path?: string; expires_at?: string | null }>(`/groups/${enc(groupId)}/invite-link`);
+    return { ok: true, path: res.url_path ?? `/join/circle/${res.code}`, expiresAt: res.expires_at ?? null };
   } catch (error) {
     return fail(error, "Couldn't make a link");
   }
@@ -177,7 +195,7 @@ export async function respondInvite(groupId: string, inviteId: string, accept: b
   return { ok: true, message: accept ? "Accepted" : "Declined" };
 }
 
-/** `/join/circle/<code>`: join, then open the group. */
+/** `/join/circle/<code>` and `/join/community/<code>`: join, then open the group. */
 export async function acceptInviteCode(code: string): Promise<Result> {
   if (!id.safeParse(code).success) return { ok: false, error: "That invite link isn't valid" };
   let groupId: string;

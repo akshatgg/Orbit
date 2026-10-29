@@ -2,11 +2,12 @@
 
 import type { ReactNode } from "react";
 import { z } from "zod";
-import { CommunityCard } from "@/components/social/CommunityCard";
-import { GroupEventCard } from "@/components/social/GroupEventCard";
+import { CommunityCard, CommunityRow } from "@/components/social/CommunityCard";
+import { GroupEventCard, GroupEventRow } from "@/components/social/GroupEventCard";
 import { getCurrentUser } from "@/lib/auth";
 import { getMyEventState } from "@/lib/events/queries";
 import { getGroup, listCommunities, listGroupEvents } from "./queries";
+import { parseView, type ListView } from "./view";
 
 const ref = z.string().trim().min(1).max(120).regex(/^[\w-]+$/);
 const cursorSchema = z.string().min(1).max(500).regex(/^[\w=+/-]+$/);
@@ -14,10 +15,10 @@ const cursorSchema = z.string().min(1).max(500).regex(/^[\w=+/-]+$/);
 export type MoreEvents = { ok: true; nodes: ReactNode; nextCursor: string | null } | { ok: false; error: string };
 
 /**
- * The next page of a circle's or community's events, rendered on the server (the same cards as the
- * first page) and appended by <LoadMoreEvents>.
+ * The next page of a circle's or community's events, rendered on the server (the same cards, or a
+ * community's list rows, as the first page) and appended by <LoadMoreEvents>.
  */
-export async function loadMoreGroupEvents(groupRef: string, when: "upcoming" | "past", cursor: string): Promise<MoreEvents> {
+export async function loadMoreGroupEvents(groupRef: string, when: "upcoming" | "past", cursor: string, view: ListView = "grid"): Promise<MoreEvents> {
   if (!ref.safeParse(groupRef).success || !cursorSchema.safeParse(cursor).success || !["upcoming", "past"].includes(when)) {
     return { ok: false, error: "Couldn't load more" };
   }
@@ -27,14 +28,15 @@ export async function loadMoreGroupEvents(groupRef: string, when: "upcoming" | "
   if (!group) return { ok: false, error: "Couldn't load more" };
   const community = group.kind === "community";
   const state = community ? await getMyEventState(user.id, page.items.map((i) => i.event.id)) : null;
-  const canModerate = group.my_role === "admin";
+  const canModerate = group.can_manage ?? group.my_role === "admin";
+  const Item = community && parseView(view) === "list" ? GroupEventRow : GroupEventCard;
 
   return {
     ok: true,
     nextCursor: page.nextCursor,
     nodes: page.items.map((item) => (
       <li key={item.event.id}>
-        <GroupEventCard
+        <Item
           item={item}
           groupId={group.id}
           kind={group.kind}
@@ -54,14 +56,15 @@ const filterSchema = z.object({
   q: z.string().max(80).optional(),
 });
 
-/** The next page of the communities directory, as cards (appended by <LoadMoreCommunities>). */
-export async function loadMoreCommunities(filters: { category?: string; university?: string; q?: string }, cursor: string): Promise<MoreEvents> {
+/** The next page of the communities directory, as cards or rows (appended by <LoadMoreCommunities>). */
+export async function loadMoreCommunities(filters: { category?: string; university?: string; q?: string }, cursor: string, view: ListView = "grid"): Promise<MoreEvents> {
   const parsed = filterSchema.safeParse(filters);
   if (!parsed.success || !cursorSchema.safeParse(cursor).success) return { ok: false, error: "Couldn't load more" };
   const page = await listCommunities(parsed.data, { cursor });
+  const Item = parseView(view) === "list" ? CommunityRow : CommunityCard;
   return {
     ok: true,
     nextCursor: page.nextCursor,
-    nodes: page.items.map((c) => <li key={c.id}><CommunityCard community={c} /></li>),
+    nodes: page.items.map((c) => <li key={c.id}><Item community={c} /></li>),
   };
 }
