@@ -42,8 +42,12 @@ export function RenameCircleForm({ groupId, name, description }: { groupId: stri
   );
 }
 
-/** Invite one person by the email they use on ORBIT. */
-export function InviteByEmailForm({ groupId }: { groupId: string }) {
+/**
+ * Invite one person by the email they use on ORBIT. `roles` (community moderators) adds the
+ * Member / Moderator choice: a moderator invite makes them one on accepting, or at once if they're
+ * already a member.
+ */
+export function InviteByEmailForm({ groupId, roles = false }: { groupId: string; roles?: boolean }) {
   const form = useRef<HTMLFormElement>(null);
   const [state, action] = useActionState<FormState, FormData>(inviteByEmail.bind(null, groupId), null);
   useEffect(() => {
@@ -56,55 +60,115 @@ export function InviteByEmailForm({ groupId }: { groupId: string }) {
         <Input id={`invite-${groupId}`} name="email" type="email" required placeholder="friend@university.ac.uk" autoComplete="off" aria-invalid={!!state?.error || undefined} />
         <SubmitButton variant="secondary" pendingText="Sending…" className="shrink-0">Invite</SubmitButton>
       </div>
+      {roles && (
+        <fieldset className="flex items-center gap-2">
+          <legend className="sr-only">Invite as</legend>
+          <span aria-hidden className="text-xs text-muted">As</span>
+          <span className="inline-flex gap-0.5 rounded-full bg-ink/[0.06] p-1 light:rounded-xl">
+            {ROLES.map((r) => (
+              <label
+                key={r.value}
+                className="cursor-pointer rounded-full px-3 py-1 text-xs font-medium text-muted transition duration-200 hover:text-fg has-checked:bg-[var(--seg-on)] has-checked:text-fg has-checked:shadow-[var(--seg-shadow)] has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-accent light:rounded-lg motion-reduce:transition-none"
+              >
+                <input type="radio" name="role" value={r.value} defaultChecked={r.value === "member"} className="sr-only" />
+                {r.label}
+              </label>
+            ))}
+          </span>
+        </fieldset>
+      )}
       <FormMessage state={state} />
     </form>
   );
 }
 
-/** Makes (or reuses) a shareable link and copies it; falls back to the share sheet. */
+const ROLES = [
+  { value: "member", label: "Member" },
+  { value: "admin", label: "Moderator" },
+] as const;
+
+const expiryFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" });
+
+type InviteLink = { url: string; expiresAt: string | null };
+
+/**
+ * Makes (or reuses) a shareable link on the first click — never before — and copies it, then shows
+ * it with when it stops working and, where the device has one, a Share button for the share sheet.
+ */
 export function InviteLinkButton({ groupId, groupName }: { groupId: string; groupName: string }) {
   const [state, setState] = useState<"idle" | "working" | "copied" | "shown">("idle");
-  const [link, setLink] = useState<string | null>(null);
+  const [link, setLink] = useState<InviteLink | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function run() {
+  async function mint(): Promise<InviteLink> {
+    const result = await createInviteLink(groupId);
+    if (!result.ok) throw new Error(result.error);
+    return { url: new URL(result.path, window.location.origin).toString(), expiresAt: result.expiresAt };
+  }
+
+  async function copy() {
     setError(null);
     setState("working");
-    const result = await createInviteLink(groupId);
-    if (!result.ok) {
-      setError(result.error);
+    const minting = link ? Promise.resolve(link) : mint();
+    // Started inside the click (before any await) so Safari allows the clipboard write.
+    const copying = writeClipboard(minting.then((l) => l.url)).then(() => true, () => false);
+    let value: InviteLink;
+    try {
+      value = await minting;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't make a link");
       setState("idle");
       return;
     }
-    const url = new URL(result.path, window.location.origin).toString();
-    setLink(url);
+    setLink(value);
+    // Copy refused: the link is shown below to copy by hand.
+    if (!(await copying)) return setState("shown");
+    setState("copied");
+    setTimeout(() => setState((s) => (s === "copied" ? "shown" : s)), 2500);
+  }
+
+  async function share() {
+    if (!link) return;
     try {
-      await navigator.clipboard.writeText(url);
-      setState("copied");
-      setTimeout(() => setState("shown"), 2000);
+      await navigator.share({ title: `Join ${groupName} on ORBIT`, url: link.url });
     } catch {
-      try {
-        if (!navigator.share) throw new Error("no share");
-        await navigator.share({ title: `Join ${groupName} on ORBIT`, url });
-      } catch {
-        // Show it so it can be copied by hand.
-      }
-      setState("shown");
+      // Share sheet dismissed.
     }
   }
 
+  const canShare = !!link && typeof navigator !== "undefined" && typeof navigator.share === "function";
+
   return (
     <div className="space-y-2">
-      <Button type="button" variant="secondary" size="sm" onClick={run} disabled={state === "working"}>
-        <SocialIcon name="link" className="h-4 w-4" />
-        <span aria-live="polite">{state === "copied" ? "Link copied" : state === "working" ? "Making a link…" : "Copy invite link"}</span>
-      </Button>
-      {link && state !== "copied" && (
-        <p className="break-all rounded-xl bg-ink/[0.05] px-3 py-2 text-xs text-muted">{link}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="secondary" size="sm" onClick={copy} disabled={state === "working"}>
+          <SocialIcon name={state === "copied" ? "check" : "link"} className="h-4 w-4" />
+          <span aria-live="polite">{state === "copied" ? "Link copied" : state === "working" ? "Making a link…" : "Copy invite link"}</span>
+        </Button>
+        {canShare && (
+          <Button type="button" variant="ghost" size="sm" onClick={share}>
+            <SocialIcon name="share" className="h-4 w-4" /> Share
+          </Button>
+        )}
+      </div>
+      {link && (
+        <div className="space-y-1">
+          <p className="break-all rounded-xl bg-ink/[0.05] px-3 py-2 text-xs text-muted">{link.url}</p>
+          {link.expiresAt && <p className="text-xs text-subtle">Works until {expiryFmt.format(new Date(link.expiresAt))}</p>}
+        </div>
       )}
       {error && <p role="alert" className="text-xs text-red-300">{error}</p>}
     </div>
   );
+}
+
+/** Copies `text` once it resolves: as a promised ClipboardItem (Safari), else plain writeText. */
+async function writeClipboard(text: Promise<string>) {
+  try {
+    await navigator.clipboard.write([new ClipboardItem({ "text/plain": text.then((t) => new Blob([t], { type: "text/plain" })) })]);
+  } catch {
+    await navigator.clipboard.writeText(await text);
+  }
 }
 
 /** Community admins post a notice to members. */

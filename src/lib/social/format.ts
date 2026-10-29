@@ -1,6 +1,6 @@
 // Display helpers for the social screens (safe on the server and in the browser).
 
-import type { GroupCard, GroupCategory, SocialUser } from "@/types/social";
+import type { GroupCard, GroupCategory, GroupMemberRow, SocialUser } from "@/types/social";
 
 const dayFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" });
 const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
@@ -62,4 +62,9 @@ export function plural(n: number, one: string, many = `${one}s`) {
 export function groupCategories(group: Pick<GroupCard, "categories" | "category_id" | "category_slug" | "category_name">): GroupCategory[] {
   if (group.categories?.length) return group.categories;
   return group.category_name ? [{ id: group.category_id ?? "", slug: group.category_slug ?? null, name: group.category_name }] : [];
+}
+
+/** Admins (a community's moderators) first, otherwise in the API's order. */
+export function adminsFirst(members: GroupMemberRow[]) {
+  return [...members].sort((a, b) => Number(b.role === "admin") - Number(a.role === "admin"));
 }

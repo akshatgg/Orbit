@@ -3,11 +3,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { BackLink } from "@/components/nav/BackLink";
 import { AnnouncementCard } from "@/components/social/AnnouncementCard";
-import { AnnouncementForm } from "@/components/social/CircleForms";
-import { GroupEventCard } from "@/components/social/GroupEventCard";
+import { AnnouncementForm, InviteByEmailForm, InviteLinkButton } from "@/components/social/CircleForms";
+import { GroupEventCard, GroupEventRow } from "@/components/social/GroupEventCard";
 import { SocialIcon } from "@/components/social/icons";
+import { ViewList, ViewProvider, ViewToggle } from "@/components/social/ListView";
 import { LoadMoreEvents } from "@/components/social/LoadMoreEvents";
 import { MemberList } from "@/components/social/MemberList";
+import { ShareLinkButton } from "@/components/social/ShareLinkButton";
 import { GroupSkeleton } from "@/components/social/Skeletons";
 import { ActionButton } from "@/components/social/SmallActions";
 import { Avatar } from "@/components/ui/Avatar";
@@ -17,8 +19,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { isAdmin as isOrbitAdmin, requireProfile } from "@/lib/auth";
 import { getMyEventState } from "@/lib/events/queries";
 import { joinGroup, leaveGroup, respondInvite } from "@/lib/social/actions";
-import { displayName, groupCategories, plural } from "@/lib/social/format";
-import { getGroup, listAnnouncements, listGroupEvents, listGroupInvites } from "@/lib/social/queries";
+import { adminsFirst, displayName, groupCategories, plural, timeAgo } from "@/lib/social/format";
+import { getGroup, getListView, listAnnouncements, listGroupEvents, listGroupInvites } from "@/lib/social/queries";
 import type { GroupDetail, GroupInviteRow } from "@/types/social";
 
 export const metadata: Metadata = { title: "Community" };
@@ -42,10 +44,11 @@ async function Community({ params, searchParams }: {
 
   // Everything the page shows, in parallel (the API answers each by slug or id; members come with
   // the group). Approval communities only show their feed, members and announcements to members.
-  const [group, feed, announcements] = await Promise.all([
+  const [group, feed, announcements, view] = await Promise.all([
     getGroup(slug),
     listGroupEvents(slug, "upcoming"),
     listAnnouncements(slug),
+    getListView("communityEvents"),
   ]);
 
   if (!group || group.kind !== "community") {
@@ -62,13 +65,15 @@ async function Community({ params, searchParams }: {
   const member = !!group.my_role;
   const moderator = group.can_manage ?? (group.my_role === "admin" || isOrbitAdmin(profile));
   const locked = !member && !moderator && group.visibility !== "public";
-  const members = group.members ?? [];
+  const members = adminsFirst(group.members ?? []);
   const [state, requests] = await Promise.all([
     getMyEventState(profile.id, feed.items.map((i) => i.event.id)),
     moderator ? listGroupInvites(group.id) : Promise.resolve([] as GroupInviteRow[]),
   ]);
-  const joinRequests = requests.filter((r) => r.kind === "request" && (r.status === "pending" || !r.status));
+  const waiting = requests.filter((r) => r.status === "pending" || !r.status);
+  const joinRequests = waiting.filter((r) => r.kind === "request");
   const shownMembers = allMembers ? members : members.slice(0, MEMBERS_SHOWN);
+  const EventItem = view === "list" ? GroupEventRow : GroupEventCard;
 
   return (
     <div className="space-y-6 pb-4">
@@ -90,8 +95,16 @@ async function Community({ params, searchParams }: {
             {group.description && <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">{group.description}</p>}
             <p className="mt-2 text-xs text-muted">{plural(group.member_count, "member")} · {plural(group.upcoming_event_count ?? 0, "upcoming event")}</p>
           </div>
-          <div className="shrink-0">
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
             <Membership group={group} />
+            {group.visibility === "public" && (
+              <ShareLinkButton
+                path={`/communities/${group.slug ?? group.id}`}
+                title={group.name}
+                text={group.description ?? undefined}
+                size={group.my_role || group.pending_invite ? "sm" : "md"}
+              />
+            )}
           </div>
         </div>
       </header>
@@ -114,42 +127,54 @@ async function Community({ params, searchParams }: {
             )}
           </section>
 
-          <section aria-labelledby="community-events" className="space-y-3">
-            <div className="flex items-end justify-between gap-3 px-4 md:px-0">
-              <h2 id="community-events" className="text-lg font-semibold tracking-tight">Upcoming events</h2>
-              {(group.can_share ?? (member && group.allow_member_shares !== false)) && <p className="text-xs text-muted">Share one from any event page</p>}
-            </div>
-            {locked ? (
-              <div className="md:[&>div]:mx-0">
-                <EmptyState title="Members only">
-                  {group.pending_request ? "Your request is with the moderators." : "Ask to join to see this community's events, members and announcements."}
-                </EmptyState>
+          <ViewProvider scope="communityEvents" view={view}>
+            <section aria-labelledby="community-events" className="space-y-3">
+              <div className="flex items-center justify-between gap-3 px-4 md:px-0">
+                <div className="min-w-0">
+                  <h2 id="community-events" className="text-lg font-semibold tracking-tight">Upcoming events</h2>
+                  {(group.can_share ?? (member && group.allow_member_shares !== false)) && <p className="text-xs text-muted">Share one from any event page</p>}
+                </div>
+                {!locked && feed.items.length > 0 && <ViewToggle />}
               </div>
-            ) : feed.items.length === 0 ? (
-              <div className="md:[&>div]:mx-0">
-                <EmptyState title="No upcoming events yet">Events shared here, and new ones in this community&apos;s categories, show up here.</EmptyState>
-              </div>
-            ) : (
-              <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:px-0">
-                {feed.items.map((item) => (
-                  <li key={item.event.id}>
-                    <GroupEventCard
-                      item={item}
-                      groupId={group.id}
-                      kind="community"
-                      viewerId={profile.id}
-                      canModerate={moderator}
-                      saved={state.saved.has(item.event.id)}
-                    />
-                  </li>
-                ))}
-                <LoadMoreEvents groupRef={group.id} cursor={feed.nextCursor} />
-              </ul>
-            )}
-          </section>
+              {locked ? (
+                <div className="md:[&>div]:mx-0">
+                  <EmptyState title="Members only">
+                    {group.pending_request ? "Your request is with the moderators." : "Ask to join to see this community's events, members and announcements."}
+                  </EmptyState>
+                </div>
+              ) : feed.items.length === 0 ? (
+                <div className="md:[&>div]:mx-0">
+                  <EmptyState title="No upcoming events yet">Events shared here, and new ones in this community&apos;s categories, show up here.</EmptyState>
+                </div>
+              ) : (
+                <ViewList
+                  aria-labelledby="community-events"
+                  className={view === "list"
+                    ? "glass mx-4 divide-y divide-line overflow-hidden rounded-[22px] md:mx-0"
+                    : "space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:px-0"}
+                >
+                  {feed.items.map((item) => (
+                    <li key={item.event.id}>
+                      <EventItem
+                        item={item}
+                        groupId={group.id}
+                        kind="community"
+                        viewerId={profile.id}
+                        canModerate={moderator}
+                        saved={state.saved.has(item.event.id)}
+                      />
+                    </li>
+                  ))}
+                  {/* Keyed on the layout: pages loaded before a switch start over in the new one. */}
+                  <LoadMoreEvents key={view} groupRef={group.id} cursor={feed.nextCursor} view={view} />
+                </ViewList>
+              )}
+            </section>
+          </ViewProvider>
         </div>
 
-        <aside className="space-y-6 px-4 md:sticky md:top-24 md:px-0">
+        {/* Moderators' tools make the column too tall to pin, so it scrolls with the page for them. */}
+        <aside className={`space-y-6 px-4 md:px-0 ${moderator ? "" : "md:sticky md:top-24"}`}>
           {moderator && joinRequests.length > 0 && (
             <section aria-labelledby="join-requests" className="space-y-2">
               <h2 id="join-requests" className="text-sm font-semibold tracking-tight">Join requests</h2>
@@ -171,9 +196,19 @@ async function Community({ params, searchParams }: {
             </section>
           )}
 
+          {moderator && <InvitePeople group={group} invites={waiting.filter((r) => r.kind === "invite")} />}
+
           {members.length > 0 ? (
             <div className="space-y-2">
-              <MemberList groupId={group.id} members={shownMembers} viewerId={profile.id} canManage={moderator} kind="community" />
+              <MemberList
+                groupId={group.id}
+                members={shownMembers}
+                viewerId={profile.id}
+                canManage={moderator}
+                kind="community"
+                total={Math.max(group.member_count, members.length)}
+                adminCount={members.filter((m) => m.role === "admin").length}
+              />
               {members.length > MEMBERS_SHOWN && (
                 <Link
                   href={allMembers ? `/communities/${slug}` : `/communities/${slug}?members=all`}
@@ -190,6 +225,48 @@ async function Community({ params, searchParams }: {
         </aside>
       </div>
     </div>
+  );
+}
+
+/**
+ * Moderators: a join link (made on first click), an email invite as member or moderator, and the
+ * invites still waiting for an answer.
+ */
+function InvitePeople({ group, invites }: { group: GroupDetail; invites: GroupInviteRow[] }) {
+  return (
+    <section aria-labelledby="invite-people" className="glass space-y-4 rounded-[22px] p-4">
+      <h2 id="invite-people" className="text-sm font-semibold tracking-tight">Invite people</h2>
+      <div className="space-y-2">
+        <p className="text-xs text-muted">
+          {group.visibility === "public"
+            ? "Anyone with the link can join. Links last 14 days."
+            : "Anyone with the link joins straight away, without approval. Links last 14 days."}
+        </p>
+        <InviteLinkButton groupId={group.id} groupName={group.name} />
+      </div>
+      <div className="border-t border-line pt-4">
+        <InviteByEmailForm groupId={group.id} roles />
+      </div>
+      {invites.length > 0 && (
+        <div className="border-t border-line pt-4">
+          <h3 className="text-xs font-semibold text-muted">Waiting for an answer</h3>
+          <ul className="mt-2 space-y-2.5">
+            {invites.map((invite) => {
+              const person = invite.user ?? invite.invited_user ?? null;
+              const name = person ? displayName(person) : invite.email ?? "Invite";
+              return (
+                <li key={invite.id} className="flex items-center gap-2.5 text-sm">
+                  <Avatar src={person?.avatar_url} name={name} size={28} />
+                  <span className="min-w-0 flex-1 truncate font-medium">{name}</span>
+                  {invite.role === "admin" && <Badge tone="brand">Moderator</Badge>}
+                  <span className="shrink-0 text-xs text-subtle">{timeAgo(invite.created_at)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }
 

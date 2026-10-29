@@ -63,6 +63,8 @@ export type GroupInviteRow = {
   id: string;
   kind: "invite" | "request";
   status: string;
+  /** What accepting makes them: "admin" for a moderator (circle admin) invite. */
+  role?: GroupRole;
   created_at: string;
   expires_at?: string | null;
   /** The person invited, or the person asking to join. */
@@ -81,14 +83,24 @@ export type MyInvite = {
   created_at: string;
 };
 
-/** `GET /groups/invites/{code}`: what an invite link points at. */
+/** `GET /groups/invites/{code}`: what an invite link points at (404 once it has expired). */
 export type InvitePreview = {
+  code?: string;
   id?: string;
   group_id?: string;
   kind?: GroupKind;
   name?: string;
   description?: string | null;
-  group?: { id: string; name: string; kind: GroupKind; description?: string | null; member_count?: number };
+  group?: {
+    id: string;
+    name: string;
+    kind: GroupKind;
+    slug?: string | null;
+    description?: string | null;
+    cover_url?: string | null;
+    visibility?: GroupVisibility;
+    member_count?: number;
+  };
   invited_by?: SocialUser | null;
   member_count?: number;
   already_member?: boolean;
