@@ -115,6 +115,10 @@ export type Announcement = {
   id: string;
   body: string;
   created_at: string;
+  edited_at?: string | null;
+  /** What the viewer may do with it (the author edits; the author or a moderator deletes). */
+  can_edit?: boolean;
+  can_delete?: boolean;
   author?: SocialUser | null;
   event_id?: string | null;
   event_title?: string | null;
@@ -172,6 +176,7 @@ export type ChatMessage = {
   body: string;
   deleted: boolean;
   created_at: string;
+  edited_at?: string | null;
 };
 
 export type Thread = {
@@ -180,6 +185,10 @@ export type Thread = {
   items: ChatMessage[];
   /** Older messages remain (or, after `after`, newer ones beyond this page). */
   has_more?: boolean;
+  /** With `changed_since`: messages edited or deleted since then (replace them by id). */
+  changed?: ChatMessage[];
+  /** Server time of this response: the next poll's `changed_since`. */
+  polled_at?: string;
 };
 
 export type BlockedUser = { user: SocialUser; created_at?: string };

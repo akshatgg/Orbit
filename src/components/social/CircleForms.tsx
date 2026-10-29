@@ -111,15 +111,29 @@ export function InviteLinkButton({ groupId, groupName }: { groupId: string; grou
 export function AnnouncementForm({ groupId }: { groupId: string }) {
   const form = useRef<HTMLFormElement>(null);
   const [state, action] = useActionState<FormState, FormData>(postAnnouncement.bind(null, groupId), null);
+  // The result a person has moved past: "Posted" fades after a few seconds or once they type again.
+  const [dismissed, setDismissed] = useState<FormState>(null);
   useEffect(() => {
-    if (state?.ok) form.current?.reset();
+    if (!state?.ok) return;
+    form.current?.reset();
+    const timer = setTimeout(() => setDismissed(state), 4000);
+    return () => clearTimeout(timer);
   }, [state]);
   return (
     <form ref={form} action={action} className="glass space-y-2 rounded-[22px] p-4" noValidate>
       <label htmlFor={`announce-${groupId}`} className="block text-sm font-semibold tracking-tight">Post an announcement</label>
-      <Textarea id={`announce-${groupId}`} name="body" required maxLength={1000} rows={3} placeholder="Tell members what's coming up" className="min-h-20" />
+      <Textarea
+        id={`announce-${groupId}`}
+        name="body"
+        required
+        maxLength={1000}
+        rows={3}
+        placeholder="Tell members what's coming up"
+        className="min-h-20"
+        onChange={() => state && state !== dismissed && setDismissed(state)}
+      />
       <div className="flex items-center justify-between gap-3">
-        <FormMessage state={state} />
+        <FormMessage state={state === dismissed ? null : state} />
         <SubmitButton size="sm" pendingText="Posting…" className="ml-auto">Post</SubmitButton>
       </div>
     </form>

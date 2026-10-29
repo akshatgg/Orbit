@@ -102,7 +102,7 @@ async function Circle({ params, searchParams }: {
             <p className="mb-2 px-4 text-right text-xs">
               <Link href={`/messages/${content.conversationId}`} className="font-medium text-accent hover:underline">Open in Messages</Link>
             </p>
-            <ChatThread conversationId={content.conversationId} initial={content.messages} initialHasMore={content.hasMore} me={me} kind="circle" />
+            <ChatThread conversationId={content.conversationId} initial={content.messages} initialHasMore={content.hasMore} initialPolledAt={content.polledAt} me={me} kind="circle" />
           </section>
         ) : (
           <EmptyState title="Chat isn't available right now">Try again in a moment.</EmptyState>
@@ -120,7 +120,7 @@ async function loadTab(id: string, tab: Tab) {
   if (tab === "chat") {
     const conversationId = await getCircleConversationId(id);
     const thread = conversationId ? await getThread(conversationId) : null;
-    return { tab, conversationId, messages: thread?.items ?? [], hasMore: thread?.has_more } as const;
+    return { tab, conversationId, messages: thread?.items ?? [], hasMore: thread?.has_more, polledAt: thread?.polled_at } as const;
   }
   const [upcoming, past] = await Promise.all([listGroupEvents(id, "upcoming"), listGroupEvents(id, "past", { limit: 10 })]);
   return { tab, upcoming: upcoming.items, upcomingCursor: upcoming.nextCursor, past: past.items, pastCursor: past.nextCursor } as const;
