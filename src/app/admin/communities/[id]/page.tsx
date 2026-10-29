@@ -12,7 +12,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { requireAdmin } from "@/lib/auth";
 import { listCategories } from "@/lib/events/queries";
-import { displayName, timeAgo } from "@/lib/social/format";
+import { displayName, groupCategories, timeAgo } from "@/lib/social/format";
 import { getGroup, listGroupInvites, listMembers } from "@/lib/social/queries";
 import { answerJoinRequest, deleteCommunity, removeCommunityMember, setModerator } from "../actions";
 
@@ -66,7 +66,7 @@ async function Content({ params, searchParams }: {
               name: group.name,
               slug: group.slug,
               description: group.description,
-              category_id: group.category_id,
+              category_ids: groupCategories(group).map((c) => c.id).filter(Boolean),
               university: group.university,
               visibility: group.visibility,
               allow_member_shares: group.allow_member_shares,

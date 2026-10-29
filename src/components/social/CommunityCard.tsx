@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
-import { plural } from "@/lib/social/format";
+import { groupCategories, plural } from "@/lib/social/format";
 import type { GroupCard } from "@/types/social";
 import { AvatarStack } from "./AvatarStack";
 import { SocialIcon } from "./icons";
 
-/** A community in the directory: name, category, university, size, upcoming events, joined state. */
+/** A community in the directory: name, categories, university, size, upcoming events, joined state. */
 export function CommunityCard({ community }: { community: GroupCard }) {
   const joined = !!community.my_role;
   return (
@@ -21,7 +21,8 @@ export function CommunityCard({ community }: { community: GroupCard }) {
           <span className="block font-semibold leading-snug tracking-tight">{community.name}</span>
           <span className="mt-1 flex flex-wrap gap-1.5">
             {joined && <Badge tone="success">Joined</Badge>}
-            {community.category_name && <Badge tone="brand">{community.category_name}</Badge>}
+            {groupCategories(community).slice(0, 3).map((c) => <Badge key={c.id || c.name} tone="brand">{c.name}</Badge>)}
+            {groupCategories(community).length > 3 && <Badge tone="brand">+{groupCategories(community).length - 3}</Badge>}
             {community.university && <Badge>{community.university}</Badge>}
             {community.visibility === "approval" && !joined && <Badge tone="warning">Approval</Badge>}
             {community.visibility === "private" && <Badge>Private</Badge>}

@@ -13,6 +13,8 @@ export type CommunityFormState = {
   message?: string;
   fieldErrors?: Partial<Record<string, string>>;
   values?: Record<string, string>;
+  /** The ticked categories, kept when the form comes back with errors. */
+  categoryIds?: string[];
 } | null;
 
 const blank = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
@@ -24,7 +26,7 @@ const communitySchema = z.object({
     z.string().min(2, "At least 2 characters").max(60).regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Lowercase letters, numbers and hyphens").optional(),
   ),
   description: z.preprocess((v) => String(v ?? "").trim(), z.string().max(500, "Keep it under 500 characters")),
-  category_id: z.preprocess(blank, z.string().max(80).optional()),
+  category_ids: z.array(z.string().regex(/^[\w-]{1,80}$/, "Unknown category")).min(1, "Pick at least one category").max(20, "Pick at most 20 categories"),
   university: z.preprocess((v) => String(v ?? "").trim(), z.string().max(120, "Keep it under 120 characters")),
   visibility: z.enum(["public", "approval", "private"], { error: "Pick who can join" }),
   allow_member_shares: z.preprocess((v) => v === "on" || v === "true", z.boolean()),
@@ -36,25 +38,27 @@ const id = z.string().regex(/^[\w-]{1,120}$/);
 /** Create (groupId null) or update a community. Bound with the id, used with useActionState. */
 export async function saveCommunity(groupId: string | null, _prev: CommunityFormState, formData: FormData): Promise<CommunityFormState> {
   await adminContext();
-  const raw = Object.fromEntries(formData);
-  const values = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v)]));
+  const categoryIds = [...new Set(formData.getAll("category_ids").map(String).filter(Boolean))];
+  const raw = { ...Object.fromEntries(formData), category_ids: categoryIds };
+  const values = Object.fromEntries([...formData.entries()].filter(([k]) => k !== "category_ids").map(([k, v]) => [k, String(v)]));
   const parsed = communitySchema.safeParse(raw);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
     for (const issue of parsed.error.issues) fieldErrors[String(issue.path[0])] ??= issue.message;
-    return { error: "Check the highlighted fields", fieldErrors, values };
+    return { error: "Check the highlighted fields", fieldErrors, values, categoryIds };
   }
   if (groupId && !id.safeParse(groupId).success) return { error: "Invalid community" };
-  const { description, university, category_id, cover_url, ...rest } = parsed.data;
-  // Blank fields clear the value on an update; on create they're simply left out.
+  const { description, university, cover_url, ...rest } = parsed.data;
+  // Blank fields clear the value on an update; on create they're simply left out. `category_ids`
+  // replaces the whole set (the first one is the community's main category).
   const clear = (v: string | undefined) => v || (groupId ? "" : undefined);
-  const body = { ...rest, description: clear(description), university: clear(university), category_id: clear(category_id), cover_url: clear(cover_url) };
+  const body = { ...rest, description: clear(description), university: clear(university), cover_url: clear(cover_url) };
   let createdId: string | null = null;
   try {
     if (groupId) await authed.patch(`/groups/${encodeURIComponent(groupId)}`, { body });
     else createdId = (await authed.post<{ id: string }>("/groups", { body: { kind: "community", ...body } })).id;
   } catch (error) {
-    return { error: isConflict(error) ? "That slug is already used" : adminError(error), values };
+    return { error: isConflict(error) ? "That slug is already used" : adminError(error), values, categoryIds };
   }
   revalidateEverywhere();
   if (createdId) redirect(`/admin/communities/${createdId}?created=1`);

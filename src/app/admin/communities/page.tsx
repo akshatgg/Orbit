@@ -7,6 +7,7 @@ import { Toaster } from "@/components/admin/Toaster";
 import { Badge } from "@/components/ui/Badge";
 import { requireAdmin } from "@/lib/auth";
 import { listCategories } from "@/lib/events/queries";
+import { groupCategories } from "@/lib/social/format";
 import { listCommunities } from "@/lib/social/queries";
 
 export const metadata: Metadata = { title: "Communities · Admin" };
@@ -20,7 +21,7 @@ const VISIBILITY: Record<string, { label: string; tone: "success" | "warning" | 
 export default function Page() {
   return (
     <>
-      <AdminHeader eyebrow="Social" title="Communities" subtitle="Interest groups students can join. Each one's feed shows its shared events plus upcoming events in its category." />
+      <AdminHeader eyebrow="Social" title="Communities" subtitle="Interest groups students can join. Each one's feed shows its shared events plus upcoming events in its categories." />
       <Suspense fallback={<TableSkeleton rows={6} />}>
         <Content />
       </Suspense>
@@ -44,7 +45,7 @@ async function Content() {
               <thead>
                 <tr>
                   <th className={table.th}>Name</th>
-                  <th className={table.th}>Category</th>
+                  <th className={table.th}>Categories</th>
                   <th className={table.th}>University</th>
                   <th className={table.th}>Joining</th>
                   <th className={table.th}>Members</th>
@@ -60,7 +61,9 @@ async function Content() {
                         <Link href={`/admin/communities/${c.id}`} className="font-medium text-fg hover:text-accent">{c.name}</Link>
                         <span className="block text-xs text-subtle">/communities/{c.slug ?? c.id}</span>
                       </td>
-                      <td className={table.td}>{c.category_name ?? <span className="text-subtle">—</span>}</td>
+                      <td className={table.td}>
+                        {groupCategories(c).map((cat) => cat.name).join(", ") || <span className="text-subtle">—</span>}
+                      </td>
                       <td className={table.td}>{c.university ?? <span className="text-subtle">Any</span>}</td>
                       <td className={table.td}><Badge tone={vis.tone}>{vis.label}</Badge></td>
                       <td className={table.td}>{c.member_count}</td>

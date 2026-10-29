@@ -10,6 +10,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { requireProfile } from "@/lib/auth";
+import { groupCategories } from "@/lib/social/format";
 import { listCommunities, type DirectoryFilters as Filters } from "@/lib/social/queries";
 
 export const metadata: Metadata = { title: "Communities" };
@@ -44,7 +45,9 @@ async function Directory({ searchParams }: { searchParams: PageProps<"/communiti
     listCommunities({}, { limit: 50 }),
   ]);
 
-  const categories = [...new Map(all.items.filter((c) => c.category_name).map((c) => [c.category_slug ?? c.category_id ?? "", c.category_name!])).entries()]
+  // Chips for every category any community covers (a community can have several); the API
+  // matches `?category=` against any of them.
+  const categories = [...new Map(all.items.flatMap(groupCategories).map((c) => [c.slug ?? c.id, c.name])).entries()]
     .filter(([key]) => key)
     .sort((a, b) => a[1].localeCompare(b[1]));
   const universities = [...new Set(all.items.map((c) => c.university).filter((u): u is string => !!u))].sort();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
+import { ChipGroup } from "@/components/ui/ChipGroup";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { saveCommunity, type CommunityFormState } from "@/app/admin/communities/actions";
@@ -11,7 +12,8 @@ export type CommunityFormValues = {
   name: string;
   slug: string | null;
   description: string | null;
-  category_id: string | null;
+  /** Every category, main one first. */
+  category_ids: string[];
   university: string | null;
   visibility: "public" | "approval" | "private";
   allow_member_shares?: boolean;
@@ -47,12 +49,26 @@ export function CommunityForm({ community, categories }: { community?: Community
           <Textarea id={`${p}-description`} name="description" defaultValue={v("description", community?.description ?? "")} maxLength={500} rows={3} />
         </Field>
       </div>
-      <Field label="Category" htmlFor={`${p}-category`} error={fe.category_id} hint="Upcoming events in this category show in the community's feed.">
-        <Select id={`${p}-category`} name="category_id" defaultValue={v("category_id", community?.category_id ?? "")}>
-          <option value="">No category</option>
-          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </Select>
-      </Field>
+      <div className="sm:col-span-2">
+        <fieldset aria-describedby={`${p}-categories-hint`} aria-invalid={fe.category_ids ? true : undefined}>
+          <legend className="mb-1.5 block text-sm font-medium text-fg/90">
+            Categories<span className="ml-0.5 text-accent">*</span>
+          </legend>
+          <ChipGroup
+            key={state?.categoryIds?.join(",") ?? "initial"}
+            name="category_ids"
+            options={categories.map((c) => ({ value: c.id, label: c.name }))}
+            defaultValue={state?.categoryIds ?? community?.category_ids ?? []}
+          />
+          {fe.category_ids ? (
+            <p className="mt-1.5 text-xs text-red-300">{fe.category_ids}</p>
+          ) : (
+            <p id={`${p}-categories-hint`} className="mt-1.5 text-xs text-muted">
+              Upcoming events in any of these show in the community&apos;s feed. The first one you pick is its main category.
+            </p>
+          )}
+        </fieldset>
+      </div>
       <Field label="University" htmlFor={`${p}-university`} error={fe.university} hint="Optional: only this university's events match.">
         <Input id={`${p}-university`} name="university" defaultValue={v("university", community?.university ?? "")} maxLength={120} />
       </Field>

@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { isAdmin as isOrbitAdmin, requireProfile } from "@/lib/auth";
 import { getMyEventState } from "@/lib/events/queries";
 import { joinGroup, leaveGroup, respondInvite } from "@/lib/social/actions";
-import { displayName, plural, timeAgo } from "@/lib/social/format";
+import { displayName, groupCategories, plural, timeAgo } from "@/lib/social/format";
 import { getGroup, listAnnouncements, listGroupEvents, listGroupInvites } from "@/lib/social/queries";
 import type { Announcement, GroupDetail, GroupInviteRow } from "@/types/social";
 
@@ -76,7 +76,11 @@ async function Community({ params, searchParams }: {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap gap-1.5">
-              {group.category_name && <Badge tone="brand">{group.category_name}</Badge>}
+              {groupCategories(group).map((c) => (
+                <Link key={c.id || c.name} href={c.slug ? `/communities?category=${encodeURIComponent(c.slug)}` : "/communities"} className="rounded-full">
+                  <Badge tone="brand">{c.name}</Badge>
+                </Link>
+              ))}
               {group.university && <Badge>{group.university}</Badge>}
               {group.visibility === "approval" && <Badge tone="warning">Approval to join</Badge>}
               {group.visibility === "private" && <Badge>Private</Badge>}
@@ -119,7 +123,7 @@ async function Community({ params, searchParams }: {
               </div>
             ) : feed.items.length === 0 ? (
               <div className="md:[&>div]:mx-0">
-                <EmptyState title="No upcoming events yet">Events shared here, and new ones in this community&apos;s category, show up here.</EmptyState>
+                <EmptyState title="No upcoming events yet">Events shared here, and new ones in this community&apos;s categories, show up here.</EmptyState>
               </div>
             ) : (
               <ul className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 md:px-0">
