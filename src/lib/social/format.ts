@@ -1,6 +1,6 @@
 // Display helpers for the social screens (safe on the server and in the browser).
 
-import type { SocialUser } from "@/types/social";
+import type { GroupCard, GroupCategory, SocialUser } from "@/types/social";
 
 const dayFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" });
 const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
@@ -56,4 +56,10 @@ export function namesLine(users: Pick<SocialUser, "full_name">[], limit = 2, tot
 
 export function plural(n: number, one: string, many = `${one}s`) {
   return `${n} ${n === 1 ? one : many}`;
+}
+
+/** A community's categories, falling back to the single `category_*` fields on older responses. */
+export function groupCategories(group: Pick<GroupCard, "categories" | "category_id" | "category_slug" | "category_name">): GroupCategory[] {
+  if (group.categories?.length) return group.categories;
+  return group.category_name ? [{ id: group.category_id ?? "", slug: group.category_slug ?? null, name: group.category_name }] : [];
 }

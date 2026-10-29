@@ -14,6 +14,8 @@ export type GroupKind = "circle" | "community";
 export type GroupVisibility = "private" | "public" | "approval";
 export type GroupRole = "admin" | "member";
 
+export type GroupCategory = { id: string; slug: string | null; name: string };
+
 /** One row of `GET /groups` (my circles, the communities directory). */
 export type GroupCard = {
   id: string;
@@ -31,6 +33,8 @@ export type GroupCard = {
   upcoming_event_count: number;
   allow_member_shares?: boolean;
   category_slug?: string | null;
+  /** Every category the community covers; `category_*` above is the first one. */
+  categories?: GroupCategory[];
   joined?: boolean;
   /** A few members for the avatar stack, when the API includes them. */
   members_preview?: SocialUser[];
