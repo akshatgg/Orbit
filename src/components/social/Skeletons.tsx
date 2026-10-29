@@ -36,8 +36,14 @@ export function DirectorySkeleton({ tabs = false }: { tabs?: boolean }) {
   return (
     <div aria-busy="true" aria-label="Loading" className="space-y-4">
       {tabs && <TabsSkeleton />}
-      <div className="flex gap-2 overflow-hidden px-4">
-        {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-8 w-24 shrink-0 rounded-full" />)}
+      {/* Search, the two dropdowns and the grid / list switch, laid out like DirectoryFilters. */}
+      <div className="flex flex-wrap gap-2 px-4">
+        <Skeleton className="h-[42px] min-w-0 flex-1 rounded-[14px] sm:min-w-48" />
+        <div className="order-last flex w-full gap-2 sm:order-none sm:w-auto">
+          <Skeleton className="h-[42px] flex-1 rounded-[14px] sm:w-44 sm:flex-none lg:w-52" />
+          <Skeleton className="h-[42px] flex-1 rounded-[14px] sm:w-44 sm:flex-none lg:w-56" />
+        </div>
+        <Skeleton className="h-[42px] w-[82px] shrink-0 rounded-full" />
       </div>
       <div className="space-y-3 px-4 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:grid-cols-3">
         {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-36 rounded-[22px]" />)}
@@ -71,6 +77,20 @@ export function ThreadSkeleton() {
           <Skeleton className={`h-10 rounded-[18px] ${w}`} />
         </div>
       ))}
+    </div>
+  );
+}
+
+/** The invite card on /join/circle/<code> and /join/community/<code>. */
+export function JoinSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading" className="glass-strong flex w-full flex-col items-center rounded-[28px] p-6">
+      <Skeleton className="-mt-2 h-[72px] w-[72px] rounded-full" />
+      <Skeleton className="mt-4 h-3 w-24" />
+      <Skeleton className="mt-3 h-7 w-3/4" />
+      <Skeleton className="mt-3 h-4 w-full" />
+      <Skeleton className="mt-5 h-6 w-1/2 rounded-full" />
+      <Skeleton className="mt-6 h-12 w-full rounded-full" />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { ApiError } from "@/lib/api/client";
 import { isApiStatus } from "@/lib/api/errors";
 import { apiAs, authed } from "@/lib/api/session";
@@ -19,6 +20,7 @@ import type {
   ShareableGroup,
   Thread,
 } from "@/types/social";
+import { parseView, VIEW_COOKIES, type ViewScope } from "./view";
 
 /**
  * Reads for Circles, Communities, the inbox and messages, as the signed-in person.
@@ -50,6 +52,11 @@ export const DIRECTORY_PAGE = 24;
 export async function listCommunities(filters: DirectoryFilters = {}, { cursor, limit = DIRECTORY_PAGE }: { cursor?: string; limit?: number } = {}) {
   const page = await apiAs<GroupPage>("/groups", { query: { kind: "community", limit, cursor, ...filters } });
   return { items: page?.items ?? [], total: page?.total ?? 0, nextCursor: page?.next_cursor ?? null };
+}
+
+/** The viewer's grid / list choice for a screen (grid until they pick). */
+export async function getListView(scope: ViewScope) {
+  return parseView((await cookies()).get(VIEW_COOKIES[scope])?.value);
 }
 
 export async function getGroup(idOrSlug: string) {

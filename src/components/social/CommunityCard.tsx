@@ -24,8 +24,7 @@ export function CommunityCard({ community }: { community: GroupCard }) {
             {groupCategories(community).slice(0, 3).map((c) => <Badge key={c.id || c.name} tone="brand">{c.name}</Badge>)}
             {groupCategories(community).length > 3 && <Badge tone="brand">+{groupCategories(community).length - 3}</Badge>}
             {community.university && <Badge>{community.university}</Badge>}
-            {community.visibility === "approval" && !joined && <Badge tone="warning">Approval</Badge>}
-            {community.visibility === "private" && <Badge>Private</Badge>}
+            <AccessBadge community={community} />
           </span>
         </span>
       </span>
@@ -41,4 +40,45 @@ export function CommunityCard({ community }: { community: GroupCard }) {
       </span>
     </Link>
   );
+}
+
+/** The same community as one row of the directory's list view (inside a divided `glass` list). */
+export function CommunityRow({ community }: { community: GroupCard }) {
+  const joined = !!community.my_role;
+  const categories = groupCategories(community);
+  return (
+    <Link
+      href={`/communities/${community.slug ?? community.id}`}
+      className="flex items-center gap-3 px-4 py-3 transition-colors duration-200 hover:bg-ink/[0.04] motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+        <SocialIcon name="community" className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[15px] font-semibold leading-snug tracking-tight">{community.name}</span>
+        <span className="mt-1 flex flex-wrap gap-1">
+          {joined && <Badge tone="success">Joined</Badge>}
+          {/* One category (+N) on phones, two from `sm`, so a row stays two lines. */}
+          {categories[0] && <Badge tone="brand">{categories[0].name}</Badge>}
+          {categories[1] && <span className="hidden sm:contents"><Badge tone="brand">{categories[1].name}</Badge></span>}
+          {categories.length > 1 && <span className="contents sm:hidden"><Badge tone="brand">+{categories.length - 1}</Badge></span>}
+          {categories.length > 2 && <span className="hidden sm:contents"><Badge tone="brand">+{categories.length - 2}</Badge></span>}
+          <AccessBadge community={community} />
+        </span>
+      </span>
+      <span className="shrink-0 text-right text-xs leading-relaxed text-muted">
+        <span className="block tabular-nums">{plural(community.member_count, "member")}</span>
+        {community.upcoming_event_count > 0 && (
+          <span className="block font-medium tabular-nums text-accent">{community.upcoming_event_count} upcoming</span>
+        )}
+      </span>
+      <SocialIcon name="chevron" className="hidden h-4 w-4 text-subtle sm:block" />
+    </Link>
+  );
+}
+
+function AccessBadge({ community }: { community: GroupCard }) {
+  if (community.visibility === "approval" && !community.my_role) return <Badge tone="warning">Approval</Badge>;
+  if (community.visibility === "private") return <Badge>Private</Badge>;
+  return null;
 }
