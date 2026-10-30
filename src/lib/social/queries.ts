@@ -4,9 +4,11 @@ import { cookies } from "next/headers";
 import { ApiError } from "@/lib/api/client";
 import { isApiStatus } from "@/lib/api/errors";
 import { apiAs, authed } from "@/lib/api/session";
+import { getMyEventState } from "@/lib/events/queries";
 import type {
   Announcement,
   BlockedUser,
+  ChannelCard,
   ConversationList,
   GroupDetail,
   GroupEventItem,
@@ -16,6 +18,8 @@ import type {
   GroupPage,
   InboxPage,
   InvitePreview,
+  LibraryPage,
+  LibraryTab,
   MyInvite,
   ShareableGroup,
   Thread,
@@ -57,6 +61,14 @@ export async function listCommunities(filters: DirectoryFilters = {}, { cursor, 
 /** The viewer's grid / list choice for a screen (grid until they pick). */
 export async function getListView(scope: ViewScope) {
   return parseView((await cookies()).get(VIEW_COOKIES[scope])?.value);
+}
+
+export type ChannelFilters = { category?: string; q?: string };
+
+/** A community's channels, Announcements first, then mine, a page at a time. Empty for a flat community. */
+export async function listChannels(community: string, filters: ChannelFilters = {}, { cursor, limit = DIRECTORY_PAGE }: { cursor?: string; limit?: number } = {}) {
+  const page = await maybe<{ items: ChannelCard[]; total: number; next_cursor: string | null }>(`/groups/${enc(community)}/channels`, { limit, cursor, ...filters });
+  return { items: page?.items ?? [], total: page?.total ?? 0, nextCursor: page?.next_cursor ?? null };
 }
 
 export async function getGroup(idOrSlug: string) {
@@ -138,11 +150,27 @@ export async function listConversations(cursor?: string) {
 export type ThreadQuery = { after?: string; after_id?: string; before?: string; before_id?: string; changed_since?: string; limit?: number };
 
 export async function getThread(conversationId: string, query: ThreadQuery = {}) {
-  return maybe<Thread>(`/messages/conversations/${enc(conversationId)}`, { limit: 50, ...query });
+  const thread = await maybe<Thread>(`/messages/conversations/${enc(conversationId)}`, { limit: 50, ...query });
+  return thread && withSavedEvents(thread);
 }
 
-/** The circle's chat (created on first open). Null when the viewer isn't a member. */
-export async function getCircleConversationId(groupId: string) {
+/** Adds which of the thread's event messages the viewer has saved, for their bookmarks. */
+export async function withSavedEvents(thread: Thread): Promise<Thread> {
+  const eventIds = [...thread.items, ...(thread.changed ?? [])].flatMap((m) => (m.event ? [m.event.id] : []));
+  if (eventIds.length === 0) return thread;
+  const state = await getMyEventState("me", eventIds);
+  return { ...thread, saved_event_ids: [...state.saved] };
+}
+
+export const LIBRARY_PAGE = 30;
+
+/** One page of a conversation's Media, Links or Docs, newest first. Null when it isn't open to the viewer. */
+export async function getLibrary(conversationId: string, tab: LibraryTab, { q, cursor }: { q?: string; cursor?: string } = {}) {
+  return maybe<LibraryPage>(`/messages/conversations/${enc(conversationId)}/library`, { tab, q, cursor, limit: LIBRARY_PAGE });
+}
+
+/** A circle's or channel's chat (created on first open). Null when the viewer isn't a member. */
+export async function getGroupConversationId(groupId: string) {
   const res = await maybe<{ id: string }>(`/groups/${enc(groupId)}/conversation`);
   return res?.id ?? null;
 }

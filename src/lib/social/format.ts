@@ -1,6 +1,6 @@
 // Display helpers for the social screens (safe on the server and in the browser).
 
-import type { GroupCard, GroupCategory, GroupMemberRow, SocialUser } from "@/types/social";
+import type { GroupCard, GroupCategory, GroupKind, GroupMemberRow, SocialUser } from "@/types/social";
 
 const dayFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" });
 const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/London" });
@@ -62,6 +62,23 @@ export function plural(n: number, one: string, many = `${one}s`) {
 export function groupCategories(group: Pick<GroupCard, "categories" | "category_id" | "category_slug" | "category_name">): GroupCategory[] {
   if (group.categories?.length) return group.categories;
   return group.category_name ? [{ id: group.category_id ?? "", slug: group.category_slug ?? null, name: group.category_name }] : [];
+}
+
+/** A group's page: a channel sits under its community, a community by slug, a circle by id. */
+export function groupPath(group: { id: string; kind?: GroupKind; slug?: string | null; parent_slug?: string | null }) {
+  if (group.kind === "circle") return `/circles/${group.id}`;
+  if (group.kind === "channel" && group.parent_slug) return `/communities/${group.parent_slug}/${group.slug ?? group.id}`;
+  return `/communities/${group.slug ?? group.id}`;
+}
+
+const SIZE_UNITS = ["B", "KB", "MB"];
+
+/** "820 KB", "3.2 MB". */
+export function fileSize(bytes: number | null | undefined) {
+  if (!bytes || bytes < 0) return "";
+  const unit = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), SIZE_UNITS.length - 1);
+  const value = bytes / 1024 ** unit;
+  return `${value < 10 && unit > 0 ? value.toFixed(1) : Math.round(value)} ${SIZE_UNITS[unit]}`;
 }
 
 /** Admins (a community's moderators) first, otherwise in the API's order. */

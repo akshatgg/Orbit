@@ -18,7 +18,7 @@ import { requireProfile } from "@/lib/auth";
 import { deleteGroup, leaveGroup, respondInvite } from "@/lib/social/actions";
 import { displayName, plural, timeAgo } from "@/lib/social/format";
 import {
-  getCircleConversationId,
+  getGroupConversationId,
   getGroup,
   getThread,
   listGroupEvents,
@@ -99,7 +99,8 @@ async function Circle({ params, searchParams }: {
       {content.tab === "chat" && (
         content.conversationId ? (
           <section aria-label="Circle chat" className="md:mx-auto md:max-w-2xl">
-            <p className="mb-2 px-4 text-right text-xs">
+            <p className="mb-2 flex justify-end gap-3 px-4 text-xs">
+              <Link href={`/messages/${content.conversationId}/library`} className="font-medium text-accent hover:underline">Media, links and docs</Link>
               <Link href={`/messages/${content.conversationId}`} className="font-medium text-accent hover:underline">Open in Messages</Link>
             </p>
             <ChatThread conversationId={content.conversationId} initial={content.messages} initialHasMore={content.hasMore} initialPolledAt={content.polledAt} me={me} kind="circle" />
@@ -118,7 +119,7 @@ async function loadTab(id: string, tab: Tab) {
     return { tab, invites: await listGroupInvites(id) } as const;
   }
   if (tab === "chat") {
-    const conversationId = await getCircleConversationId(id);
+    const conversationId = await getGroupConversationId(id);
     const thread = conversationId ? await getThread(conversationId) : null;
     return { tab, conversationId, messages: thread?.items ?? [], hasMore: thread?.has_more, polledAt: thread?.polled_at } as const;
   }

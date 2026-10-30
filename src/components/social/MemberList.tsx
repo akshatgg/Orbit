@@ -10,7 +10,7 @@ import { ActionButton } from "./SmallActions";
  * Members, admins (moderators) first, with "Message" (DMs need a shared group) and, for admins,
  * make admin / remove, and "Step down" on their own row while another admin remains.
  */
-export function MemberList({ groupId, members, viewerId, canManage, kind = "circle", total, adminCount }: {
+export function MemberList({ groupId, members, viewerId, canManage, kind = "circle", total, adminCount, canMessage = true }: {
   groupId: string;
   members: GroupMemberRow[];
   viewerId: string;
@@ -20,6 +20,8 @@ export function MemberList({ groupId, members, viewerId, canManage, kind = "circ
   total?: number;
   /** Admins in the whole group, when `members` is only the first few. */
   adminCount?: number;
+  /** False in a group everyone is in: being there says nothing about who may message whom. */
+  canMessage?: boolean;
 }) {
   const admins = adminCount ?? members.filter((m) => m.role === "admin").length;
   const adminWord = kind === "community" ? "moderator" : "admin";
@@ -48,7 +50,7 @@ export function MemberList({ groupId, members, viewerId, canManage, kind = "circ
                 )}
               </span>
               <span className="flex items-center gap-1">
-                {!me && (
+                {!me && canMessage && (
                   <ActionButton action={startDirectMessage.bind(null, user.id)} variant="secondary" label={`Message ${name}`}>
                     <SocialIcon name="chat" className="h-3.5 w-3.5" /> Message
                   </ActionButton>

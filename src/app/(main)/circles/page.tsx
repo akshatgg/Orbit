@@ -79,7 +79,7 @@ function Invites({ invites }: { invites: MyInvite[] }) {
                 <span className="font-medium">{displayName(invite.invited_by)}</span> invited you to{" "}
                 <span className="font-semibold">{invite.group.name}</span>
               </p>
-              <p className="mt-0.5 text-xs text-muted">{invite.group.kind === "community" ? "Community" : "Circle"} · {timeAgo(invite.created_at)}</p>
+              <p className="mt-0.5 text-xs text-muted">{invite.group.kind === "channel" ? `Channel${invite.group.parent_name ? ` in ${invite.group.parent_name}` : ""}` : invite.group.kind === "community" ? "Community" : "Circle"} · {timeAgo(invite.created_at)}</p>
             </div>
             <div className="flex gap-2">
               <ActionButton action={respondInvite.bind(null, invite.group.id, invite.id, true)} variant="primary">Accept</ActionButton>

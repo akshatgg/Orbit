@@ -5,7 +5,7 @@ import { OrbitEmblem } from "@/components/brand/OrbitEmblem";
 import { Avatar } from "@/components/ui/Avatar";
 import { ButtonLink } from "@/components/ui/Button";
 import { getCurrentUser } from "@/lib/auth";
-import { displayName, plural } from "@/lib/social/format";
+import { displayName, groupPath, plural } from "@/lib/social/format";
 import { previewInvite } from "@/lib/social/queries";
 import type { GroupKind } from "@/types/social";
 import { JoinGroupButton } from "./JoinGroupButton";
@@ -25,6 +25,12 @@ const COPY: Record<GroupKind, { eyebrow: string; join: string; ask: string; home
     ask: "Ask one of the community's moderators for a new one.",
     home: { href: "/communities", label: "Browse communities" },
   },
+  channel: {
+    eyebrow: "Channel invite",
+    join: "Join channel",
+    ask: "Ask one of the channel's moderators for a new one.",
+    home: { href: "/communities", label: "Browse communities" },
+  },
 };
 
 /** The centred card the invite pages (and their loading state) sit in. */
@@ -33,7 +39,7 @@ export function JoinFrame({ children }: { children: ReactNode }) {
 }
 
 /**
- * `/join/circle/<code>` and `/join/community/<code>`: what the link opens and who sent it, then
+ * `/join/circle/<code>`, `/join/community/<code>` and `/join/channel/<code>`: what the link opens and who sent it, then
  * "Join". Signed-out visitors sign in first and come back; a link to the other kind of group moves
  * to its own page. Call inside a <Suspense> boundary.
  */
@@ -47,11 +53,13 @@ export async function JoinInvite({ code, kind }: { code: string; kind: GroupKind
     ? {
         id: preview.group?.id ?? preview.group_id ?? preview.id ?? "",
         kind: preview.group?.kind ?? preview.kind ?? kind,
-        name: preview.group?.name ?? preview.name ?? (kind === "community" ? "A community" : "A circle"),
+        name: preview.group?.name ?? preview.name ?? (kind === "circle" ? "A circle" : `A ${kind}`),
         slug: preview.group?.slug ?? null,
         description: preview.group?.description ?? preview.description ?? null,
         members: preview.group?.member_count ?? preview.member_count,
         visibility: preview.group?.visibility,
+        parent_slug: preview.group?.parent_slug ?? null,
+        parent_name: preview.group?.parent_name ?? null,
       }
     : null;
   if (group && group.kind !== kind) redirect(`/join/${group.kind}/${encodeURIComponent(code)}`);
@@ -59,7 +67,7 @@ export async function JoinInvite({ code, kind }: { code: string; kind: GroupKind
   const copy = COPY[kind];
   const problem = "problem" in lookup && lookup.problem && /\s/.test(lookup.problem) ? lookup.problem : "";
   const expired = /expired/i.test(problem);
-  const openHref = group ? (group.kind === "community" ? `/communities/${group.slug ?? group.id}` : `/circles/${group.id}`) : copy.home.href;
+  const openHref = group ? groupPath(group) : copy.home.href;
 
   return (
     <div className="glass-strong w-full rounded-[28px] p-6 text-center">
@@ -74,6 +82,7 @@ export async function JoinInvite({ code, kind }: { code: string; kind: GroupKind
         <>
           <p className="mt-3 font-display text-xs font-medium text-muted">{copy.eyebrow}</p>
           <h1 className="mt-1.5 text-2xl font-semibold leading-tight">{group.name}</h1>
+          {group.parent_name && <p className="mt-1 text-sm text-muted">In {group.parent_name}</p>}
           {group.description && <p className="mt-2 line-clamp-4 text-sm text-muted">{group.description}</p>}
           {preview?.invited_by && (
             <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted">
@@ -90,9 +99,10 @@ export async function JoinInvite({ code, kind }: { code: string; kind: GroupKind
               </>
             ) : (
               <>
-                {kind === "community" && group.visibility && group.visibility !== "public" && (
+                {kind !== "circle" && group.visibility && group.visibility !== "public" && (
                   <p className="mb-4 text-xs text-muted">This link lets you in straight away, without waiting for approval.</p>
                 )}
+                {group.parent_name && <p className="mb-4 text-xs text-muted">Joining also adds you to {group.parent_name}.</p>}
                 <JoinGroupButton code={code} name={group.name} label={copy.join} />
               </>
             )}

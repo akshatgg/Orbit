@@ -2,9 +2,11 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ChipGroup, type ChipOption } from "@/components/ui/ChipGroup";
 import { Field, FormMessage, Input, Textarea } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { createCircle, createInviteLink, inviteByEmail, postAnnouncement, updateCircle, type FormState } from "@/lib/social/actions";
+import { createChannel, createCircle, createInviteLink, inviteByEmail, postAnnouncement, updateChannel, updateCircle, type FormState } from "@/lib/social/actions";
+import type { GroupDetail } from "@/types/social";
 import { SocialIcon } from "./icons";
 
 /** "New circle": name + optional description; opens the circle once created. */
@@ -64,17 +66,7 @@ export function InviteByEmailForm({ groupId, roles = false }: { groupId: string;
         <fieldset className="flex items-center gap-2">
           <legend className="sr-only">Invite as</legend>
           <span aria-hidden className="text-xs text-muted">As</span>
-          <span className="inline-flex gap-0.5 rounded-full bg-ink/[0.06] p-1 light:rounded-xl">
-            {ROLES.map((r) => (
-              <label
-                key={r.value}
-                className="cursor-pointer rounded-full px-3 py-1 text-xs font-medium text-muted transition duration-200 hover:text-fg has-checked:bg-[var(--seg-on)] has-checked:text-fg has-checked:shadow-[var(--seg-shadow)] has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-accent light:rounded-lg motion-reduce:transition-none"
-              >
-                <input type="radio" name="role" value={r.value} defaultChecked={r.value === "member"} className="sr-only" />
-                {r.label}
-              </label>
-            ))}
-          </span>
+          <SegmentedRadios name="role" options={ROLES} defaultValue="member" />
         </fieldset>
       )}
       <FormMessage state={state} />
@@ -86,6 +78,111 @@ const ROLES = [
   { value: "member", label: "Member" },
   { value: "admin", label: "Moderator" },
 ] as const;
+
+/** A small segmented control that submits with its form, as radios. */
+function SegmentedRadios({ name, options, defaultValue, disabled }: {
+  name: string;
+  options: readonly { value: string; label: string }[];
+  defaultValue: string;
+  disabled?: boolean;
+}) {
+  return (
+    <span className={`inline-flex max-w-full gap-0.5 rounded-full bg-ink/[0.06] p-1 light:rounded-xl ${disabled ? "opacity-60" : ""}`}>
+      {options.map((o) => (
+        <label
+          key={o.value}
+          className="cursor-pointer rounded-full px-3 py-1 text-xs font-medium text-muted transition duration-200 hover:text-fg has-checked:bg-[var(--seg-on)] has-checked:text-fg has-checked:shadow-[var(--seg-shadow)] has-focus-visible:outline has-focus-visible:outline-2 has-focus-visible:outline-accent light:rounded-lg motion-reduce:transition-none"
+        >
+          <input type="radio" name={name} value={o.value} defaultChecked={o.value === defaultValue} disabled={disabled} className="sr-only" />
+          {o.label}
+        </label>
+      ))}
+    </span>
+  );
+}
+
+const VISIBILITIES = [
+  { value: "public", label: "Anyone" },
+  { value: "approval", label: "Approval" },
+  { value: "private", label: "Invite only" },
+] as const;
+
+const POST_POLICIES = [
+  { value: "everyone", label: "Everyone" },
+  { value: "moderators", label: "Moderators" },
+] as const;
+
+/** What a channel's two forms share: name, description, who can join and post, its categories. */
+function ChannelFields({ prefix, state, group, categories, locked = false }: {
+  prefix: string;
+  state: FormState;
+  group?: Pick<GroupDetail, "name" | "description" | "visibility" | "post_policy" | "categories">;
+  categories: ChipOption[];
+  /** Announcements: its access is fixed. */
+  locked?: boolean;
+}) {
+  return (
+    <>
+      <Field label="Name" htmlFor={`${prefix}-name`} error={state?.fieldErrors?.name}>
+        <Input id={`${prefix}-name`} name="name" defaultValue={group?.name} required minLength={2} maxLength={60} placeholder="Internships, Weekend hikes" />
+      </Field>
+      <Field label={group ? "Description" : "What's it for? (optional)"} htmlFor={`${prefix}-description`} error={state?.fieldErrors?.description}>
+        <Input id={`${prefix}-description`} name="description" defaultValue={group?.description ?? ""} maxLength={500} />
+      </Field>
+      {!locked && (
+        <>
+          <fieldset className="space-y-1.5">
+            <legend className="text-sm font-medium text-fg/90">Who can join</legend>
+            <SegmentedRadios name="visibility" options={VISIBILITIES} defaultValue={group?.visibility ?? "public"} />
+          </fieldset>
+          <fieldset className="space-y-1.5">
+            <legend className="text-sm font-medium text-fg/90">Who can post</legend>
+            <SegmentedRadios name="post_policy" options={POST_POLICIES} defaultValue={group?.post_policy ?? "everyone"} />
+          </fieldset>
+          {categories.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-sm font-medium text-fg/90">Categories <span className="font-normal text-muted">(new events in these get posted here)</span></p>
+              <div className="max-h-48 overflow-y-auto">
+                <ChipGroup name="category_slugs" options={categories} defaultValue={group?.categories?.map((c) => c.slug ?? "").filter(Boolean)} max={10} />
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+/** "New channel" (a community's moderators): folded until asked for; opens the channel once created. */
+export function CreateChannelForm({ community, categories }: { community: string; categories: ChipOption[] }) {
+  const [state, action] = useActionState<FormState, FormData>(createChannel.bind(null, community), null);
+  return (
+    <details className="glass group rounded-[22px]">
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-[22px] p-4 text-sm font-semibold tracking-tight [&::-webkit-details-marker]:hidden">
+        <SocialIcon name="plus" className="h-4 w-4 transition-transform duration-200 group-open:rotate-45 motion-reduce:transition-none" />
+        New channel
+      </summary>
+      <form action={action} className="space-y-3 px-4 pb-4">
+        <ChannelFields prefix="new-channel" state={state} categories={categories} />
+        {state?.error && <FormMessage state={state} />}
+        <SubmitButton size="sm" pendingText="Creating…">Create channel</SubmitButton>
+      </form>
+    </details>
+  );
+}
+
+/** A channel's settings (its moderators). */
+export function ChannelSettingsForm({ group, categories }: { group: GroupDetail; categories: ChipOption[] }) {
+  const locked = !!group.is_announcements;
+  const [state, action] = useActionState<FormState, FormData>(updateChannel.bind(null, group.id, locked), null);
+  return (
+    <form action={action} className="space-y-3">
+      <ChannelFields prefix="channel-settings" state={state} group={group} categories={categories} locked={locked} />
+      <FormMessage state={state} />
+      <SubmitButton variant="secondary" size="sm" pendingText="Saving…">Save</SubmitButton>
+    </form>
+  );
+}
 
 const expiryFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "Europe/London" });
 

@@ -10,9 +10,11 @@ export type SocialUser = {
   university: string | null;
 };
 
-export type GroupKind = "circle" | "community";
+export type GroupKind = "circle" | "community" | "channel";
 export type GroupVisibility = "private" | "public" | "approval";
 export type GroupRole = "admin" | "member";
+/** Who may send messages in a channel: everyone in it, or its moderators (and auto-posted events). */
+export type PostPolicy = "everyone" | "moderators";
 
 export type GroupCategory = { id: string; slug: string | null; name: string };
 
@@ -38,6 +40,22 @@ export type GroupCard = {
   joined?: boolean;
   /** A few members for the avatar stack, when the API includes them. */
   members_preview?: SocialUser[];
+  /** Channels: the community they sit in. */
+  parent_id?: string | null;
+  parent_slug?: string | null;
+  parent_name?: string | null;
+  post_policy?: PostPolicy;
+  is_announcements?: boolean;
+  /** Everyone is in it from the start, so its member list stays with those who manage it. */
+  auto_join?: boolean;
+  pending_request?: boolean;
+};
+
+/** One row of `GET /groups/{community}/channels`. Unread and preview are for channels I'm in. */
+export type ChannelCard = GroupCard & {
+  unread_count: number;
+  last_message_at: string | null;
+  last_message_preview: string | null;
 };
 
 /** `GET /groups/{id_or_slug}`. */
@@ -48,6 +66,12 @@ export type GroupDetail = GroupCard & {
   can_manage?: boolean;
   can_invite?: boolean;
   can_share?: boolean;
+  /** Channels: may send messages now. */
+  can_post?: boolean;
+  /** False where leaving isn't on its own (an `auto_join` channel). */
+  can_leave?: boolean;
+  /** The list is kept from the viewer (an `auto_join` group): `member_count` is all they get. */
+  members_hidden?: boolean;
   /** The first members (up to 100), when the viewer may see them. */
   members?: GroupMemberRow[];
   created_by?: string | null;
@@ -78,7 +102,7 @@ export type GroupInviteRow = {
 /** `GET /groups/invites/mine`. */
 export type MyInvite = {
   id: string;
-  group: { id: string; name: string; kind: GroupKind; slug?: string | null };
+  group: { id: string; name: string; kind: GroupKind; slug?: string | null; parent_slug?: string | null; parent_name?: string | null };
   invited_by: SocialUser | null;
   created_at: string;
 };
@@ -100,6 +124,9 @@ export type InvitePreview = {
     cover_url?: string | null;
     visibility?: GroupVisibility;
     member_count?: number;
+    parent_id?: string | null;
+    parent_slug?: string | null;
+    parent_name?: string | null;
   };
   invited_by?: SocialUser | null;
   member_count?: number;
@@ -145,11 +172,16 @@ export type ShareableGroup = {
   slug?: string | null;
   member_count?: number;
   already_shared: boolean;
+  /** Channels: the community they sit in. */
+  parent_id?: string | null;
+  parent_slug?: string | null;
+  parent_name?: string | null;
+  post_policy?: PostPolicy;
 };
 
 // ─── in-app notifications ──────────────────────────────────────────────────
 
-export type NotificationKind = "circle_invite" | "join_request" | "request_approved" | "event_shared" | "announcement" | (string & {});
+export type NotificationKind = "circle_invite" | "join_request" | "request_approved" | "event_shared" | "announcement" | "event_digest" | (string & {});
 
 export type InboxItem = {
   id: string;
@@ -168,27 +200,72 @@ export type InboxPage = { items: InboxItem[]; unread_count: number; next_cursor?
 
 // ─── messaging ─────────────────────────────────────────────────────────────
 
-export type ConversationKind = "circle" | "direct";
+export type ConversationKind = "circle" | "direct" | "channel";
 
 export type Conversation = {
   id: string;
   kind: ConversationKind;
-  group: { id: string; name: string } | null;
+  group: {
+    id: string;
+    name: string;
+    kind?: GroupKind;
+    slug?: string | null;
+    parent_slug?: string | null;
+    parent_name?: string | null;
+    post_policy?: PostPolicy;
+    is_announcements?: boolean;
+  } | null;
   other_user: SocialUser | null;
-  last_message: { body: string; sender_id: string; created_at: string; deleted?: boolean } | null;
+  last_message: { body: string; sender_id: string; created_at: string; deleted?: boolean; kind?: MessageKind; preview?: string | null } | null;
   unread_count: number;
   last_activity_at?: string | null;
+  can_post?: boolean;
+  /** May delete anyone's message (a channel's moderators). */
+  can_moderate?: boolean;
 };
 
 export type ConversationList = { items: Conversation[]; unread_total: number; next_cursor?: string | null };
 
+export type MessageKind = "text" | "media" | "event" | "system";
+
+export type MessageAttachment = {
+  id: string;
+  kind: "image" | "doc";
+  url: string;
+  public_id: string;
+  name: string | null;
+  mime: string | null;
+  bytes: number | null;
+  width: number | null;
+  height: number | null;
+};
+
+/** What a message sends with it: an upload that has just finished, before it has an id. */
+export type AttachmentInput = Omit<MessageAttachment, "id">;
+
+/** A link in a message. The preview fields fill in shortly after sending, when a page has them. */
+export type MessageLink = {
+  id: string;
+  url: string;
+  domain: string | null;
+  title: string | null;
+  description: string | null;
+  image_url: string | null;
+};
+
 export type ChatMessage = {
   id: string;
-  sender: SocialUser;
+  /** Null on what ORBIT posts itself (the daily events and "and N more"). */
+  sender: SocialUser | null;
   body: string;
   deleted: boolean;
   created_at: string;
   edited_at?: string | null;
+  kind?: MessageKind;
+  /** Event messages: the card, or null when the event is gone or hidden. */
+  event?: EventCardData | null;
+  attachments?: MessageAttachment[];
+  links?: MessageLink[];
 };
 
 export type Thread = {
@@ -201,6 +278,24 @@ export type Thread = {
   changed?: ChatMessage[];
   /** Server time of this response: the next poll's `changed_since`. */
   polled_at?: string;
+  /** Added by this app: which of the page's event messages the viewer has saved. */
+  saved_event_ids?: string[];
 };
+
+export type LibraryTab = "media" | "links" | "docs";
+
+/** One row of a conversation's Media, Links or Docs: attachment fields, or link fields. */
+export type LibraryItem = {
+  id: string;
+  message_id: string;
+  sender: SocialUser | null;
+  created_at: string;
+} & Partial<Omit<MessageAttachment, "id">> & Partial<Omit<MessageLink, "id" | "url">> & {
+  url?: string | null;
+  type?: "link" | "event";
+  event?: EventCardData | null;
+};
+
+export type LibraryPage = { items: LibraryItem[]; next_cursor: string | null; page_size?: number };
 
 export type BlockedUser = { user: SocialUser; created_at?: string };

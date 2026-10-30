@@ -90,7 +90,7 @@ export function ShareSheet({ eventId, eventTitle, open, onClose }: {
   }
 
   const circles = groups?.filter((g) => g.kind === "circle") ?? [];
-  const communities = groups?.filter((g) => g.kind === "community") ?? [];
+  const communities = groups?.filter((g) => g.kind !== "circle") ?? [];
 
   return (
     <Sheet
@@ -138,7 +138,7 @@ export function ShareSheet({ eventId, eventTitle, open, onClose }: {
 
             {communities.length > 0 && (
               <section aria-labelledby="share-communities" className="space-y-2">
-                <h3 id="share-communities" className="text-xs font-medium text-muted">Share with a Community</h3>
+                <h3 id="share-communities" className="text-xs font-medium text-muted">Share with a community or channel</h3>
                 <GroupChoices groups={communities} selected={selected} onToggle={toggle} />
               </section>
             )}
@@ -195,7 +195,11 @@ function GroupChoices({ groups, selected, onToggle }: { groups: ShareableGroup[]
                 {g.already_shared ? (
                   <span className="block text-xs text-muted">Already shared here</span>
                 ) : g.member_count !== undefined ? (
-                  <span className="block text-xs text-muted">{g.member_count} member{g.member_count === 1 ? "" : "s"}</span>
+                  <span className="block truncate text-xs text-muted">
+                    {g.parent_name && <>{g.parent_name} · </>}{g.member_count} member{g.member_count === 1 ? "" : "s"}
+                  </span>
+                ) : g.parent_name ? (
+                  <span className="block truncate text-xs text-muted">{g.parent_name}</span>
                 ) : null}
               </span>
               <span

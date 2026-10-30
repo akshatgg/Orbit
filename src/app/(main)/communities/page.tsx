@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { CommunityCard, CommunityRow } from "@/components/social/CommunityCard";
 import { DirectoryFilters } from "@/components/social/DirectoryFilters";
 import { ViewList, ViewProvider } from "@/components/social/ListView";
-import { LoadMoreCommunities } from "@/components/social/LoadMoreCommunities";
-import { DirectorySkeleton } from "@/components/social/Skeletons";
+import { LoadMoreCards } from "@/components/social/LoadMoreCards";
+import { CommunityHomeSkeleton } from "@/components/social/Skeletons";
 import { SocialTabs } from "@/components/social/SocialTabs";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { requireProfile } from "@/lib/auth";
-import { groupCategories } from "@/lib/social/format";
+import { loadMoreCommunities } from "@/lib/social/feed-actions";
+import { groupCategories, groupPath } from "@/lib/social/format";
 import { getListView, listCommunities, type DirectoryFilters as Filters } from "@/lib/social/queries";
 
 export const metadata: Metadata = { title: "Communities" };
@@ -19,13 +21,9 @@ const SUBTITLE = "Interest groups across ORBIT: join one to see its events and a
 
 export default function CommunitiesPage({ searchParams }: PageProps<"/communities">) {
   return (
-    <>
-      <PageHeader title="Communities" subtitle={SUBTITLE} />
-      <SocialTabs />
-      <Suspense fallback={<DirectorySkeleton />}>
-        <Directory searchParams={searchParams} />
-      </Suspense>
-    </>
+    <Suspense fallback={<CommunityHomeSkeleton />}>
+      <Directory searchParams={searchParams} />
+    </Suspense>
   );
 }
 
@@ -50,11 +48,17 @@ async function Directory({ searchParams }: { searchParams: PageProps<"/communiti
   const categories = [...new Map(all.items.flatMap(groupCategories).map((c) => [c.slug ?? c.id, c.name])).entries()]
     .filter(([key]) => key)
     .sort((a, b) => a[1].localeCompare(b[1]));
+  // Only one community, and nobody searching: its home is the directory. (The title stays behind the
+  // boundary so nothing of a directory flashes on the way.)
+  if (!filtered && all.total === 1 && all.items[0]) redirect(groupPath(all.items[0]));
+
   const universities = [...new Set(all.items.map((c) => c.university).filter((u): u is string => !!u))].sort();
   const Item = view === "list" ? CommunityRow : CommunityCard;
 
   return (
     <ViewProvider scope="communities" view={view}>
+      <PageHeader title="Communities" subtitle={SUBTITLE} />
+      <SocialTabs />
       <div className="space-y-4">
         <DirectoryFilters category={filters.category} university={filters.university} q={filters.q} categories={categories} universities={universities} />
 
@@ -74,7 +78,7 @@ async function Directory({ searchParams }: { searchParams: PageProps<"/communiti
           >
             {page.items.map((c) => <li key={c.id}><Item community={c} /></li>)}
             {/* Keyed on the layout: pages loaded before a switch start over in the new one. */}
-            <LoadMoreCommunities key={view} filters={filters} cursor={page.nextCursor} view={view} />
+            <LoadMoreCards key={view} load={loadMoreCommunities.bind(null, filters, view)} cursor={page.nextCursor} view={view} />
           </ViewList>
         )}
       </div>
