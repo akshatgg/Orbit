@@ -7,7 +7,7 @@ export function SocialTabs() {
     <Tabs
       items={[
         { href: "/circles", label: "Circles" },
-        { href: "/communities", label: "Communities" },
+        { href: "/communities", label: "Communities", prefix: true },
       ]}
     />
   );

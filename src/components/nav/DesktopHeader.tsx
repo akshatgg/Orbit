@@ -22,7 +22,7 @@ const LINKS: readonly NavLink[] = [
   {
     href: "/circles",
     label: "Circles",
-    match: (p: string) => p.startsWith("/circles") || p.startsWith("/communities") || p.startsWith("/join/circle") || p.startsWith("/join/community"),
+    match: (p: string) => p.startsWith("/circles") || p.startsWith("/communities") || p.startsWith("/join/circle") || p.startsWith("/join/community") || p.startsWith("/join/channel"),
     className: "hidden xl:inline-flex",
   },
 ];

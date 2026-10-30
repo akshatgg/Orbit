@@ -6,16 +6,20 @@ import { SocialIcon } from "./icons";
 import { ViewToggle } from "./ListView";
 
 /**
- * Search, category and university for the communities directory, plus the grid / list switch:
- * a plain GET form; the dropdowns submit on change and the search on Enter.
+ * Search, category and university for the communities directory (or a community's channels, at
+ * `action`), plus the grid / list switch: a plain GET form; the dropdowns submit on change and the
+ * search on Enter.
  */
-export function DirectoryFilters({ category, university, q, categories, universities }: {
+export function DirectoryFilters({ category, university, q, categories, universities, action = "/communities", searchLabel = "Search communities", className = "px-4" }: {
   category?: string;
   university?: string;
   q?: string;
   /** [slug, name] for every category any community covers. */
   categories: [string, string][];
   universities: string[];
+  action?: string;
+  searchLabel?: string;
+  className?: string;
 }) {
   const form = useRef<HTMLFormElement>(null);
 
@@ -33,11 +37,11 @@ export function DirectoryFilters({ category, university, q, categories, universi
   const submit = () => form.current?.requestSubmit();
 
   return (
-    <form ref={form} method="get" action="/communities" role="search" className="flex flex-wrap items-center gap-2 px-4">
+    <form ref={form} method="get" action={action} role="search" className={`flex flex-wrap items-center gap-2 ${className}`}>
       <label className="relative min-w-0 flex-1 sm:min-w-48">
-        <span className="sr-only">Search communities</span>
-        <SocialIcon name="community" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
-        <input name="q" type="search" defaultValue={q} maxLength={80} placeholder="Search communities" className={`${inputClass} py-2.5 pl-10`} />
+        <span className="sr-only">{searchLabel}</span>
+        <SocialIcon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle" />
+        <input name="q" type="search" defaultValue={q} maxLength={80} placeholder={searchLabel} className={`${inputClass} py-2.5 pl-10`} />
       </label>
       {/* Phones: the dropdowns share the second line; wider, everything sits on one. */}
       <div className="order-last flex w-full gap-2 sm:order-none sm:w-auto">

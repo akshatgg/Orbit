@@ -2,14 +2,19 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
-import { loadMoreCommunities } from "@/lib/social/feed-actions";
+import type { MoreEvents } from "@/lib/social/feed-actions";
 import type { ListView } from "@/lib/social/view";
 
-/** "Load more" under the directory: appends the next page as cards or rows (`view`). Render inside the <ul>. */
-export function LoadMoreCommunities({ filters, cursor, view = "grid" }: {
-  filters: { category?: string; university?: string; q?: string };
+/**
+ * "Load more" under the directory or a community's channels: appends the next page as cards or rows
+ * (`view`). `load` is the page's server action bound to its filters. Render inside the <ul>.
+ */
+export function LoadMoreCards({ load, cursor, view = "grid", gridSpan = "md:col-span-2 lg:col-span-3" }: {
+  load: (cursor: string) => Promise<MoreEvents>;
   cursor: string | null;
   view?: ListView;
+  /** Grid view: classes that take the button across the list's columns. */
+  gridSpan?: string;
 }) {
   const [pages, setPages] = useState<ReactNode[]>([]);
   const [next, setNext] = useState(cursor);
@@ -20,7 +25,7 @@ export function LoadMoreCommunities({ filters, cursor, view = "grid" }: {
     <>
       {pages}
       {(next || error) && (
-        <li className={`flex flex-col items-center gap-1 ${view === "list" ? "py-3" : "pt-1 md:col-span-2 lg:col-span-3"}`}>
+        <li className={`flex flex-col items-center gap-1 ${view === "list" ? "py-3" : `pt-1 ${gridSpan}`}`}>
           {next && (
             <Button
               type="button"
@@ -29,7 +34,7 @@ export function LoadMoreCommunities({ filters, cursor, view = "grid" }: {
               disabled={pending}
               onClick={() =>
                 startTransition(async () => {
-                  const result = await loadMoreCommunities(filters, next, view);
+                  const result = await load(next);
                   if (!result.ok) return setError(result.error);
                   setError(null);
                   setPages((p) => [...p, result.nodes]);

@@ -52,6 +52,33 @@ export function DirectorySkeleton({ tabs = false }: { tabs?: boolean }) {
   );
 }
 
+/** A community's home: header, the pinned row, then channels beside the moderators' column. */
+export function CommunityHomeSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading" className="space-y-4 px-4 pt-[var(--page-top,1.5rem)]">
+      <Skeleton className="h-8 w-2/3 md:w-1/3" />
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-[74px] rounded-[22px]" />
+      <Skeleton className="h-[42px] rounded-[14px]" />
+      <div className="space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
+        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-32 rounded-[22px]" />)}
+      </div>
+    </div>
+  );
+}
+
+/** A channel's chat, with its list beside it from `md`. */
+export function ChannelSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Loading" className="md:grid md:grid-cols-[17rem_minmax(0,1fr)] md:gap-6">
+      <div className="hidden space-y-2 pt-[var(--page-top,1.5rem)] md:block">
+        {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14 rounded-[18px]" />)}
+      </div>
+      <ThreadSkeleton />
+    </div>
+  );
+}
+
 export function ConversationsSkeleton() {
   return (
     <ul aria-busy="true" aria-label="Loading" className="glass mx-4 divide-y divide-line overflow-hidden rounded-[22px] md:max-w-2xl">
@@ -81,7 +108,7 @@ export function ThreadSkeleton() {
   );
 }
 
-/** The invite card on /join/circle/<code> and /join/community/<code>. */
+/** The invite card on /join/circle/<code>, /join/community/<code> and /join/channel/<code>. */
 export function JoinSkeleton() {
   return (
     <div aria-busy="true" aria-label="Loading" className="glass-strong flex w-full flex-col items-center rounded-[28px] p-6">

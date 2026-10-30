@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { acceptInviteCode, type Result } from "@/lib/social/actions";
 
-/** "Join circle" / "Join community" for an invite link. On success the action opens the group. */
+/** "Join circle" / "Join community" / "Join channel" for an invite link. On success the action opens the group. */
 export function JoinGroupButton({ code, name, label }: { code: string; name: string; label: string }) {
   const [state, action] = useActionState<Result | null>(async () => acceptInviteCode(code), null);
   return (
