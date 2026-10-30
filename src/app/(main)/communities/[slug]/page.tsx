@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { BackLink } from "@/components/nav/BackLink";
 import { AnnouncementCard } from "@/components/social/AnnouncementCard";
-import { AnnouncementForm } from "@/components/social/CircleForms";
+import { AnnouncementForm, CreateChannelForm } from "@/components/social/CircleForms";
 import { CommunityHome } from "@/components/social/CommunityHome";
 import { GroupEventCard, GroupEventRow } from "@/components/social/GroupEventCard";
 import { InvitePeople, JoinRequests, Membership } from "@/components/social/GroupPanels";
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { isAdmin as isOrbitAdmin, requireProfile } from "@/lib/auth";
-import { getMyEventState } from "@/lib/events/queries";
+import { getMyEventState, listCategories } from "@/lib/events/queries";
 import { adminsFirst, groupCategories, groupPath, plural } from "@/lib/social/format";
 import { getGroup, getListView, listAnnouncements, listChannels, listCommunities, listGroupEvents, listGroupInvites } from "@/lib/social/queries";
 import type { Profile } from "@/types/database";
@@ -113,9 +113,10 @@ async function FlatCommunity({ group, nav, profile, allMembers }: { group: Group
   const moderator = group.can_manage ?? (group.my_role === "admin" || isOrbitAdmin(profile));
   const locked = !member && !moderator && group.visibility !== "public";
   const members = adminsFirst(group.members ?? []);
-  const [state, requests] = await Promise.all([
+  const [state, requests, siteCategories] = await Promise.all([
     getMyEventState(profile.id, feed.items.map((i) => i.event.id)),
     moderator ? listGroupInvites(group.id) : Promise.resolve([] as GroupInviteRow[]),
+    moderator ? listCategories() : Promise.resolve([]),
   ]);
   const waiting = requests.filter((r) => r.status === "pending" || !r.status);
   const joinRequests = waiting.filter((r) => r.kind === "request");
@@ -222,6 +223,10 @@ async function FlatCommunity({ group, nav, profile, allMembers }: { group: Group
 
         {/* Moderators' tools make the column too tall to pin, so it scrolls with the page for them. */}
         <aside className={`space-y-6 px-4 md:px-0 ${moderator ? "" : "md:sticky md:top-24"}`}>
+          {moderator && (
+            <CreateChannelForm community={slug} categories={siteCategories.filter((c) => c.slug).map((c) => ({ value: c.slug!, label: c.name }))} />
+          )}
+
           {moderator && <JoinRequests groupId={group.id} requests={joinRequests} />}
 
           {moderator && <InvitePeople group={group} invites={waiting.filter((r) => r.kind === "invite")} />}
