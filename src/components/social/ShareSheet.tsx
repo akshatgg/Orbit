@@ -81,9 +81,11 @@ export function ShareSheet({ eventId, eventTitle, open, onClose }: {
         setError(result.error);
         return;
       }
-      setError(null);
+      const taken = new Set(result.items.filter((i) => i.status === "shared" || i.status === "already_shared").map((i) => i.group_id));
+      const refused = result.items.find((i) => !taken.has(i.group_id));
+      setError(refused?.error ?? null);
       setDone(result.message ?? "Shared");
-      setGroups((g) => g?.map((x) => (ids.includes(x.id) ? { ...x, already_shared: true } : x)) ?? null);
+      setGroups((g) => g?.map((x) => (taken.has(x.id) ? { ...x, already_shared: true } : x)) ?? null);
       setSelected(new Set());
       setNote("");
     });
@@ -169,7 +171,8 @@ export function ShareSheet({ eventId, eventTitle, open, onClose }: {
   );
 }
 
-function GroupChoices({ groups, selected, onToggle }: { groups: ShareableGroup[]; selected: Set<string>; onToggle: (id: string) => void }) {
+/** Rows to tick, one per group: an already-shared one stays ticked and can't be changed. */
+export function GroupChoices({ groups, selected, onToggle }: { groups: ShareableGroup[]; selected: Set<string>; onToggle: (id: string) => void }) {
   if (!groups.length) return null;
   return (
     <ul className="space-y-2">

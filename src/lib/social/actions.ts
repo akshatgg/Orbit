@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { apiMessage, isApiStatus, type ErrorCopy } from "@/lib/api/errors";
 import { authed } from "@/lib/api/session";
-import type { Announcement, AttachmentInput, ChatMessage, GroupDetail, InterestStatus, LibraryPage, LibraryTab, SocialUser } from "@/types/social";
+import type { Announcement, AttachmentInput, ChatMessage, GroupDetail, InterestStatus, LibraryPage, LibraryTab, ShareOutcome, SocialUser } from "@/types/social";
 
 /**
  * Mutations for Circles, Communities, the inbox and messages. Each returns
@@ -340,28 +340,35 @@ export async function setMemberRole(groupId: string, userId: string, role: "admi
 
 const shareSchema = z.object({
   eventId: id,
-  groupIds: z.array(id).min(1, "Pick at least one").max(50),
+  groupIds: z.array(id).min(1, "Pick at least one").max(20, "Pick up to 20 at a time"),
   note: z.string().trim().max(300, "Keep the note under 300 characters").optional(),
 });
 
-/** Shares one event with several circles / communities (once per group; repeats are no-ops). */
-export async function shareEvent(eventId: string, groupIds: string[], note?: string): Promise<Result<{ shared: number }>> {
+/**
+ * Shares one event with several circles, communities and channels in one call (repeats are
+ * no-ops). `items` says how each group took it; a group that can't take it doesn't stop the rest.
+ */
+export async function shareEvent(eventId: string, groupIds: string[], note?: string): Promise<Result<{ shared: number; items: ShareOutcome[] }>> {
   const parsed = shareSchema.safeParse({ eventId, groupIds, note });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Couldn't share" };
-  const { note: text } = parsed.data;
-  const results = await Promise.allSettled(
-    parsed.data.groupIds.map((g) =>
-      authed.post(`/groups/${enc(g)}/events`, { body: { event_id: parsed.data.eventId, note: text || undefined } }),
-    ),
-  );
-  const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
-  const shared = results.length - failed.length;
-  if (shared > 0) refresh();
-  if (failed.length && !shared) return fail(failed[0].reason, "Couldn't share it");
+  let items: ShareOutcome[];
+  try {
+    ({ items } = await authed.post<{ items: ShareOutcome[] }>("/groups/share-event", {
+      body: { event_id: parsed.data.eventId, group_ids: parsed.data.groupIds, note: parsed.data.note || undefined },
+    }));
+  } catch (error) {
+    return fail(error, "Couldn't share it");
+  }
+  const taken = items.filter((i) => i.status === "shared" || i.status === "already_shared").length;
+  const refused = items.length - taken;
+  if (taken > 0) refresh();
+  if (!taken) return { ok: false, error: items[0]?.error ?? "Couldn't share it" };
+  const groups = (n: number) => (n === 1 ? "1 group" : `${n} groups`);
   return {
     ok: true,
-    shared,
-    message: failed.length ? `Shared with ${shared}; ${failed.length} couldn't take it` : `Shared with ${shared === 1 ? "1 group" : `${shared} groups`}`,
+    shared: taken,
+    items,
+    message: refused ? `Shared with ${groups(taken)}; ${refused} couldn't take it` : `Shared with ${groups(taken)}`,
   };
 }
 

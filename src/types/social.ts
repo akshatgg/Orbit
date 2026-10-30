@@ -184,6 +184,15 @@ export type ShareableGroup = {
   parent_slug?: string | null;
   parent_name?: string | null;
   post_policy?: PostPolicy;
+  is_announcements?: boolean;
+};
+
+/** One group's answer to `POST /groups/share-event`. */
+export type ShareOutcome = {
+  group_id: string;
+  name?: string;
+  status: "shared" | "already_shared" | "forbidden" | "not_found";
+  error?: string;
 };
 
 /** `GET /groups/creatable-organisers`: the organisations I'm on the team of, and what I may create. */

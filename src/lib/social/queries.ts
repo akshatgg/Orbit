@@ -132,9 +132,10 @@ export async function previewInvite(code: string): Promise<InviteLookup> {
   }
 }
 
-export async function listShareable(eventId: string) {
+/** Where the viewer can share this event; `organiserId` keeps the channels of that organisation's communities. */
+export async function listShareable(eventId: string, organiserId?: string) {
   const res = await authed.get<{ items: ShareableGroup[] } | ShareableGroup[]>("/groups/shareable", {
-    query: { event_id: eventId },
+    query: { event_id: eventId, organiser_id: organiserId },
   });
   return Array.isArray(res) ? res : res.items;
 }

@@ -9,6 +9,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Eyebrow, PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ShareToCommunityStep } from "@/components/organiser/CommunityShare";
 import { OrganiserLogo, OrganiserStatusBadge } from "@/components/organiser/OrganiserStatus";
 import { InviteLinkButton } from "@/components/social/CircleForms";
 import { getMyOrganisers, requireUser, type MyOrganiser } from "@/lib/auth";
@@ -75,7 +76,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/organiser
       {selected ? (
         <>
           {approved.length > 1 && <OrgSwitcher orgs={approved} selectedId={selected.id} />}
-          <OrganiserOverview org={selected} />
+          <OrganiserOverview org={selected} published={typeof params.published === "string" ? params.published : undefined} />
         </>
       ) : (
         others.length > 0 && !pending && (
@@ -266,11 +267,12 @@ function OrgSwitcher({ orgs, selectedId }: { orgs: MyOrganiser[]; selectedId: st
   );
 }
 
-async function OrganiserOverview({ org }: { org: MyOrganiser }) {
+async function OrganiserOverview({ org, published }: { org: MyOrganiser; published?: string }) {
   const [events, followers, creatable] = await Promise.all([listOrganiserEvents(org.id, org), getFollowerCount(org.id), getCreatableOrganisers()]);
   const groups = groupOrganiserEvents(events);
   const live = [...groups.upcoming, ...groups.past];
   const team = creatable.items.find((o) => o.id === org.id);
+  const justPublished = published ? events.find((e) => e.id === published) : undefined;
 
   return (
     <>
@@ -302,6 +304,10 @@ async function OrganiserOverview({ org }: { org: MyOrganiser }) {
           {org.stripe_charges_enabled ? "Payouts" : "Get paid"}
         </ButtonLink>
       </div>
+
+      {justPublished && team && team.community_count > 0 && (
+        <ShareToCommunityStep eventId={justPublished.id} organiserId={org.id} live={justPublished.status === "published"} />
+      )}
 
       {team && <CommunityEntry org={team} />}
 
