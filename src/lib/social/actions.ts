@@ -122,6 +122,54 @@ export async function createChannel(community: string, _prev: FormState, formDat
   redirect(`/communities/${group.parent_slug ?? community}/${group.slug ?? group.id}`);
 }
 
+const communitySchema = z.object({
+  organiserId: z.uuid({ error: "Pick an organisation" }).nullable(),
+  name: circleSchema.shape.name,
+  description: circleSchema.shape.description,
+  visibility: z.enum(["public", "approval"], { error: "Pick who can join" }),
+  channels: z
+    .array(
+      z.object({
+        name: z.string().trim().min(2, "Give each channel a name (at least 2 characters)").max(60, "Keep channel names under 60 characters"),
+        post_policy: z.enum(["everyone", "moderators"]),
+        category_slugs: z.array(z.string().trim().min(1).max(100)).max(10, "Up to 10 categories a channel"),
+      }),
+    )
+    .max(10, "Up to 10 starting channels"),
+});
+
+export type CommunityInput = z.input<typeof communitySchema>;
+
+/**
+ * A new community (an Orbit admin, or the team of an approved organisation): it starts with
+ * Announcements and the channels given, all made together; opens its home. Field errors are
+ * keyed `name`, `description`, `organiser` and `channels`.
+ */
+export async function createCommunity(input: CommunityInput): Promise<FormState> {
+  const parsed = communitySchema.safeParse(input);
+  if (!parsed.success) {
+    const errors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path[0] === "organiserId" ? "organiser" : String(issue.path[0]);
+      errors[key] ??= issue.message;
+    }
+    return { error: "Check the highlighted fields", fieldErrors: errors };
+  }
+  const { organiserId, channels, ...rest } = parsed.data;
+  const names = channels.map((c) => c.name.toLowerCase());
+  if (new Set(names).size !== names.length) return { error: "Check the highlighted fields", fieldErrors: { channels: "Give each channel its own name" } };
+  let group: GroupDetail;
+  try {
+    group = await authed.post<GroupDetail>("/groups", {
+      body: { kind: "community", ...rest, organiser_id: organiserId ?? undefined, channels },
+    });
+  } catch (error) {
+    return fail(error, "Couldn't create the community");
+  }
+  refresh();
+  redirect(`/communities/${group.slug ?? group.id}`);
+}
+
 /**
  * Moderators change a channel: name, description, who can join and who can post. Announcements
  * sends the name and description alone (the API keeps its access fixed).

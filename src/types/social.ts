@@ -18,6 +18,9 @@ export type PostPolicy = "everyone" | "moderators";
 
 export type GroupCategory = { id: string; slug: string | null; name: string };
 
+/** The organisation that runs a community (shown while it's approved). */
+export type GroupOrganiser = { id: string; slug: string; name: string; logo_url: string | null; is_verified: boolean };
+
 /** One row of `GET /groups` (my circles, the communities directory). */
 export type GroupCard = {
   id: string;
@@ -49,6 +52,10 @@ export type GroupCard = {
   /** Everyone is in it from the start, so its member list stays with those who manage it. */
   auto_join?: boolean;
   pending_request?: boolean;
+  /** Communities: the organisation whose team runs it; null for ORBIT's own. */
+  organiser?: GroupOrganiser | null;
+  /** Channels: their community's organisation. */
+  parent_organiser?: GroupOrganiser | null;
 };
 
 /** One row of `GET /groups/{community}/channels`. Unread and preview are for channels I'm in. */
@@ -177,6 +184,25 @@ export type ShareableGroup = {
   parent_slug?: string | null;
   parent_name?: string | null;
   post_policy?: PostPolicy;
+};
+
+/** `GET /groups/creatable-organisers`: the organisations I'm on the team of, and what I may create. */
+export type CreatableOrganisers = {
+  is_orbit_admin: boolean;
+  /** Communities per organisation (Orbit admins aren't held to it). */
+  limit: number;
+  items: {
+    id: string;
+    slug: string;
+    name: string;
+    logo_url: string | null;
+    is_verified: boolean;
+    status: string;
+    role: "owner" | "editor";
+    community_count: number;
+    communities: { id: string; slug: string | null; name: string }[];
+    can_create: boolean;
+  }[];
 };
 
 // ─── in-app notifications ──────────────────────────────────────────────────

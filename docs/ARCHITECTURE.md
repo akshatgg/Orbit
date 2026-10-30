@@ -99,7 +99,10 @@ sign-in and the Google sign-in redirect (`NEXT_PUBLIC_BACKEND_URL`).
 
 A community (`kind: "community"`) holds channels (`kind: "channel"`, `parent_slug`). `/communities/[slug]` is its home; a
 community with no channels keeps the older page, and a channel's old address redirects to `/communities/[slug]/[channel]`.
-`/communities` goes straight to the community when there's only one. `ChatThread` is shared by channels, circles and DMs,
+`/communities` goes straight to the community when there's only one (not for someone who can create one).
+An Orbit admin or the team of an approved organisation creates one at `/communities/new` (it starts with Announcements and the
+channels picked there); the organisation's team then manages it, and Studio links to it and offers to share each newly published
+event in its channels. `ChatThread` is shared by channels, circles and DMs,
 and so is `LibraryPanel` (Media / Links / Docs, on a channel's `info` page and at `/messages/[id]/library`).
 
 ## Data model (owned by the Orbit API)

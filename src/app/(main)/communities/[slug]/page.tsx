@@ -11,6 +11,7 @@ import { InvitePeople, JoinRequests, Membership } from "@/components/social/Grou
 import { ViewList, ViewProvider, ViewToggle } from "@/components/social/ListView";
 import { LoadMoreEvents } from "@/components/social/LoadMoreEvents";
 import { MemberList } from "@/components/social/MemberList";
+import { OrganiserByline } from "@/components/social/OrganiserByline";
 import { ShareLinkButton } from "@/components/social/ShareLinkButton";
 import { CommunityHomeSkeleton } from "@/components/social/Skeletons";
 import { SocialTabs } from "@/components/social/SocialTabs";
@@ -83,6 +84,7 @@ async function Community({ params, searchParams }: {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight lg:text-4xl">{group.name}</h1>
+            {group.organiser && <OrganiserByline organiser={group.organiser} className="mt-1.5 text-sm" />}
             {group.description && <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-muted">{group.description}</p>}
             <p className="mt-2 text-xs text-muted">{plural(group.member_count, "member")} · {plural(channels.total, "channel")}</p>
           </div>
@@ -140,6 +142,7 @@ async function FlatCommunity({ group, nav, profile, allMembers }: { group: Group
               {group.visibility === "private" && <Badge>Private</Badge>}
             </div>
             <h1 className="mt-2.5 text-[1.75rem] font-semibold leading-tight tracking-tight lg:text-4xl">{group.name}</h1>
+            {group.organiser && <OrganiserByline organiser={group.organiser} className="mt-1.5 text-sm" />}
             {group.description && <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">{group.description}</p>}
             <p className="mt-2 text-xs text-muted">{plural(group.member_count, "member")} · {plural(group.upcoming_event_count ?? 0, "upcoming event")}</p>
           </div>
