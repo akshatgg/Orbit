@@ -18,6 +18,7 @@ const KIND_ICON: Record<string, SocialIconName> = {
   request_approved: "check",
   event_shared: "shareGroup",
   announcement: "megaphone",
+  event_digest: "community",
 };
 
 async function fetchPage(cursor?: string | null): Promise<Page> {

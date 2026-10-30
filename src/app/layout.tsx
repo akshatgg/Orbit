@@ -43,6 +43,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Android: the keyboard resizes the page, so a chat's sticky composer stays above it.
+  interactiveWidget: "resizes-content",
 };
 
 // Registered from an inline script so it runs before hydration (scanners such as

@@ -25,17 +25,20 @@ export function registrationLink(event: GroupEventItem["event"]) {
 
 /**
  * An event inside a Circle or Community: the card, who shared it (and their note), who's in, the
- * registration link and — in a circle — "I'm interested" / "Count me in".
+ * registration link and — in a circle — "I'm interested" / "Count me in". `inChat` is the same card
+ * as a chat message: it adds the short description, and the message's own options do the removing.
  */
-export function GroupEventCard({ item, groupId, kind, viewerId, canModerate, saved, past = false }: {
+export function GroupEventCard({ item, groupId, kind, viewerId, canModerate, saved, past = false, inChat = false, onSaved }: {
   item: GroupEventItem;
   groupId: string;
-  kind: "circle" | "community";
+  kind: "circle" | "community" | "channel";
   viewerId: string;
   canModerate: boolean;
   /** Communities: the viewer's save state (shows the bookmark). */
   saved?: boolean;
   past?: boolean;
+  inChat?: boolean;
+  onSaved?: (saved: boolean) => void;
 }) {
   const { event, shared_by: sharedBy } = item;
   const price = formatPrice(event.price_min, event.price_max, event.currency);
@@ -46,7 +49,7 @@ export function GroupEventCard({ item, groupId, kind, viewerId, canModerate, sav
   // The lists are capped by the API; the counts are the totals.
   const goingCount = Math.max(item.going_count ?? 0, going.length);
   const interestedCount = Math.max(item.interested_count ?? 0, interested.length);
-  const canRemove = !!sharedBy && (sharedBy.id === viewerId || canModerate);
+  const canRemove = !inChat && !!sharedBy && (sharedBy.id === viewerId || canModerate);
 
   return (
     <article className={`glass relative overflow-hidden rounded-[22px] ${past ? "opacity-80" : ""}`}>
@@ -64,13 +67,14 @@ export function GroupEventCard({ item, groupId, kind, viewerId, canModerate, sav
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {cancelled && <Badge tone="danger">Cancelled</Badge>}
             {price && <Badge tone={price === "Free" ? "success" : "neutral"}>{price}</Badge>}
-            {event.category && kind === "community" && !sharedBy && <Badge>{event.category.name}</Badge>}
+            {event.category && kind !== "circle" && !sharedBy && <Badge>{event.category.name}</Badge>}
           </div>
+          {inChat && event.summary && <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted">{event.summary}</p>}
         </div>
       </Link>
       {saved !== undefined && (
         <div className="absolute right-3 top-3">
-          <SaveButton eventId={event.id} saved={saved} />
+          <SaveButton eventId={event.id} saved={saved} onSaved={onSaved} />
         </div>
       )}
 
@@ -83,8 +87,8 @@ export function GroupEventCard({ item, groupId, kind, viewerId, canModerate, sav
               {item.shared_at && <> · {timeAgo(item.shared_at)}</>}
             </span>
           </p>
-        ) : kind === "community" ? (
-          <p className="text-xs text-muted">Matches this community{event.category ? ` · ${event.category.name}` : ""}</p>
+        ) : kind !== "circle" ? (
+          <p className="text-xs text-muted">{inChat ? "New in this channel" : `Matches this ${kind}`}{event.category ? ` · ${event.category.name}` : ""}</p>
         ) : null}
         {item.note && <p className="rounded-[14px] bg-ink/[0.05] px-3 py-2 text-sm leading-relaxed text-fg/90">{item.note}</p>}
 

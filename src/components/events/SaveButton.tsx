@@ -4,7 +4,13 @@ import { useOptimistic, useTransition } from "react";
 import { markInstallMoment } from "@/components/pwa/install-store";
 import { toggleSaved } from "@/lib/actions/user-events";
 
-export function SaveButton({ eventId, saved, className = "" }: { eventId: string; saved: boolean; className?: string }) {
+export function SaveButton({ eventId, saved, className = "", onSaved }: {
+  eventId: string;
+  saved: boolean;
+  className?: string;
+  /** For a list that keeps the state itself (an open chat isn't re-rendered by the server). */
+  onSaved?: (saved: boolean) => void;
+}) {
   const [optimistic, setOptimistic] = useOptimistic(saved);
   const [, startTransition] = useTransition();
 
@@ -20,6 +26,7 @@ export function SaveButton({ eventId, saved, className = "" }: { eventId: string
           setOptimistic(!optimistic);
           if (!optimistic) markInstallMoment();
           await toggleSaved(eventId, !optimistic);
+          onSaved?.(!optimistic);
         });
       }}
       className={`glass-float flex h-9 w-9 items-center justify-center rounded-full transition duration-200 ease-out hover:brightness-125 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${className}`}

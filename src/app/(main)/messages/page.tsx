@@ -81,7 +81,7 @@ function Blocked({ blocks }: { blocks: BlockedUser[] }) {
 function ConversationRow({ conversation: c, meId }: { conversation: Conversation; meId: string }) {
   const title = c.kind === "circle" ? c.group?.name ?? "Circle" : displayName(c.other_user);
   const last = c.last_message;
-  const preview = !last ? "No messages yet" : last.deleted ? "Message deleted" : `${last.sender_id === meId ? "You: " : ""}${last.body}`;
+  const preview = !last ? "No messages yet" : last.deleted ? "Message deleted" : `${last.sender_id === meId ? "You: " : ""}${last.preview ?? last.body}`;
   const unread = c.unread_count > 0;
   return (
     <Link href={`/messages/${c.id}`} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-ink/[0.05]">

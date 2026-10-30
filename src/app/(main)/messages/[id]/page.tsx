@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ChatThread } from "@/components/messages/ChatThread";
 import { BackLink } from "@/components/nav/BackLink";
@@ -11,7 +12,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { requireProfile } from "@/lib/auth";
 import { setBlocked } from "@/lib/social/actions";
-import { displayName, firstName, plural } from "@/lib/social/format";
+import { displayName, firstName, groupPath, plural } from "@/lib/social/format";
 import { getThread, listBlocks } from "@/lib/social/queries";
 import type { SocialUser } from "@/types/social";
 
@@ -42,6 +43,8 @@ async function Thread({ params }: { params: PageProps<"/messages/[id]">["params"
   }
 
   const { conversation } = thread;
+  // A channel's chat lives under its community.
+  if (conversation.kind === "channel" && conversation.group) redirect(groupPath({ ...conversation.group, kind: "channel" }));
   const me: SocialUser = { id: profile.id, full_name: profile.full_name, avatar_url: profile.avatar_url, university: profile.university };
   const other = conversation.kind === "direct" ? conversation.other_user : null;
   const blocked = !!other && blocks.some((b) => (b.user?.id ?? (b as unknown as { user_id?: string }).user_id) === other.id);
@@ -69,6 +72,14 @@ async function Thread({ params }: { params: PageProps<"/messages/[id]">["params"
               </p>
             </div>
           </div>
+          <Link
+            href={`/messages/${conversation.id}/library`}
+            aria-label="Media, links and docs"
+            title="Media, links and docs"
+            className="glass flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:text-fg"
+          >
+            <SocialIcon name="image" className="h-[18px] w-[18px]" />
+          </Link>
           {conversation.kind === "circle" && conversation.group ? (
             <Link href={`/circles/${conversation.group.id}`} className="shrink-0 text-xs font-medium text-accent hover:underline">View circle</Link>
           ) : other ? (
@@ -89,6 +100,7 @@ async function Thread({ params }: { params: PageProps<"/messages/[id]">["params"
         initial={thread.items}
         initialHasMore={thread.has_more}
         initialPolledAt={thread.polled_at}
+        initialSaved={thread.saved_event_ids}
         me={me}
         kind={conversation.kind}
         canSend={!blocked}
