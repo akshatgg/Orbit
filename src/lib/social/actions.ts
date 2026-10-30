@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { apiMessage, isApiStatus, type ErrorCopy } from "@/lib/api/errors";
 import { authed } from "@/lib/api/session";
-import type { Announcement, ChatMessage, GroupDetail, InterestStatus, SocialUser } from "@/types/social";
+import type { Announcement, AttachmentInput, ChatMessage, GroupDetail, InterestStatus, LibraryPage, LibraryTab, SocialUser } from "@/types/social";
 
 /**
  * Mutations for Circles, Communities, the inbox and messages. Each returns
@@ -17,6 +17,7 @@ export type FormState = { ok?: boolean; error?: string; message?: string; fieldE
 
 const enc = encodeURIComponent;
 const id = z.string().trim().min(1).max(120).regex(/^[\w-]+$/);
+const cursorSchema = z.string().min(1).max(500).regex(/^[\w=+/-]+$/);
 
 const COPY: ErrorCopy = {
   not_a_member: "You're not a member of this group",
@@ -98,6 +99,53 @@ export async function updateCircle(groupId: string, _prev: FormState, formData: 
   return { ok: true, message: "Saved" };
 }
 
+const channelSchema = z.object({
+  name: circleSchema.shape.name,
+  description: circleSchema.shape.description,
+  visibility: z.enum(["public", "approval", "private"], { error: "Pick who can join" }).default("public"),
+  post_policy: z.enum(["everyone", "moderators"], { error: "Pick who can post" }).default("everyone"),
+});
+
+/** A community's moderators add a channel (name, who can join, who can post, categories); opens it. */
+export async function createChannel(community: string, _prev: FormState, formData: FormData): Promise<FormState> {
+  if (!id.safeParse(community).success) return { error: "Invalid community" };
+  const parsed = channelSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Check the highlighted fields", fieldErrors: fieldErrors(parsed.error) };
+  const categories = formData.getAll("category_slugs").map(String).filter(Boolean).slice(0, 10);
+  let group: GroupDetail;
+  try {
+    group = await authed.post<GroupDetail>(`/groups/${enc(community)}/channels`, { body: { ...parsed.data, category_slugs: categories } });
+  } catch (error) {
+    return fail(error, "Couldn't create the channel");
+  }
+  refresh();
+  redirect(`/communities/${group.parent_slug ?? community}/${group.slug ?? group.id}`);
+}
+
+/**
+ * Moderators change a channel: name, description, who can join and who can post. Announcements
+ * sends the name and description alone (the API keeps its access fixed).
+ */
+export async function updateChannel(groupId: string, locked: boolean, _prev: FormState, formData: FormData): Promise<FormState> {
+  if (!id.safeParse(groupId).success) return { error: "Invalid channel" };
+  const parsed = channelSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return { error: "Check the highlighted fields", fieldErrors: fieldErrors(parsed.error) };
+  const { name, description, visibility, post_policy: postPolicy } = parsed.data;
+  try {
+    await authed.patch(`/groups/${enc(groupId)}`, {
+      body: {
+        name,
+        description: description ?? "",
+        ...(locked ? {} : { visibility, post_policy: postPolicy, category_ids: formData.getAll("category_slugs").map(String).filter(Boolean).slice(0, 10) }),
+      },
+    });
+  } catch (error) {
+    return fail(error, "Couldn't save the changes");
+  }
+  refresh();
+  return { ok: true, message: "Saved" };
+}
+
 export async function deleteGroup(groupId: string, next = "/circles"): Promise<Result> {
   if (!id.safeParse(groupId).success) return { ok: false, error: "Invalid group" };
   try {
@@ -121,7 +169,7 @@ export async function leaveGroup(groupId: string, next?: string): Promise<Result
   return { ok: true, message: "You left" };
 }
 
-/** Join a public community, or ask to join an approval one. */
+/** Join a public community or channel, or ask to join an approval one. */
 export async function joinGroup(groupId: string): Promise<Result<{ status: "joined" | "requested" }>> {
   if (!id.safeParse(groupId).success) return { ok: false, error: "Invalid community" };
   try {
@@ -170,7 +218,7 @@ export async function inviteByEmail(groupId: string, _prev: FormState, formData:
   return { ok: true, message: "Invite sent" };
 }
 
-/** A shareable invite link (`/join/circle/<code>` or `/join/community/<code>`) and when it stops working. */
+/** A shareable invite link (`/join/circle/<code>`, `/join/community/<code>`, `/join/channel/<code>`) and when it stops working. */
 export async function createInviteLink(groupId: string): Promise<Result<{ path: string; expiresAt: string | null }>> {
   if (!id.safeParse(groupId).success) return { ok: false, error: "Invalid group" };
   try {
@@ -195,23 +243,26 @@ export async function respondInvite(groupId: string, inviteId: string, accept: b
   return { ok: true, message: accept ? "Accepted" : "Declined" };
 }
 
-/** `/join/circle/<code>` and `/join/community/<code>`: join, then open the group. */
+/** `/join/circle/<code>`, `/join/community/<code>` and `/join/channel/<code>`: join, then open the group. */
 export async function acceptInviteCode(code: string): Promise<Result> {
   if (!id.safeParse(code).success) return { ok: false, error: "That invite link isn't valid" };
   let groupId: string;
   let kind: string | undefined;
   let slug: string | null | undefined;
+  let parentSlug: string | null | undefined;
   try {
-    const res = await authed.post<{ group_id?: string; id?: string; kind?: string; slug?: string | null }>(
+    const res = await authed.post<{ group_id?: string; id?: string; kind?: string; slug?: string | null; parent_slug?: string | null }>(
       `/groups/invites/${enc(code)}/accept`,
     );
     groupId = res.group_id ?? res.id ?? "";
     kind = res.kind;
     slug = res.slug;
+    parentSlug = res.parent_slug;
   } catch (error) {
     return fail(error, "Couldn't join");
   }
   refresh();
+  if (kind === "channel" && parentSlug) redirect(`/communities/${parentSlug}/${slug ?? groupId}`);
   redirect(kind === "community" ? `/communities/${slug ?? groupId}` : `/circles/${groupId}`);
 }
 
@@ -371,13 +422,30 @@ export async function startDirectMessage(userId: string): Promise<Result> {
 }
 
 const messageSchema = z.string().trim().min(1, "Write a message first").max(2000, "Messages are limited to 2000 characters");
+const captionSchema = z.string().trim().max(2000, "Messages are limited to 2000 characters");
 
-export async function sendMessage(conversationId: string, body: string): Promise<Result<{ sent: ChatMessage }>> {
+const attachmentSchema = z.object({
+  kind: z.enum(["image", "doc"]),
+  url: z.url({ protocol: /^https$/ }).max(1000),
+  public_id: z.string().min(1).max(500),
+  name: z.string().max(255).nullable().optional(),
+  mime: z.string().max(100).nullable().optional(),
+  bytes: z.number().int().positive().nullable().optional(),
+  width: z.number().int().positive().nullable().optional(),
+  height: z.number().int().positive().nullable().optional(),
+});
+
+/** Text, attachments (already uploaded to Cloudinary, up to 10) or both. */
+export async function sendMessage(conversationId: string, body: string, attachments: AttachmentInput[] = []): Promise<Result<{ sent: ChatMessage }>> {
   if (!id.safeParse(conversationId).success) return { ok: false, error: "Invalid conversation" };
-  const parsed = messageSchema.safeParse(body);
+  const parsed = (attachments.length ? captionSchema : messageSchema).safeParse(body);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Couldn't send" };
+  const files = z.array(attachmentSchema).max(10, "Send up to 10 files at a time").safeParse(attachments);
+  if (!files.success) return { ok: false, error: files.error.issues[0]?.message ?? "Those files can't be sent" };
   try {
-    const sent = await authed.post<ChatMessage>(`/messages/conversations/${enc(conversationId)}`, { body: { body: parsed.data } });
+    const sent = await authed.post<ChatMessage>(`/messages/conversations/${enc(conversationId)}`, {
+      body: { body: parsed.data, ...(files.data.length ? { attachments: files.data } : {}) },
+    });
     return { ok: true, sent };
   } catch (error) {
     return fail(error, "Couldn't send. Try again.");
@@ -394,10 +462,10 @@ export async function deleteMessage(messageId: string): Promise<Result> {
   }
 }
 
-/** Rewrites one of your own messages. */
-export async function editMessage(messageId: string, body: string): Promise<Result<{ edited: ChatMessage | null }>> {
+/** Rewrites one of your own messages. `caption`: a media or event message, whose text may go empty. */
+export async function editMessage(messageId: string, body: string, caption = false): Promise<Result<{ edited: ChatMessage | null }>> {
   if (!id.safeParse(messageId).success) return { ok: false, error: "Invalid message" };
-  const parsed = messageSchema.safeParse(body);
+  const parsed = (caption ? captionSchema : messageSchema).safeParse(body);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Couldn't save it" };
   try {
     const edited = await authed.patch<ChatMessage>(`/messages/${enc(messageId)}`, { body: { body: parsed.data } });
@@ -414,6 +482,23 @@ export async function markConversationRead(conversationId: string): Promise<Resu
     return { ok: true };
   } catch (error) {
     return fail(error);
+  }
+}
+
+const LIBRARY_TABS: LibraryTab[] = ["media", "links", "docs"];
+
+/** The next page of a conversation's Media, Links or Docs (appended by <ConversationLibrary>). */
+export async function loadMoreLibrary(conversationId: string, tab: LibraryTab, q: string | undefined, cursor: string): Promise<Result<LibraryPage>> {
+  if (!id.safeParse(conversationId).success || !LIBRARY_TABS.includes(tab) || !cursorSchema.safeParse(cursor).success) {
+    return { ok: false, error: "Couldn't load more" };
+  }
+  try {
+    const page = await authed.get<LibraryPage>(`/messages/conversations/${enc(conversationId)}/library`, {
+      query: { tab, q: q?.slice(0, 100) || undefined, cursor, limit: 30 },
+    });
+    return { ok: true, ...page };
+  } catch (error) {
+    return fail(error, "Couldn't load more");
   }
 }
 

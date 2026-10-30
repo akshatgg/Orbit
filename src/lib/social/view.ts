@@ -6,6 +6,7 @@ export type ListView = "grid" | "list";
 export const VIEW_COOKIES = {
   communities: "orbit_view_communities",
   communityEvents: "orbit_view_community_events",
+  communityChannels: "orbit_view_community_channels",
 } as const;
 
 export type ViewScope = keyof typeof VIEW_COOKIES;
