@@ -65,7 +65,8 @@ export async function completeOnboarding(input: unknown, next?: string | null): 
   if (!result.ok) return result;
   const goals = (input as { goals?: string[] }).goals ?? [];
   const landing = landingPath(goals, next);
-  if (!hasHostGoal(goals)) redirect(landing);
+  // Everyone but hosts (who go on to their organisation) is offered ORBIT's community last.
+  if (!hasHostGoal(goals)) redirect(`/onboarding/community?next=${encodeURIComponent(landing)}`);
   return { ...result, landing };
 }
 
