@@ -93,7 +93,14 @@ sign-in and the Google sign-in redirect (`NEXT_PUBLIC_BACKEND_URL`).
 - `src/lib/taxonomy.ts`: interests, formats, organiser kinds, weekdays, day parts.
 - `src/lib/storage.ts`: `uploadImage("event-covers" | "organiser-logos", file)` (client-side). Gets a signature from
   the API's `POST /uploads/sign` through a server action and uploads straight to Cloudinary
-  (`orbit/<kind>/<user id>/…`); when the API has no Cloudinary keys, uploads report that they aren't configured. `src/lib/cloudinary.ts`: `signParams`, `cloudinaryUrl` (f_auto/q_auto delivery).
+  (`orbit/<kind>/<user id>/…`); when the API has no Cloudinary keys, uploads report that they aren't configured. `uploadChatAttachment("image" | "doc", file)` does the same for files in a chat (`orbit/chat/<user id>/…`; PDFs go up as `raw`). `src/lib/cloudinary.ts`: `signParams`, `cloudinaryUrl` (f_auto/q_auto delivery).
+
+## Communities and channels
+
+A community (`kind: "community"`) holds channels (`kind: "channel"`, `parent_slug`). `/communities/[slug]` is its home; a
+community with no channels keeps the older page, and a channel's old address redirects to `/communities/[slug]/[channel]`.
+`/communities` goes straight to the community when there's only one. `ChatThread` is shared by channels, circles and DMs,
+and so is `LibraryPanel` (Media / Links / Docs, on a channel's `info` page and at `/messages/[id]/library`).
 
 ## Data model (owned by the Orbit API)
 
