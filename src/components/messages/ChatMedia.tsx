@@ -1,11 +1,13 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { EventCover } from "@/components/events/EventCover";
 import { SocialIcon } from "@/components/social/icons";
 import { cloudinaryUrl } from "@/lib/cloudinary";
-import { fileSize } from "@/lib/social/format";
-import type { MessageAttachment, MessageLink } from "@/types/social";
+import { fileSize, plural } from "@/lib/social/format";
+import type { MessageAttachment, MessageLink, SummaryData } from "@/types/social";
 
 /** http(s) only: what a chat message or a scraped page says never becomes another kind of link. */
 export function safeHref(url: string | null | undefined) {
@@ -200,5 +202,33 @@ export function Lightbox({ images, index, onClose }: {
         </div>
       )}
     </dialog>
+  );
+}
+
+/** The daily summary in an Announcements channel: new events per category, each row a link. */
+export function EventSummary({ data }: { data: SummaryData }) {
+  return (
+    <div className="glass overflow-hidden rounded-[22px]">
+      <div className="px-4 pb-2.5 pt-3.5">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-accent">New on ORBIT</p>
+        <p className="mt-0.5 text-lg font-semibold tracking-tight">{plural(data.total, "new event")}</p>
+      </div>
+      <ul className="divide-y divide-line border-t border-line">
+        {data.categories.map((c) => (
+          <li key={c.href + c.name}>
+            <Link href={c.href} className="flex items-center gap-3 px-4 py-2.5 transition hover:bg-ink/[0.04]">
+              <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl">
+                <EventCover src={c.cover_url} title={c.name} width={120} className="h-full w-full" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{c.name}</span>
+                <span className="block text-xs text-muted">{plural(c.count, "new event")}</span>
+              </span>
+              <span aria-hidden className="text-muted">›</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
