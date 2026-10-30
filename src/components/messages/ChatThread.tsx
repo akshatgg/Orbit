@@ -9,7 +9,7 @@ import { deleteMessage, editMessage, markConversationRead, sendMessage } from "@
 import { clockTime, dayLabel, displayName, firstName, sameDay } from "@/lib/social/format";
 import { uploadChatAttachment } from "@/lib/storage";
 import type { AttachmentInput, ChatMessage, SocialUser, Thread } from "@/types/social";
-import { hasLink, LinkPreview, Linkified, MessageAttachments } from "./ChatMedia";
+import { EventSummary, hasLink, LinkPreview, Linkified, MessageAttachments } from "./ChatMedia";
 
 type Item = ChatMessage & { pending?: boolean };
 
@@ -58,7 +58,7 @@ function isChanged(known: Item, m: ChatMessage) {
 
 /** What ORBIT posts and event cards stand alone: no bubble, and they break a run of messages. */
 function standsAlone(m: Item) {
-  return !m.deleted && (m.kind === "event" || m.kind === "system");
+  return !m.deleted && (m.kind === "event" || m.kind === "system" || m.kind === "summary");
 }
 
 function merge(list: Item[], incoming: ChatMessage[]): Item[] {
@@ -467,6 +467,18 @@ export function ChatThread({ conversationId, initial, initialHasMore, initialPol
                 )}
               </span>
             );
+
+            if (!m.deleted && m.kind === "summary" && m.data) {
+              return (
+                <li key={m.id}>
+                  {dayRow}
+                  <div className="flex flex-col items-center py-1.5">
+                    <div className="w-full max-w-md"><EventSummary data={m.data} /></div>
+                    {meta}
+                  </div>
+                </li>
+              );
+            }
 
             if (!m.deleted && m.kind === "event") {
               return (

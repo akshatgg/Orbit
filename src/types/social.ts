@@ -226,7 +226,13 @@ export type Conversation = {
 
 export type ConversationList = { items: Conversation[]; unread_total: number; next_cursor?: string | null };
 
-export type MessageKind = "text" | "media" | "event" | "system";
+export type MessageKind = "text" | "media" | "event" | "system" | "summary";
+
+/** What a daily summary counts: one row per category, with where to see them. */
+export type SummaryData = {
+  total: number;
+  categories: { name: string; count: number; cover_url: string | null; href: string }[];
+};
 
 export type MessageAttachment = {
   id: string;
@@ -262,6 +268,8 @@ export type ChatMessage = {
   created_at: string;
   edited_at?: string | null;
   kind?: MessageKind;
+  /** Summary messages: the rows of the card. */
+  data?: SummaryData | null;
   /** Event messages: the card, or null when the event is gone or hidden. */
   event?: EventCardData | null;
   attachments?: MessageAttachment[];
