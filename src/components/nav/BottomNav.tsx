@@ -7,11 +7,17 @@ import { DesktopHeaderFrame } from "./DesktopHeader";
 const TABS = [
   { href: "/", label: "For You", match: (p: string) => p === "/" || p === "/week" || p === "/calendar", icon: "M4 11.500 12 5l8 6.500V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z" },
   { href: "/search", label: "Explore", match: (p: string) => p.startsWith("/search"), icon: "M11 4.500a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zm9 15.5-3.9-3.9" },
+  {
+    href: "/communities",
+    label: "Community",
+    match: (p: string) => p.startsWith("/communities") || p.startsWith("/circles") || p.startsWith("/join/"),
+    icon: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm-6 9a6 6 0 0 1 12 0m1.5-9a3 3 0 1 0 0-6m1.5 15h3a5 5 0 0 0-4.500-5",
+  },
   { href: "/tickets", label: "Tickets", match: (p: string) => p.startsWith("/tickets"), icon: "M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v1.500a2.5 2.5 0 0 0 0 5V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.500a2.5 2.5 0 0 0 0-5zm10-2v12" },
   { href: "/profile", label: "Profile", match: (p: string) => p.startsWith("/profile"), icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm-7 8.500a7 7 0 0 1 14 0" },
 ] as const;
 
-/** Fifth tab for people who host events (members of an organisation, or who chose the Host goal). */
+/** Last tab for people who host events (members of an organisation, or who chose the Host goal). */
 const STUDIO_TAB = {
   href: "/organiser",
   label: "Studio",
@@ -69,7 +75,7 @@ export function BottomNavView({ pathname, showStudio = false }: { pathname: stri
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex flex-col items-center gap-0.5 rounded-full py-2 text-[10.5px] font-medium transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
+                className={`flex flex-col items-center gap-0.5 rounded-full py-2 font-medium ${count > 5 ? "text-[10px] tracking-tight" : "text-[10.5px]"} transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent ${
                   active ? "text-fg light:text-accent" : "text-muted hover:text-fg"
                 }`}
               >
