@@ -80,7 +80,7 @@ const ROLES = [
 ] as const;
 
 /** A small segmented control that submits with its form, as radios. */
-function SegmentedRadios({ name, options, defaultValue, disabled }: {
+export function SegmentedRadios({ name, options, defaultValue, disabled }: {
   name: string;
   options: readonly { value: string; label: string }[];
   defaultValue: string;
@@ -107,7 +107,7 @@ const VISIBILITIES = [
   { value: "private", label: "Invite only" },
 ] as const;
 
-const POST_POLICIES = [
+export const POST_POLICIES = [
   { value: "everyone", label: "Everyone" },
   { value: "moderators", label: "Moderators" },
 ] as const;

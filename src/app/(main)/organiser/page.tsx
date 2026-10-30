@@ -9,11 +9,15 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Eyebrow, PageHeader } from "@/components/ui/PageHeader";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ShareToCommunityStep } from "@/components/organiser/CommunityShare";
 import { OrganiserLogo, OrganiserStatusBadge } from "@/components/organiser/OrganiserStatus";
+import { InviteLinkButton } from "@/components/social/CircleForms";
 import { getMyOrganisers, requireUser, type MyOrganiser } from "@/lib/auth";
 import type { EventWithCounts } from "@/lib/events/queries";
 import { groupOrganiserEvents, pickOrganiser, totalRegistrations } from "@/lib/organiser/dashboard";
 import { getFollowerCount, listOrganiserEvents } from "@/lib/organiser/queries";
+import { getCreatableOrganisers } from "@/lib/social/queries";
+import type { CreatableOrganisers } from "@/types/social";
 import { labelFor, ORGANISER_KINDS } from "@/lib/taxonomy";
 
 export const metadata: Metadata = { title: "Organiser Studio" };
@@ -72,7 +76,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/organiser
       {selected ? (
         <>
           {approved.length > 1 && <OrgSwitcher orgs={approved} selectedId={selected.id} />}
-          <OrganiserOverview org={selected} />
+          <OrganiserOverview org={selected} published={typeof params.published === "string" ? params.published : undefined} />
         </>
       ) : (
         others.length > 0 && !pending && (
@@ -263,10 +267,12 @@ function OrgSwitcher({ orgs, selectedId }: { orgs: MyOrganiser[]; selectedId: st
   );
 }
 
-async function OrganiserOverview({ org }: { org: MyOrganiser }) {
-  const [events, followers] = await Promise.all([listOrganiserEvents(org.id, org), getFollowerCount(org.id)]);
+async function OrganiserOverview({ org, published }: { org: MyOrganiser; published?: string }) {
+  const [events, followers, creatable] = await Promise.all([listOrganiserEvents(org.id, org), getFollowerCount(org.id), getCreatableOrganisers()]);
   const groups = groupOrganiserEvents(events);
   const live = [...groups.upcoming, ...groups.past];
+  const team = creatable.items.find((o) => o.id === org.id);
+  const justPublished = published ? events.find((e) => e.id === published) : undefined;
 
   return (
     <>
@@ -299,6 +305,12 @@ async function OrganiserOverview({ org }: { org: MyOrganiser }) {
         </ButtonLink>
       </div>
 
+      {justPublished && team && team.community_count > 0 && (
+        <ShareToCommunityStep eventId={justPublished.id} organiserId={org.id} live={justPublished.status === "published"} />
+      )}
+
+      {team && <CommunityEntry org={team} />}
+
       {events.length === 0 ? (
         <div className="rounded-[22px] border border-dashed border-ink/12 bg-ink/[0.025] px-6 py-10 text-center">
           <p className="font-semibold tracking-tight">No events yet</p>
@@ -313,6 +325,42 @@ async function OrganiserOverview({ org }: { org: MyOrganiser }) {
         </div>
       )}
     </>
+  );
+}
+
+/** The organisation's community on ORBIT: open it and copy its invite link, or create one. */
+function CommunityEntry({ org }: { org: CreatableOrganisers["items"][number] }) {
+  if (org.communities.length === 0) {
+    if (!org.can_create) return null;
+    return (
+      <section aria-labelledby="org-community" className="glass flex flex-col gap-3 rounded-[22px] p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h2 id="org-community" className="text-[15px] font-semibold tracking-tight">Your community</h2>
+          <p className="mt-0.5 text-sm text-muted">Give your members a home on ORBIT: announcements, channels and your events in their chats.</p>
+        </div>
+        <ButtonLink href={`/communities/new?organiser=${org.id}`} variant="secondary" className="shrink-0">Create a community</ButtonLink>
+      </section>
+    );
+  }
+  return (
+    <section aria-labelledby="org-community" className="glass space-y-3 rounded-[22px] p-4">
+      <h2 id="org-community" className="text-[15px] font-semibold tracking-tight">{org.communities.length === 1 ? "Your community" : "Your communities"}</h2>
+      <ul className="divide-y divide-line">
+        {org.communities.map((c) => (
+          <li key={c.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between">
+            <Link href={`/communities/${c.slug ?? c.id}`} className="min-w-0 truncate font-medium text-fg transition-colors hover:text-accent">
+              {c.name} <span aria-hidden className="text-muted">→</span>
+            </Link>
+            <InviteLinkButton groupId={c.id} groupName={c.name} />
+          </li>
+        ))}
+      </ul>
+      {org.can_create && (
+        <Link href={`/communities/new?organiser=${org.id}`} className="inline-block text-sm font-medium text-accent transition-colors hover:text-fg">
+          Create another community
+        </Link>
+      )}
+    </section>
   );
 }
 

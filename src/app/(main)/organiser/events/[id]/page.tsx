@@ -7,6 +7,8 @@ import { getInteractionCounts, getManagedEvent, listGuests } from "@/lib/guests/
 import { buildEventStats } from "@/lib/guests/stats";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { CopyLinkButton } from "@/components/guests/CopyLinkButton";
+import { ShareToCommunityButton } from "@/components/organiser/CommunityShare";
+import { getCreatableOrganisers } from "@/lib/social/queries";
 import { EventHeader, EventHeaderSkeleton, EventNav } from "@/components/guests/EventHeader";
 import { CapacityBar, OverviewSkeleton, RegistrationsChart, StatTiles, StatusBreakdown } from "@/components/guests/Stats";
 
@@ -28,7 +30,10 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
   const event = await getManagedEvent(id);
   if (!event) notFound();
 
-  const [guests, interactions] = await Promise.all([listGuests(id), getInteractionCounts(id)]);
+  const [guests, interactions, creatable] = await Promise.all([listGuests(id), getInteractionCounts(id), getCreatableOrganisers()]);
+  // Only a live event can be shared, and only where the organisation runs a community.
+  const shareable = event.status === "published" && !!event.organiser
+    && creatable.items.some((o) => o.id === event.organiser!.id && o.community_count > 0);
   const stats = buildEventStats(guests, { ...interactions, capacity: event.capacity, mode: event.registration_mode });
   const pending = stats.counts.pending;
   const base = `/organiser/events/${id}`;
@@ -69,6 +74,9 @@ async function Overview({ params }: { params: PageProps<"/organiser/events/[id]"
           <ButtonLink href={`${base}/edit`} variant="secondary">Edit event</ButtonLink>
           <Link href={`/events/${id}`} className={buttonClass({ variant: "secondary" })}>View public page</Link>
           <CopyLinkButton path={`/events/${id}`} title={event.title} />
+          {shareable && (
+            <ShareToCommunityButton eventId={id} organiserId={event.organiser!.id} eventTitle={event.title} className="col-span-2 sm:col-span-4" />
+          )}
         </div>
       </section>
 

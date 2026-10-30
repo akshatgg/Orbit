@@ -4,6 +4,7 @@ import { groupCategories, plural } from "@/lib/social/format";
 import type { GroupCard } from "@/types/social";
 import { AvatarStack } from "./AvatarStack";
 import { SocialIcon } from "./icons";
+import { OrganiserByline } from "./OrganiserByline";
 
 /** A community in the directory: name, categories, university, size, upcoming events, joined state. */
 export function CommunityCard({ community }: { community: GroupCard }) {
@@ -19,6 +20,7 @@ export function CommunityCard({ community }: { community: GroupCard }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-semibold leading-snug tracking-tight">{community.name}</span>
+          {community.organiser && <OrganiserByline organiser={community.organiser} plain className="mt-0.5" />}
           <span className="mt-1 flex flex-wrap gap-1.5">
             {joined && <Badge tone="success">Joined</Badge>}
             {groupCategories(community).slice(0, 3).map((c) => <Badge key={c.id || c.name} tone="brand">{c.name}</Badge>)}
@@ -56,6 +58,7 @@ export function CommunityRow({ community }: { community: GroupCard }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[15px] font-semibold leading-snug tracking-tight">{community.name}</span>
+        {community.organiser && <OrganiserByline organiser={community.organiser} plain />}
         <span className="mt-1 flex flex-wrap gap-1">
           {joined && <Badge tone="success">Joined</Badge>}
           {/* One category (+N) on phones, two from `sm`, so a row stays two lines. */}

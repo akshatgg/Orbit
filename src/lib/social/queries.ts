@@ -10,6 +10,7 @@ import type {
   BlockedUser,
   ChannelCard,
   ConversationList,
+  CreatableOrganisers,
   GroupDetail,
   GroupEventItem,
   GroupInviteRow,
@@ -131,11 +132,22 @@ export async function previewInvite(code: string): Promise<InviteLookup> {
   }
 }
 
-export async function listShareable(eventId: string) {
+/** Where the viewer can share this event; `organiserId` keeps the channels of that organisation's communities. */
+export async function listShareable(eventId: string, organiserId?: string) {
   const res = await authed.get<{ items: ShareableGroup[] } | ShareableGroup[]>("/groups/shareable", {
-    query: { event_id: eventId },
+    query: { event_id: eventId, organiser_id: organiserId },
   });
   return Array.isArray(res) ? res : res.items;
+}
+
+/** The organisations the viewer can create a community for, their communities, and whether they're an Orbit admin. */
+export async function getCreatableOrganisers(): Promise<CreatableOrganisers> {
+  return (await maybe<CreatableOrganisers>("/groups/creatable-organisers")) ?? { is_orbit_admin: false, limit: 3, items: [] };
+}
+
+/** Whether the viewer may create a community at all: an Orbit admin, or on the team of an approved organisation with room. */
+export function canCreateCommunity(creatable: CreatableOrganisers) {
+  return creatable.is_orbit_admin || creatable.items.some((o) => o.can_create);
 }
 
 export async function getInbox({ limit = 20, cursor }: { limit?: number; cursor?: string } = {}) {

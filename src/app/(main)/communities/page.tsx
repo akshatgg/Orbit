@@ -7,13 +7,14 @@ import { ViewList, ViewProvider } from "@/components/social/ListView";
 import { LoadMoreCards } from "@/components/social/LoadMoreCards";
 import { CommunityHomeSkeleton } from "@/components/social/Skeletons";
 import { SocialTabs } from "@/components/social/SocialTabs";
+import { SocialIcon } from "@/components/social/icons";
 import { ButtonLink } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { requireProfile } from "@/lib/auth";
 import { loadMoreCommunities } from "@/lib/social/feed-actions";
 import { groupCategories, groupPath } from "@/lib/social/format";
-import { getListView, listCommunities, type DirectoryFilters as Filters } from "@/lib/social/queries";
+import { canCreateCommunity, getCreatableOrganisers, getListView, listCommunities, type DirectoryFilters as Filters } from "@/lib/social/queries";
 
 export const metadata: Metadata = { title: "Communities" };
 
@@ -38,10 +39,12 @@ async function Directory({ searchParams }: { searchParams: PageProps<"/communiti
   const filtered = !!(filters.category || filters.university || filters.q);
 
   // The page, and (in parallel) the whole directory's categories and universities for the filters.
-  const [page, all] = await Promise.all([
+  const [page, all, creatable] = await Promise.all([
     listCommunities(filters),
     listCommunities({}, { limit: 50 }),
+    getCreatableOrganisers(),
   ]);
+  const canCreate = canCreateCommunity(creatable);
 
   // Every category any community covers (a community can have several); the API matches
   // `?category=` against any of them.
@@ -49,15 +52,24 @@ async function Directory({ searchParams }: { searchParams: PageProps<"/communiti
     .filter(([key]) => key)
     .sort((a, b) => a[1].localeCompare(b[1]));
   // Only one community, and nobody searching: its home is the directory. (The title stays behind the
-  // boundary so nothing of a directory flashes on the way.)
-  if (!filtered && all.total === 1 && all.items[0]) redirect(groupPath(all.items[0]));
+  // boundary so nothing of a directory flashes on the way.) Not for someone who can create one,
+  // who'd never see the button.
+  if (!filtered && !canCreate && all.total === 1 && all.items[0]) redirect(groupPath(all.items[0]));
 
   const universities = [...new Set(all.items.map((c) => c.university).filter((u): u is string => !!u))].sort();
   const Item = view === "list" ? CommunityRow : CommunityCard;
 
   return (
     <ViewProvider scope="communities" view={view}>
-      <PageHeader title="Communities" subtitle={SUBTITLE} />
+      <PageHeader
+        title="Communities"
+        subtitle={SUBTITLE}
+        action={canCreate ? (
+          <ButtonLink href="/communities/new" size="sm" aria-label="Create community">
+            <SocialIcon name="plus" className="h-4 w-4" /> Create<span className="hidden sm:inline">&nbsp;community</span>
+          </ButtonLink>
+        ) : undefined}
+      />
       <SocialTabs />
       <div className="space-y-4">
         <DirectoryFilters category={filters.category} university={filters.university} q={filters.q} categories={categories} universities={universities} />
