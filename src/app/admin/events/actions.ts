@@ -203,3 +203,57 @@ export async function saveEvent(eventId: string | null, _prev: EventFormState, f
   revalidateEverywhere();
   redirect(`/admin/events?when=all&q=${encodeURIComponent(values.title.slice(0, 60))}&saved=1`);
 }
+
+export type PastEventCleanupRun = {
+  ran: boolean;
+  reason?: string;
+  trigger?: "cron" | "manual";
+  deleted?: number;
+  images?: number;
+  finished_at?: string;
+  errors?: string[];
+};
+
+/** `GET /admin/settings/past-event-cleanup`. */
+export type PastEventCleanupSetting = {
+  enabled: boolean;
+  last_run: PastEventCleanupRun | null;
+  pending: number;
+  cutoff: string;
+  running: boolean;
+};
+
+/** The nightly switch: while on, the cron deletes every past event and its Cloudinary cover. */
+export async function setPastEventCleanup(on: boolean): Promise<ActionResult> {
+  await adminContext();
+  try {
+    await authed.put("/admin/settings/past-event-cleanup", { body: { on: on === true } });
+  } catch (error) {
+    return { ok: false, error: adminError(error) };
+  }
+  revalidateEverywhere();
+  return { ok: true, message: on ? "Nightly cleanup is on" : "Nightly cleanup is off" };
+}
+
+/** "Delete past events now": the same cleanup as the cron, whatever the switch says. */
+export async function runPastEventCleanup(): Promise<ActionResult> {
+  await adminContext();
+  let run: PastEventCleanupRun;
+  try {
+    run = await authed.post<PastEventCleanupRun>("/cron/cleanup-past-events");
+  } catch (error) {
+    return { ok: false, error: adminError(error) };
+  }
+  if (!run.ran) {
+    return { ok: false, error: run.reason === "already_running" ? "A cleanup is already running" : "The cleanup didn't run" };
+  }
+  revalidateEverywhere();
+  if (run.errors?.length) return { ok: false, error: `Stopped after ${run.deleted ?? 0} events: ${run.errors[0]}` };
+  const n = run.deleted ?? 0;
+  return {
+    ok: true,
+    message: n === 0
+      ? "No past events to delete"
+      : `Deleted ${n} past event${n === 1 ? "" : "s"} and ${run.images ?? 0} image${run.images === 1 ? "" : "s"}`,
+  };
+}
