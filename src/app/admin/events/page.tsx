@@ -5,6 +5,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { inputClass } from "@/components/ui/Field";
 import { AutoSubmitForm } from "@/components/admin/AutoSubmitForm";
 import { EventsTable, type EventTableRow } from "@/components/admin/EventsTable";
+import { PastEventCleanup } from "@/components/admin/PastEventCleanup";
 import { IconPlus, IconSearch, IconUpload } from "@/components/admin/icons";
 import { AdminHeader, Empty, Pagination, TableSkeleton, hrefWith } from "@/components/admin/primitives";
 import { Toaster } from "@/components/admin/Toaster";
@@ -13,6 +14,7 @@ import { EVENT_STATUS, sanitiseSearch, sourceLabel } from "@/lib/admin/labels";
 import { authed } from "@/lib/api/session";
 import { formatEventDate } from "@/lib/format";
 import type { EventStatus, OrbitEvent } from "@/types/database";
+import type { PastEventCleanupSetting } from "./actions";
 
 export const metadata: Metadata = { title: "Events · Admin" };
 
@@ -75,7 +77,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
   };
   const page = Math.max(1, Number.parseInt(str(sp.page), 10) || 1);
 
-  const [listing, organisers, sources, categoryPage] = await Promise.all([
+  const [listing, organisers, sources, categoryPage, cleanup] = await Promise.all([
     authed.get<{ items: Row[]; total: number }>("/admin/events", {
       query: {
         q: f.q,
@@ -91,6 +93,8 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
     authed.get<{ items: AdminOrganiserOption[] }>("/admin/organisers"),
     authed.get<SourceOption[]>("/admin/events/sources"),
     authed.get<{ items: { id: string; name: string }[] }>("/admin/categories"),
+    // The cleanup panel is optional: an API without the endpoint just hides it.
+    authed.get<PastEventCleanupSetting>("/admin/settings/past-event-cleanup").catch(() => null),
   ]);
 
   const rows = listing.items;
@@ -138,6 +142,7 @@ async function Content({ searchParams }: { searchParams: PageProps<"/admin/event
 
   return (
     <>
+      {cleanup && <PastEventCleanup setting={cleanup} />}
       <AutoSubmitForm action="/admin/events" className="mb-4 flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">
           <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-subtle" />
